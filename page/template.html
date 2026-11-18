@@ -115,7 +115,7 @@ dialog#help .x{float:right}
 <div class="tune">
 <h3>Try other settings</h3>
 <div class="row"><label for="k-body">Extruder body</label><select id="k-body"><option value="dual" selected>FilamATrix CW2, dual switch</option><option value="single">FilamATrix CW2, single switch</option><option value="none">FilamATrix CW2, no switch</option></select><output id="o-body" for="k-body"></output></div>
-<div class="row"><label for="k-mat">Material</label><select id="k-mat"><option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option><option value="ASA" selected>ASA</option><option value="PC">PC</option></select><output id="o-mat" for="k-mat"></output></div>
+<div class="row"><label for="k-mat">Material</label><select id="k-mat"><option value="PLA">PLA</option><option value="ABS">ABS</option><option value="PETG">PETG</option><option value="ASA" selected>ASA</option></select><output id="o-mat" for="k-mat"></output></div>
 <div class="row"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="20"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
 <div class="row"><label for="k-push">pushback_length</label><div class="rng"><input type="range" id="k-push" min="0" max="25" step="0.5" value="15"><span class="def" style="left:calc(60.000% + -1.60px)" title="AFC default: 15 mm"></span></div><output id="o-push" for="k-push"></output></div>
 <div class="row"><label for="k-cmd">cut_move_dist</label><div class="rng"><input type="range" id="k-cmd" min="4" max="13" step="0.5" value="8.5"><span class="def" style="left:calc(50.000% + 0.00px)" title="AFC default: 8.5 mm"></span></div><output id="o-cmd" for="k-cmd"></output></div>
@@ -202,7 +202,7 @@ const slideDx = a => rotPt(ARM_PIN, ARM_PIV, a)[0] - ARM_PIN[0];
 // ---- heat model ----
 // Material presets: typical print temperature, glass transition (softens) and the temperature above which the model treats
 // the plastic as liquid. Rough, generic figures; a given filament's datasheet may differ.
-const MATS = {PLA: {tp: 210, tg: 60, tl: 180}, PETG: {tp: 240, tg: 80, tl: 210}, ABS: {tp: 250, tg: 105, tl: 220}, ASA: {tp: 260, tg: 100, tl: 220}, PC: {tp: 275, tg: 145, tl: 250}};
+const MATS = {PLA: {tp: 210, tg: 60, tl: 180}, PETG: {tp: 240, tg: 80, tl: 210}, ABS: {tp: 250, tg: 105, tl: 220}, ASA: {tp: 260, tg: 100, tl: 220}};
 var TP = 260, TG = 100, TL = 220; const DS = 0.25, W0 = 1.75, GTIP = 0.06;
 function setMat(k){ const m = MATS[k]; TP = m.tp; TG = m.tg; TL = m.tl; }
 function Tw(z){ if (z <= 25.3) return TP; if (z <= 28.1) return TP + (90 - TP) * (z - 25.3) / 2.8; if (z <= 35.1) return 90 - 35 * (z - 28.1) / 7; if (z <= 54.1) return 50; return 40; }

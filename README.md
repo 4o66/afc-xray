@@ -32,7 +32,7 @@ too much?** It came out of chasing repeated jams at the top of the heat break.
 - An extruder-body choice: FilamATrix CW2 dual switch, single switch (top switch only), or no switch. With no switch,
   AFC uses the buffer as its sensor, and the page follows that path: the lane pulls back until the buffer reads trailing,
   then the 100 mm unload runs with no toolhead check.
-- A material preset (PLA, PETG, ABS, ASA, PC). It sets the print temperature, glass transition and liquid threshold
+- A material preset (PLA, ABS, PETG, ASA). It sets the print temperature, glass transition and liquid threshold
   in the heat model, and the color scale follows it.
 - Sliders for `retract_length`, `pushback_length`, `cut_move_dist` and the heat model's time constant. They start at
   AFC's shipped defaults, which red arrows mark. With `cut_move_dist`, the narration says where the blade crosses the
@@ -66,7 +66,6 @@ and AFC's 2 mm quick pull come first and are included.
 | PETG (240, 80) | 4.5–5.5 mm | 14 mm above |
 | ABS (250, 105) | 6.5–7 mm | 13 mm above |
 | ASA (260, 100) | 6–6.5 mm | 13 mm above |
-| PC (275, 145) | 7.5–8.5 mm | 12 mm above |
 
 The print temperature hardly matters in this model. What sets the limit is each plastic's glass transition against the
 heat break's temperature profile, which is an estimate, the same for every material. So low-Tg plastics come out the
