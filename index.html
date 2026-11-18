@@ -61,6 +61,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .tune .row{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) 4.5em;gap:10px;align-items:center;font-size:13.5px}
 .tune output{font-family:var(--mono);text-align:right}
 .tune input[type=range]{width:100%;margin:0}
+.tune select{font:500 13px var(--sans);padding:4px 8px;border:1px solid var(--rule);background:var(--chip);color:var(--fg);border-radius:4px;justify-self:start}
 .rng{position:relative;padding-top:12px;min-width:0}
 .rng .def{position:absolute;top:0;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #d21f2f;transform:translateX(-6px);pointer-events:none}
 .defkey{display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:9px solid #d21f2f;margin-right:4px;vertical-align:middle}
@@ -106,8 +107,8 @@ dialog#help .x{float:right}
 <dt>Toolhead</dt><dd id="r-h"></dd>
 </dl>
 <div class="metrics">
-<div class="metric"><div class="k"><span class="ln" style="--c:#f08a24"></span>Softened, &gt;100 °C</div><div class="v" id="m-soft"></div><div class="s" id="m-soft2"></div></div>
-<div class="metric"><div class="k"><span class="ln" style="--c:#c4122e"></span>Liquid, &gt;200 °C</div><div class="v" id="m-liq"></div><div class="s" id="m-liq2"></div></div>
+<div class="metric"><div class="k"><span class="ln" style="--c:#f08a24"></span><span id="l-soft">Softened</span></div><div class="v" id="m-soft"></div><div class="s" id="m-soft2"></div></div>
+<div class="metric"><div class="k"><span class="ln" style="--c:#c4122e"></span><span id="l-liq">Liquid</span></div><div class="v" id="m-liq"></div><div class="s" id="m-liq2"></div></div>
 </div>
 <div class="chips"><span class="chip" id="c-start"><b></b>Top switch (tool_start)</span><span class="chip" id="c-end"><b></b>Bottom switch (tool_end)</span></div>
 <div class="progress"><div class="dots" id="dots"></div><div class="bar"><span id="bar"></span></div></div>
@@ -121,6 +122,7 @@ dialog#help .x{float:right}
 </div>
 <div class="tune">
 <h3>Try other settings</h3>
+<div class="row"><label for="k-mat">Material</label><select id="k-mat"><option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option><option value="ASA" selected>ASA</option><option value="PC">PC</option></select><output id="o-mat" for="k-mat"></output></div>
 <div class="row"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="20"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
 <div class="row"><label for="k-push">pushback_length</label><div class="rng"><input type="range" id="k-push" min="0" max="25" step="0.5" value="15"><span class="def" style="left:calc(60.000% + -1.60px)" title="AFC default: 15 mm"></span></div><output id="o-push" for="k-push"></output></div>
 <div class="row"><label for="k-cmd">cut_move_dist</label><div class="rng"><input type="range" id="k-cmd" min="4" max="13" step="0.5" value="8.5"><span class="def" style="left:calc(50.000% + 0.00px)" title="AFC default: 8.5 mm"></span></div><output id="o-cmd" for="k-cmd"></output></div>
@@ -130,16 +132,16 @@ dialog#help .x{float:right}
 </div>
 <div class="key">
 <h3>Filament temperature</h3>
-<div class="tbar" role="img" aria-label="Color scale from 40 °C green through 100 °C yellow to 265 °C red"></div>
-<div class="tticks"><span>40</span><span>100 (Tg)</span><span>200 (liquid)</span><span>265 °C</span></div>
+<div class="tbar" role="img" aria-label="Color scale from 40 °C green through the glass transition in yellow to print temperature in red"></div>
+<div class="tticks" id="tticks"></div>
 <div class="i"><span class="ln" style="--c:#2a7fd4"></span>Heat break top, Z 35.1 (the reference for the readouts)</div>
 <div class="i"><span class="ln" style="--c:#7a8796"></span>Liner seat, Z 39.5 (bottom of the PTFE liner)</div>
 <div class="i"><span class="ln" style="--c:#f08a24"></span><span class="ln" style="--c:#c4122e"></span>Highest softened and liquid material so far in this run</div>
 <div class="i"><span class="sw" style="--c:#f4a3c4"></span>PTFE (bowden stub, hotend liner), cut faces</div>
 </div>
 <div class="notes">
-<p><strong>Heat model (estimates, not measured):</strong> wall temperature 265 °C in the block, falling to 90 °C across the exposed heat break (Z 25.3 to 28.1), 90 to 55 °C up the heat break inside the heatsink, 50 °C in the heatsink above it and 40 °C above the heatsink. Each 0.25 mm of filament moves toward its local wall temperature with the time constant set above (3 s is a rough figure for 1.75 mm filament in a close bore). The start state is steady printing at 2.5 mm/s of filament.</p>
-<p><strong>Liquid:</strong> material above 200 °C cannot be pulled up as a solid. On a pull, the tip moves 6 % of the pull and the liquid column stretches and thins (volume kept). On a push, it compresses back; anything pushed past the nozzle tip is extruded. Thinning is drawn by narrowing the filament.</p>
+<p><strong>Heat model (estimates, not measured):</strong> wall temperature at the print temperature in the block, falling to 90 °C across the exposed heat break (Z 25.3 to 28.1), 90 to 55 °C up the heat break inside the heatsink, 50 °C in the heatsink above it and 40 °C above the heatsink. Each 0.25 mm of filament moves toward its local wall temperature with the time constant set above (3 s is a rough figure for 1.75 mm filament in a close bore). The start state is steady printing at 2.5 mm/s of filament.</p>
+<p><strong>Liquid:</strong> material above the preset's liquid temperature cannot be pulled up as a solid. On a pull, the tip moves 6 % of the pull and the liquid column stretches and thins (volume kept). On a push, it compresses back; anything pushed past the nozzle tip is extruded. Thinning is drawn by narrowing the filament.</p>
 <p><strong>Timing:</strong> extruder moves are shown slowed down and waits are shown sped up; the label above the step title gives the factor. The heat model always runs on real time. Head travel times are estimates (marked in the steps).</p>
 <p><strong>Toolhead board:</strong> drawn as Voron Design's reference Stealthburner toolhead PCB; toolhead boards such as BTT's SB2209 mount in the same place. The board does not affect the analysis.</p>
 <p><strong>Moving parts:</strong> both extruder gears turn with every extruder move (hob contact radius 3.7 mm); the cutter arm is driven by the head motion (touch at the pin, then cut_move_dist further, at AFC's cut speeds) on its M3 pivot, blade holder sliding in X, the return spring (drawn as the parts-list spring: 0.5 × 4 × 25 mm, 14 coils, bent between the arm's pocket, tilted 18° up, and the level printhead pocket; compressed to about 13.1 mm at rest and 11.1 mm at full stroke, its arm end turning from 18° to 6°; it sits behind the cut plane inside the arm's pocket, so where the arm covers it, it is drawn faintly as a hidden part; the CAD models a straight 15 mm spring), guidler swinging in 0.15 mm when the gears are empty, switch balls riding on the filament.</p>
@@ -198,12 +200,16 @@ function cutFacts(){ // arm swing, blade travel, and where the blade crosses the
 const DRIVE_C = [4.675, 86.31], IDLER_C = [-3.825, 86.31], HOB_R = 3.7;
 const slideDx = a => rotPt(ARM_PIN, ARM_PIV, a)[0] - ARM_PIN[0];
 // ---- heat model ----
-const TP = 265, TG = 100, TL = 200, DS = 0.25, W0 = 1.75, GTIP = 0.06;
+// Material presets: typical print temperature, glass transition (softens) and the temperature above which the model treats
+// the plastic as liquid. Rough, generic figures; a given filament's datasheet may differ.
+const MATS = {PLA: {tp: 210, tg: 60, tl: 180}, PETG: {tp: 240, tg: 80, tl: 210}, ABS: {tp: 250, tg: 105, tl: 220}, ASA: {tp: 260, tg: 100, tl: 220}, PC: {tp: 275, tg: 145, tl: 250}};
+var TP = 260, TG = 100, TL = 220; const DS = 0.25, W0 = 1.75, GTIP = 0.06;
+function setMat(k){ const m = MATS[k]; TP = m.tp; TG = m.tg; TL = m.tl; }
 function Tw(z){ if (z <= 25.3) return TP; if (z <= 28.1) return TP + (90 - TP) * (z - 25.3) / 2.8; if (z <= 35.1) return 90 - 35 * (z - 28.1) / 7; if (z <= 54.1) return 50; return 40; }
-function tcolor(T){ const st = [[40,[47,174,79]],[60,[47,174,79]],[100,[242,194,48]],[160,[240,138,36]],[210,[217,58,43]],[265,[163,18,42]]];
+function tcolor(T){ const st = [[40,[47,174,79]],[Math.max(45, TG - 40),[47,174,79]],[TG,[242,194,48]],[(TG + TL) / 2,[240,138,36]],[TL,[217,58,43]],[TP,[163,18,42]]];
   if (T <= st[0][0]) return st[0][1]; for (let i = 1; i < st.length; i++) if (T <= st[i][0]){ const [a, ca] = st[i-1], [b, cb] = st[i], u = (T - a)/(b - a); return ca.map((v, j) => Math.round(v + (cb[j] - v)*u)); } return st[st.length-1][1]; }
 // ---- the sequence ----
-const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
+const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA"};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
 let P = Object.assign({}, FACTORY);
 function buildSteps(){
   const R = P.ret, Q = P.push;
@@ -400,16 +406,19 @@ document.getElementById("b-next").onclick = () => go(idx + 1);
 document.getElementById("b-prev").onclick = () => go(idx - 1);
 document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("select,input")) return;
   if (e.key === "ArrowRight") go(idx + 1); else if (e.key === "ArrowLeft") go(idx - 1); else if (e.key === " "){ e.preventDefault(); document.getElementById("b-play").click(); } });
-function syncOut(){ document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-cmd").textContent = P.cmd + " mm"; document.getElementById("o-tau").textContent = P.tau + " s"; }
-function rerun(){ layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
+function syncOut(){ document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-cmd").textContent = P.cmd + " mm"; document.getElementById("o-tau").textContent = P.tau + " s";  const m = MATS[P.mat]; document.getElementById("o-mat").textContent = `${m.tp} °C`;
+  document.getElementById("l-soft").textContent = `Softened, >${m.tg} °C`; document.getElementById("l-liq").textContent = `Liquid, >${m.tl} °C`;
+  document.getElementById("tticks").innerHTML = `<span>40</span><span>${m.tg} (Tg)</span><span>${m.tl} (liquid)</span><span>${m.tp} °C</span>`; }
+function rerun(){ setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
 [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("change", e => { P[k] = +e.target.value; rerun(); }));
 [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("input", e => { P[k] = +e.target.value; syncOut(); }));
-document.getElementById("b-reset").onclick = () => { P = Object.assign({}, FACTORY); [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); rerun(); };
+document.getElementById("b-reset").onclick = () => { P = Object.assign({}, FACTORY); document.getElementById("k-mat").value = P.mat; [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); rerun(); };
 const help = document.getElementById("help");
 document.getElementById("b-help").onclick = () => help.showModal();
 document.getElementById("b-help-x").onclick = () => help.close();
 help.addEventListener("click", e => { if (e.target === help) help.close(); });
-function start(){ layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
+document.getElementById("k-mat").addEventListener("change", e => { P.mat = e.target.value; rerun(); });
+function start(){ setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
 </script>
 
 </body>

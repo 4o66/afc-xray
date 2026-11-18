@@ -29,6 +29,8 @@ too much?** It came out of chasing repeated jams at the top of the heat break.
   - the filament-switch balls.
 - Readouts of how high softened (above 100 °C) and liquid (above 200 °C) plastic reaches, relative to the top of the
   heat break.
+- A material preset (PLA, PETG, ABS, ASA, PC). It sets the print temperature, glass transition and liquid threshold
+  in the heat model, and the color scale follows it.
 - Sliders for `retract_length`, `pushback_length`, `cut_move_dist` and the heat model's time constant. They start at
   AFC's shipped defaults, which red arrows mark. With `cut_move_dist`, the narration says where the blade crosses the
   filament, and whether it gets through at all.
@@ -51,14 +53,21 @@ heat-break temperature, or against cut remnants pulled from the hotend, would ma
 
 ### Result for this toolhead
 
-The largest `retract_length` that keeps softened plastic below the top of the heat break. It is from
-`tools/sweep/run_sweep.py`, and is in addition to the slicer's 1.5 mm and AFC's 2 mm quick pull:
+The largest `retract_length` that keeps softened plastic (at or above the glass transition) below the top of the heat
+break, from `tools/sweep/run_sweep.py`. It uses the page's material presets and AFC's other defaults. The slicer's 1.5 mm
+and AFC's 2 mm quick pull come first and are included.
 
-| Material (print °C, Tg °C) | Max `retract_length` | Softened plastic at 18 mm | At AFC's default 20 mm |
-|---|---|---|---|
-| ASA (265, ~100) | 6 mm (6.5–7 with slower cooling) | 11 mm above the heat break | 13 mm above |
-| PETG (240, ~80) | 5 mm | 12 mm above | 14 mm above |
-| PLA (210, ~60) | 1–2 mm | 16 mm above | 18 mm above |
+| Material preset (print °C, Tg °C) | Max `retract_length` (time constant 2–5 s) | Softened plastic at AFC's default 20 mm |
+|---|---|---|
+| PLA (210, 60) | 0.5–2 mm | 18 mm above the heat break top |
+| PETG (240, 80) | 4.5–5.5 mm | 14 mm above |
+| ABS (250, 105) | 6.5–7 mm | 13 mm above |
+| ASA (260, 100) | 6–6.5 mm | 13 mm above |
+| PC (275, 145) | 7.5–8.5 mm | 12 mm above |
+
+The print temperature hardly matters in this model. What sets the limit is each plastic's glass transition against the
+heat break's temperature profile, which is an estimate, the same for every material. So low-Tg plastics come out the
+most sensitive.
 
 ## Repository layout
 
