@@ -1,0 +1,3 @@
+var __el = function(){ return {textContent:"", style:{}, classList:{toggle:function(){}}, children:[], appendChild:function(){}, setAttribute:function(){}, addEventListener:function(){}, getContext:function(){ return {createPattern:function(){return null}}; }, checked:false, value:"5", innerHTML:""}; };
+var document = {getElementById: __el, createElement: function(){ var e=__el(); e.getContext=function(){return {beginPath:function(){},moveTo:function(){},lineTo:function(){},stroke:function(){}}}; return e; }, addEventListener:function(){}};
+function Image(){} function matchMedia(){ return {matches:false}; } function requestAnimationFrame(){} var performance={now:function(){return 0}};

@@ -1,0 +1,359 @@
+<title>AFC X-ray</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: drawing sheet; the animated section on the left, the narration, readouts and controls beside it; stacks on phones */
+:root{--bg:#eef0f2;--paper:#ffffff;--fg:#1c1e22;--muted:#5d6470;--rule:#cfd4da;--accent:#b8142c;--chip:#e3e7eb;--on:#1f7a3a;--off:#8a3b12;--warn:#9a5b00;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16181c;--paper:#ffffff;--fg:#e6e8eb;--muted:#9aa2ad;--rule:#33373e;--accent:#e2475d;--chip:#262a30;--on:#5cc27a;--off:#e08a5a;--warn:#f0b44c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#16181c;--paper:#ffffff;--fg:#e6e8eb;--muted:#9aa2ad;--rule:#33373e;--accent:#e2475d;--chip:#262a30;--on:#5cc27a;--off:#e08a5a;--warn:#f0b44c;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}}
+figure{margin:0;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px}
+canvas{display:block;height:min(88vh,1500px);width:auto;max-width:100%;aspect-ratio:1148/2212}
+@media (max-width:900px){canvas{width:100%;height:auto}}
+.cap{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font:500 12px var(--mono);color:#5d6470;flex-wrap:wrap}
+.scale{display:flex;align-items:center;gap:8px;flex:1 1 120px}
+.scale i{display:block;height:6px;width:24%;background:repeating-linear-gradient(90deg,#1c1e22 0 10%,#fff 10% 20%);border:1px solid #1c1e22}
+.side{display:grid;gap:16px;min-width:0}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px}
+h1{font-weight:600;font-size:1.45rem;line-height:1.2;margin:0;text-wrap:balance}
+.lede{color:var(--muted);margin:6px 0 0;font-size:14px}
+.panel{border-top:2px solid var(--fg);padding-top:12px;display:grid;gap:10px}
+.stepno{font:500 12px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.speed{color:var(--warn)}
+h2{font-weight:600;font-size:1.2rem;margin:0;text-wrap:balance}
+.narr{margin:0;min-height:6.5em}
+.readout{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:13.5px;margin:0}
+.readout dt{font:500 11.5px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
+.readout dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;min-width:0}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.metric{background:var(--chip);border-radius:4px;padding:8px 10px;min-width:0}
+.metric .k{font:500 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;gap:6px;align-items:center}
+.metric .v{font:500 1.15rem var(--mono);font-variant-numeric:tabular-nums}
+.metric .s{font-size:12.5px;color:var(--muted)}
+.ln{display:inline-block;width:18px;height:0;border-top:2px dashed var(--c)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 12.5px var(--mono);padding:3px 9px;border-radius:999px;background:var(--chip);display:inline-flex;gap:7px;align-items:center}
+.chip b{width:9px;height:9px;border-radius:50%;background:var(--off);display:inline-block}
+.chip.on b{background:var(--on)}
+.progress{display:grid;gap:6px}
+.dots{display:flex;gap:4px}
+.dots button{flex:1 1 0;min-width:10px;height:10px;border:0;border-radius:2px;background:var(--rule);cursor:pointer;padding:0}
+.dots button.done{background:var(--muted)} .dots button.cur{background:var(--accent)}
+.dots button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.bar{height:4px;background:var(--rule);border-radius:2px;overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:var(--accent)}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctrl button,.ctrl select{font:500 13px var(--sans);padding:6px 12px;border:1px solid var(--rule);background:var(--chip);color:var(--fg);border-radius:4px;cursor:pointer}
+.ctrl button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctrl label{font-size:13px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.tune{display:grid;gap:8px;border:1px solid var(--rule);border-radius:4px;padding:10px 12px}
+.tune h3,.key h3{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.tune .row{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) 4.5em;gap:10px;align-items:center;font-size:13.5px}
+.tune output{font-family:var(--mono);text-align:right}
+.tune input[type=range]{width:100%;margin:0}
+.rng{position:relative;padding-top:12px;min-width:0}
+.rng .def{position:absolute;top:0;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #d21f2f;transform:translateX(-6px);pointer-events:none}
+.defkey{display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:9px solid #d21f2f;margin-right:4px;vertical-align:middle}
+.tune .hint{font-size:12.5px;color:var(--muted);margin:0}
+.key{display:grid;gap:6px;font-size:13.5px}
+.tbar{height:12px;border-radius:2px;background:linear-gradient(90deg,#2fae4f 0%,#2fae4f 8.8%,#f2c230 26.4%,#f08a24 59.4%,#d93a2b 83.6%,#a3122a 100%);border:1px solid rgba(0,0,0,.3)}
+.tticks{display:flex;justify-content:space-between;font:500 11.5px var(--mono);color:var(--muted)}
+.key div.i{display:flex;gap:9px;align-items:center}
+.sw{flex:none;width:15px;height:15px;border-radius:2px;background:var(--c);border:1px solid rgba(0,0,0,.35)}
+.notes{font-size:13px;color:var(--muted)} .notes p{margin:0 0 7px} .notes strong{color:var(--fg);font-weight:600}
+</style>
+<div class="wrap">
+<figure>
+<canvas id="cv" width="1148" height="2212" role="img" aria-label="Animated front-on section of the toolhead showing the filament, its temperature and the moving parts through each step of the toolchange unload"></canvas>
+<div class="cap"><div class="scale"><i></i><span>10 mm</span></div><span id="clock">t = 0.00 s</span></div>
+</figure>
+<div class="side">
+<div>
+<p class="eyebrow">Section A–A · Trident toolchange unload</p>
+<h1>Where the hot plastic goes during a toolchange</h1>
+<p class="lede">AFC v1.2.0-5 and the live config of one Voron Trident (Stealthburner, FilamATrix Clockwork 2, Rapido V2 UHF, BoxTurtle). Extruder moves are exact; temperatures come from a simple heat model (see the notes).</p>
+</div>
+<div class="panel" aria-live="polite">
+<div class="stepno"><span id="stepno"></span><span class="speed" id="speed"></span></div>
+<h2 id="title"></h2>
+<p class="narr" id="narr"></p>
+<dl class="readout">
+<dt>Extruder</dt><dd id="r-e"></dd>
+<dt>Total</dt><dd id="r-t"></dd>
+<dt>Toolhead</dt><dd id="r-h"></dd>
+</dl>
+<div class="metrics">
+<div class="metric"><div class="k"><span class="ln" style="--c:#f08a24"></span>Softened, &gt;100 °C</div><div class="v" id="m-soft"></div><div class="s" id="m-soft2"></div></div>
+<div class="metric"><div class="k"><span class="ln" style="--c:#c4122e"></span>Liquid, &gt;200 °C</div><div class="v" id="m-liq"></div><div class="s" id="m-liq2"></div></div>
+</div>
+<div class="chips"><span class="chip" id="c-start"><b></b>Top switch (tool_start)</span><span class="chip" id="c-end"><b></b>Bottom switch (tool_end)</span></div>
+<div class="progress"><div class="dots" id="dots"></div><div class="bar"><span id="bar"></span></div></div>
+<div class="ctrl">
+<button id="b-prev" type="button" aria-label="Previous step">◀ Back</button>
+<button id="b-play" type="button" class="primary">Pause</button>
+<button id="b-next" type="button" aria-label="Next step">Next ▶</button>
+<label for="s-read">Reading time <select id="s-read"><option value="3">3 s</option><option value="5" selected>5 s</option><option value="8">8 s</option><option value="12">12 s</option></select></label>
+<label for="x-mag"><input type="checkbox" id="x-mag"> Magnify guidler swing ×6</label>
+</div>
+</div>
+<div class="tune">
+<h3>Try other settings</h3>
+<div class="row"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="18"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
+<div class="row"><label for="k-push">pushback_length</label><div class="rng"><input type="range" id="k-push" min="0" max="25" step="0.5" value="15"><span class="def" style="left:calc(60.000% + -1.60px)" title="AFC default: 15 mm"></span></div><output id="o-push" for="k-push"></output></div>
+<div class="row"><label for="k-tau">Heat time constant</label><div class="rng"><input type="range" id="k-tau" min="0.5" max="8" step="0.5" value="3"></div><output id="o-tau" for="k-tau"></output></div>
+<p class="hint"><span class="defkey" aria-hidden="true"></span>Red arrows mark AFC's shipped defaults (AFC_Macro_Vars.cfg, v1.2.0-5): retract_length 20, pushback_length 15. This printer ran 18 and 15 when this was made, and is now trialing 6 and 4. Changing a slider reruns the sequence from the start. The 1.5 mm slicer retract and AFC's 2 mm quick pull are fixed.</p>
+<div class="ctrl"><button id="b-reset" type="button">Reset to this printer's config</button></div>
+</div>
+<div class="key">
+<h3>Filament temperature</h3>
+<div class="tbar" role="img" aria-label="Color scale from 40 °C green through 100 °C yellow to 265 °C red"></div>
+<div class="tticks"><span>40</span><span>100 (Tg)</span><span>200 (liquid)</span><span>265 °C</span></div>
+<div class="i"><span class="ln" style="--c:#2a7fd4"></span>Heat break top, Z 35.1 (the reference for the readouts)</div>
+<div class="i"><span class="ln" style="--c:#7a8796"></span>Liner seat, Z 39.5 (bottom of the PTFE liner)</div>
+<div class="i"><span class="ln" style="--c:#f08a24"></span><span class="ln" style="--c:#c4122e"></span>Highest softened and liquid material so far in this run</div>
+<div class="i"><span class="sw" style="--c:#f4a3c4"></span>PTFE (bowden stub, hotend liner), cut faces</div>
+</div>
+<div class="notes">
+<p><strong>Heat model (estimates, not measured):</strong> wall temperature 265 °C in the block, falling to 90 °C across the exposed heat break (Z 25.3 to 28.1), 90 to 55 °C up the heat break inside the heatsink, 50 °C in the heatsink above it and 40 °C above the heatsink. Each 0.25 mm of filament moves toward its local wall temperature with the time constant set above (3 s is a rough figure for 1.75 mm filament in a close bore). The start state is steady printing at 2.5 mm/s of filament.</p>
+<p><strong>Liquid:</strong> material above 200 °C cannot be pulled up as a solid. On a pull, the tip moves 6 % of the pull and the liquid column stretches and thins (volume kept). On a push, it compresses back; anything pushed past the nozzle tip is extruded. Thinning is drawn by narrowing the filament.</p>
+<p><strong>Timing:</strong> extruder moves are shown slowed down and waits are shown sped up; the label above the step title gives the factor. The heat model always runs on real time. Head travel times are estimates (marked in the steps).</p>
+<p><strong>Toolhead board:</strong> drawn as Voron Design's reference Stealthburner toolhead PCB; this printer runs a BTT SB2209 in the same place. The board does not affect the analysis.</p>
+<p><strong>Moving parts:</strong> both extruder gears turn with every extruder move (hob contact radius 3.7 mm); the cutter arm is driven by the head motion (touch at X14, push to X3, the configured cut speeds) on its M3 pivot, blade holder sliding in X, the return spring (drawn as the parts-list spring: 0.5 × 4 × 25 mm, 14 coils, bent between the arm's pocket, tilted 18° up, and the level printhead pocket; compressed to about 13.1 mm at rest and 11.1 mm at full stroke, its arm end turning from 18° to 6°; it sits behind the cut plane inside the arm's pocket, so where the arm covers it, it is drawn faintly as a hidden part; the CAD models a straight 15 mm spring), guidler swinging in 0.15 mm when the gears are empty, switch balls riding on the filament.</p>
+<p><strong>Credits and licenses:</strong> page code and the heat model are AGPL-3.0. The drawing is rendered from <a href="https://github.com/thunderkeys/FilamATrix">FilamATrix</a> (thunderkeys) and <a href="https://github.com/VoronDesign">Voron Design</a> CAD (Stealthburner, Clockwork 2, and the <a href="https://github.com/VoronDesign/Voron-Hardware">Stealthburner toolhead PCB</a>), all GPL-3.0, so the rendered images and mesh data are GPL-3.0 too. Vendor models inside that CAD: Phaetus Rapido V2 UHF hotend, LDO stepper, Omron D2F switches and standard hardware, credited to their makers. Sequence and values from <a href="https://github.com/AFCProject/AFC-Klipper-Add-On">AFC-Klipper-Add-On</a> and Armored Turtle's documentation. Source: <a href="https://github.com/4o66/afc-xray">github.com/4o66/afc-xray</a>.</p>
+</div>
+</div>
+</div>
+<script>
+const DATA = __DATA__;
+const IMG = {base:"__BASE__", arm:"__ARM__", slide:"__SLIDE__", spring:"__SPRING__", guid:"__GUID__", dgear:"__DGEAR__", igear:"__IGEAR__", socc:"__SOCC__"};
+const PX = DATA.px, toX = x => (x - DATA.xmin) * PX, toY = z => (DATA.zmax - z) * PX, NP = DATA.xc.length;
+function idxz(z){ let i = Math.round((z - DATA.z0) / DATA.dz); return i < 0 ? 0 : i >= NP ? NP - 1 : i; }
+const cx = z => DATA.xc[idxz(z)], bore = z => z > 149 ? 2.0 : DATA.bore[idxz(z)], gapw = z => DATA.w[idxz(z)];
+// ---- geometry ----
+const BLADE_Z = 61.92, GEAR_Z = 86.31, TIP_Z = -8.5, HB_TOP = 35.1, LINER = 39.5;
+const BALLS = [{z:99.12, chip:"c-start"}, {z:76.19, chip:"c-end"}], BALL_R = 2.75, BALL_EMPTY_X = 2.75;
+const ARM_PIV = [-25.48, 46.18], ARM_PIN = [-31.57, 64.06], SPR_A = [-28.5, 54.76], SPR_A_ANG = 18 * Math.PI / 180, SPR_B = [-15.5, 55.65];
+const GUID_PIV = [-5.40, 73.16], GUID_EMPTY = 0.15 / 13.24, BLADE_TIP0 = -1.8;
+function rotPt(p, c, a){ const dx = p[0]-c[0], dz = p[1]-c[1], co = Math.cos(a), si = Math.sin(a); return [c[0] + dx*co + dz*si, c[1] - dx*si + dz*co]; }
+// cutter arm driven by the head: the arm tip (X -40.07, Z 96.36) touches the pin at head X14 (pin_loc_xy); the head pushes on to X3
+const ARM_TIP = [-40.07, 96.36], PIN_TOUCH_X = 14, PIN_PARK_X = 20, CUT_END_X = 3, FAST_END_X = 5.55;
+const ARM_TAB = []; for (let i = 0; i <= 120; i++){ const push = i * 0.1; let lo = 0, hi = 0.6; for (let k = 0; k < 40; k++){ const m = (lo+hi)/2; (rotPt(ARM_TIP, ARM_PIV, m)[0] - ARM_TIP[0] < push) ? lo = m : hi = m; } ARM_TAB.push((lo+hi)/2); }
+const armFromPush = p => { if (p <= 0) return 0; const f = Math.min(p, 11.99) / 0.1, i = Math.floor(f); return ARM_TAB[i] + (ARM_TAB[i+1] - ARM_TAB[i]) * (f - i); };
+// head X through one cut stroke (AFC_CUT _DO_CUT_MOTION): fast 32 mm/s to X5.55, slow 10 mm/s to X3, 50 ms dwell, [rip], 200 ms, evacuate 150 mm/s, 200 ms
+const T_FAST = (PIN_PARK_X - FAST_END_X) / 32, T_SLOW = (FAST_END_X - CUT_END_X) / 10, T_DW = 0.05, T_RIP = 1 / 3, T_P = 0.2, T_EV = (PIN_PARK_X - CUT_END_X) / 150;
+function headX(tt, rip){ if (tt < T_FAST) return PIN_PARK_X - 32 * tt; tt -= T_FAST; if (tt < T_SLOW) return FAST_END_X - 10 * tt; tt -= T_SLOW;
+  const hold = T_DW + (rip ? T_RIP : 0) + T_P; if (tt < hold) return CUT_END_X; tt -= hold; if (tt < T_EV) return CUT_END_X + 150 * tt; return PIN_PARK_X; }
+const CUT_DUR = T_FAST + T_SLOW + T_DW + T_P + T_EV + T_P, RIP_DUR = CUT_DUR + T_RIP, RIP_START = T_FAST + T_SLOW + T_DW;
+const DRIVE_C = [4.675, 86.31], IDLER_C = [-3.825, 86.31], HOB_R = 3.7;
+const slideDx = a => rotPt(ARM_PIN, ARM_PIV, a)[0] - ARM_PIN[0];
+// ---- heat model ----
+const TP = 265, TG = 100, TL = 200, DS = 0.25, W0 = 1.75, GTIP = 0.06;
+function Tw(z){ if (z <= 25.3) return TP; if (z <= 28.1) return TP + (90 - TP) * (z - 25.3) / 2.8; if (z <= 35.1) return 90 - 35 * (z - 28.1) / 7; if (z <= 54.1) return 50; return 40; }
+function tcolor(T){ const st = [[40,[47,174,79]],[60,[47,174,79]],[100,[242,194,48]],[160,[240,138,36]],[210,[217,58,43]],[265,[163,18,42]]];
+  if (T <= st[0][0]) return st[0][1]; for (let i = 1; i < st.length; i++) if (T <= st[i][0]){ const [a, ca] = st[i-1], [b, cb] = st[i], u = (T - a)/(b - a); return ca.map((v, j) => Math.round(v + (cb[j] - v)*u)); } return st[st.length-1][1]; }
+// ---- the sequence ----
+let P = {ret: 18, push: 15, tau: 3};
+function buildSteps(){
+  const R = P.ret, Q = P.push;
+  return [
+  {t:"Printing", h:"On the part", n:() => "Steady printing. Filament heats as it travels down: soft from the heat break down, liquid in the block. The balls are pushed out by the filament and the hob teeth pinch it toward the drive gear.", segs:[{k:"wait", dur:0, anim:900}]},
+  {t:"Slicer retract and wipe", h:"Wipe, spiral lift, bed drops 5 mm", n:() => "Orca's toolchange retract, 1.5 mm at 30 mm/s (the last 0.033 mm during a 1 mm wipe). Then the 0.4 mm spiral lift, the T command, and AFC's 5 mm bed drop, about 0.6 s with no extruder move (estimated).", segs:[{k:"e", E:-1.467, v:30}, {k:"e", E:-0.033, v:30}, {k:"wait", dur:0.6}]},
+  {t:"Quick pull, travel to the cutter", h:"Over the part, then to X20 Y317", n:() => "AFC pulls 2 mm at 25 mm/s and locks the lane motor to the extruder. The cut macro sets pressure advance to 0 and travels to the cutter park point; about 1.5 s with no extruder move (estimated).", segs:[{k:"e", E:-2, v:25}, {k:"wait", dur:1.5}]},
+  {t:"Cut retract", h:"Parked at X20 Y317", n:() => R > 0 ? `retract_length: ${R} mm at 25 mm/s. This is the move that drags hot material up: the liquid stretches out of the block and the softened zone rides up toward the heat break top. Watch the two readouts.` : "retract_length is 0: no cut retract.", segs:[{k:"e", E:-R, v:25}]},
+  {t:"Cut, twice, with rip", h:"X20 → 5.55 → 3, twice", n:() => "Two strokes onto the pin, from the configured cut settings. The arm touches the pin at head X14; the head pushes on 11 mm to X3, swinging the arm 12.3° and sliding the blade 3.9 mm. The blade crosses the filament between head X11.4 and X6.5, still in the 32 mm/s fast phase; the 10 mm/s slow phase starts at X5.55, after the cut. On the second stroke, with the blade held closed, the extruder pulls 1 mm at 3 mm/s (rip_length 1).", segs:[{k:"cut", dur:CUT_DUR}, {k:"cutrip", dur:RIP_DUR}]},
+  {t:"Pushback", h:"At the cutter", n:() => Q > 0 ? `pushback_length: ${Q} mm down at 25 mm/s. After 1 mm the lane's cut end meets the cut-off piece and pushes it ${Math.max(0, Q - 1)} mm back down; its liquid end compresses back toward the nozzle.` : "pushback_length is 0: no pushback.", segs:[{k:"e", E:Q, v:25}, {k:"wait", dur:0.02}]},
+  {t:"Pull back, park", h:"Cutter, then the park pad X114 Y356", n:() => Q > 0 ? `${Q} mm back up at 25 mm/s. The cut-off piece stays where it was pushed. Then AFC_PARK travels to the pad, about 1.5 s (estimated).` : "Then AFC_PARK travels to the pad, about 1.5 s (estimated).", segs:[{k:"e", E:-Q, v:25}, {k:"wait", dur:1.5}]},
+  {t:"Unload: bottom switch clears", h:"Park pad", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). After 13.3 mm the cut end passes the bottom ball and tool_end opens.", segs:[{k:"e", E:-13.27, v:25}]},
+  {t:"Unload: guidler swings in", h:"Park pad", n:() => "At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm until the gear teeth bottom.", segs:[{k:"e", E:-10.12, v:25}]},
+  {t:"Unload: top switch clears", h:"Park pad", n:() => "At 36.2 mm the end passes the top ball and tool_start opens: the filament has left the top sensor.", segs:[{k:"e", E:-12.81, v:25}]},
+  {t:"Unload ends, hotend waits", h:"Park pad", n:() => "The last 63.8 mm carries the end up the bowden. Then the lane pulls back to the hub and the next lane comes in; the cut-off piece sits in the hotend meanwhile. Shown: 20 s of that wait, sped up, as the piece reheats in place.", segs:[{k:"e", E:-63.8, v:25}, {k:"wait", dur:20, anim:3500}]},
+  ];
+}
+let STEPS = [], SEGS = [], T_END = 0;
+function layout(){
+  STEPS = buildSteps(); SEGS = []; let t = 0, E = 0;
+  STEPS.forEach((st, i) => { st.t0 = t; st.E0 = E; st.segs.forEach(sg => {
+    sg.real = sg.k === "e" ? Math.abs(sg.E) / sg.v : sg.dur;
+    sg.anim = sg.anim != null ? sg.anim : sg.k === "e" ? Math.max(sg.real * 1000, Math.min(4000, 1300 + Math.abs(sg.E) * 60)) : sg.k === "wait" ? Math.min(sg.real * 1000, 1200) : Math.max(sg.real * 1000, 2600);
+    sg.t0 = t; sg.E0 = E; t += sg.real; if (sg.k === "e") E += sg.E; if (sg.k === "cutrip") E += -1; sg.t1 = t; sg.E1 = E; sg.step = i; SEGS.push(sg); });
+    st.t1 = t; st.E1 = E; st.anim = st.segs.reduce((a, s) => a + s.anim, 0); });
+  T_END = t;
+}
+// lane displacement (mm, + = filament moves up) and arm fraction as functions of sim time
+function laneUp(t){ for (const sg of SEGS){ if (t <= sg.t1 || sg === SEGS[SEGS.length-1]){ const f = sg.real > 0 ? Math.max(0, Math.min(1, (t - sg.t0) / sg.real)) : 1;
+  if (sg.k === "e") return -(sg.E0 + (sg.E1 - sg.E0) * f); if (sg.k === "cutrip"){ const tt = t - sg.t0; const r = Math.max(0, Math.min(1, (tt - RIP_START) / T_RIP)); return -(sg.E0 - r); } return -sg.E0; } } return -SEGS[SEGS.length-1].E1; }
+function armAng(t){ for (const sg of SEGS){ if (t < sg.t0 || t > sg.t1) continue; if (sg.k === "cut" || sg.k === "cutrip") return armFromPush(PIN_TOUCH_X - headX(t - sg.t0, sg.k === "cutrip")); } return 0; }
+const smooth = a => a*a*(3 - 2*a);
+// ---- simulation state: pieces of filament as chains of nodes (z, T), z along the path ----
+const SIM = {};
+function simReset(){
+  const N = Math.round((300 - TIP_Z) / DS) + 1, z = new Float64Array(N), T = new Float64Array(N);
+  for (let i = 0; i < N; i++) z[i] = TIP_Z + i * DS;
+  // steady printing: material moves down at v, relaxing toward the wall temperature
+  const v = 2.5; let Tc = Tw(300); for (let i = N - 1; i >= 0; i--){ const dt = DS / v; Tc += (Tw(z[i]) - Tc) * (1 - Math.exp(-dt / P.tau)); T[i] = Tc; }
+  SIM.pieces = [{z: Array.from(z), T: Array.from(T), lane: true}]; SIM.t = 0; SIM.up = 0; SIM.cut = false;
+  SIM.peakSoft = -99; SIM.peakLiq = -99; measure();
+}
+function moveChain(p, d, anchorTip){
+  // d > 0 up. Solid nodes move d; liquid nodes below the lowest solid run stretch or compress.
+  const n = p.z.length; let f = 0; while (f < n && p.T[f] >= TL) f++;
+  if (f === 0 || f >= n || !anchorTip){ for (let i = 0; i < n; i++) p.z[i] += d; }
+  else { const z0 = p.z[0], zf = p.z[f]; for (let i = 0; i < n; i++){ if (i >= f){ p.z[i] += d; continue; } const u = zf > z0 ? (p.z[i] - z0) / (zf - z0) : 1; p.z[i] += d * (GTIP + (1 - GTIP) * u); } }
+  // anything pushed past the nozzle tip is extruded
+  while (p.z.length > 1 && p.z[0] < TIP_Z - 0.01){ p.z.shift(); p.T.shift(); }
+}
+function simStep(t1){
+  const H = 0.004;
+  while (SIM.t < t1 - 1e-9){
+    const dt = Math.min(H, t1 - SIM.t), tn = SIM.t + dt;
+    // cut when the blade passes the filament
+    if (!SIM.cut && BLADE_TIP0 + slideDx(armAng(tn)) > cx(BLADE_Z)) cutAt(BLADE_Z);
+    const up = laneUp(tn), d = up - SIM.up; SIM.up = up;
+    if (d !== 0){
+      const lane = SIM.pieces.find(p => p.lane), rem = SIM.pieces.find(p => !p.lane);
+      moveChain(lane, d, !rem);
+      if (rem && d < 0){ const gap = lane.z[0] - rem.z[rem.z.length - 1]; if (gap < 0){ moveChain(rem, gap, true); } }
+    }
+    const k = 1 - Math.exp(-dt / P.tau);
+    for (const p of SIM.pieces) for (let i = 0; i < p.z.length; i++) p.T[i] += (Tw(p.z[i]) - p.T[i]) * k;
+    SIM.t = tn; measure();
+  }
+}
+function cutAt(zc){
+  const p = SIM.pieces[0]; let i = 0; while (i < p.z.length && p.z[i] < zc) i++;
+  if (i === 0 || i >= p.z.length) return;
+  const u = (zc - p.z[i-1]) / (p.z[i] - p.z[i-1]), Tc = p.T[i-1] + (p.T[i] - p.T[i-1]) * u;
+  const rem = {z: p.z.slice(0, i).concat([zc]), T: p.T.slice(0, i).concat([Tc]), lane: false};
+  const lane = {z: [zc].concat(p.z.slice(i)), T: [Tc].concat(p.T.slice(i)), lane: true};
+  SIM.pieces = [rem, lane]; SIM.cut = true;
+}
+function measure(){ let s = -99, l = -99; for (const p of SIM.pieces) for (let i = 0; i < p.z.length; i++){ if (p.T[i] > TG && p.z[i] > s) s = p.z[i]; if (p.T[i] > TL && p.z[i] > l) l = p.z[i]; }
+  SIM.soft = s; SIM.liq = l; if (s > SIM.peakSoft) SIM.peakSoft = s; if (l > SIM.peakLiq) SIM.peakLiq = l; }
+function seek(t){ if (t < SIM.t - 1e-9) simReset(); simStep(t); }
+// ---- drawing ----
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const imgs = {}; let loaded = 0;
+for (const k in IMG){ const im = new Image(); im.onload = () => { if (++loaded === Object.keys(IMG).length) start(); }; im.src = IMG[k]; imgs[k] = im; }
+const hatch = (() => { const c = document.createElement("canvas"); c.width = c.height = 9; const g = c.getContext("2d");
+  g.strokeStyle = "rgba(0,0,0,0.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, 9); g.lineTo(9, 0); g.stroke(); return ctx.createPattern(c, "repeat"); })();
+function drawPiece(p){
+  const n = p.z.length; if (n < 2) return;
+  const W = new Array(n);
+  for (let i = 0; i < n; i++){ const a = p.z[Math.max(0, i-1)], b = p.z[Math.min(n-1, i+1)], sp = (b - a) / ((Math.min(n-1, i+1) - Math.max(0, i-1)) || 1);
+    let w = W0 * Math.sqrt(DS / Math.max(sp, 1e-3)); w = Math.min(w, bore(p.z[i]), gapw(p.z[i])); W[i] = Math.max(0.12, w); }
+  const L = [], R = [];
+  for (let i = 0; i < n; i++){ const z = p.z[i]; if (z > 149.9) break; const x = cx(z), w = W[i]; L.push([toX(x - w/2), toY(z)]); R.push([toX(x + w/2), toY(z)]);
+    if (i < n - 1 && z >= -9){ const z2 = Math.min(p.z[i+1], 149.9), x2 = cx(z2), w2 = W[i+1], c = tcolor((p.T[i] + p.T[i+1]) / 2);
+      ctx.beginPath(); ctx.moveTo(toX(x - w/2), toY(z)); ctx.lineTo(toX(x2 - w2/2), toY(z2) - 0.6); ctx.lineTo(toX(x2 + w2/2), toY(z2) - 0.6); ctx.lineTo(toX(x + w/2), toY(z)); ctx.closePath();
+      ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fill(); } }
+  if (L.length < 2) return;
+  ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]); for (const q of L) ctx.lineTo(q[0], q[1]); for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]); ctx.closePath();
+  ctx.fillStyle = hatch; ctx.fill(); ctx.lineWidth = 1.4; ctx.strokeStyle = "rgba(20,24,28,0.85)"; ctx.stroke();
+}
+// cutter return spring, BOM part: 0.5 mm wire, 4 mm OD, 25 mm free, 14 coils. Its arm end sits in a pocket tilted 18 deg up
+// (floor at X -28.5 Z 54.76, turning with the arm); its other end in the level printhead pocket (floor X -15.5 Z 55.65).
+// The centreline is a cubic curve leaving each seat along its pocket axis.
+const SPR_COILS = 14, SPR_RM = 1.75, SPR_WIRE = 0.5;
+function drawSpring(a){
+  const A = rotPt(SPR_A, ARM_PIV, a), da = SPR_A_ANG - a, B = SPR_B, h = Math.hypot(B[0] - A[0], B[1] - A[1]) / 3;
+  const P1 = [A[0] + h * Math.cos(da), A[1] + h * Math.sin(da)], P2 = [B[0] - h, B[1]];
+  const bez = t => { const u = 1 - t; return [u*u*u*A[0] + 3*u*u*t*P1[0] + 3*u*t*t*P2[0] + t*t*t*B[0], u*u*u*A[1] + 3*u*u*t*P1[1] + 3*u*t*t*P2[1] + t*t*t*B[1]]; };
+  const tan = t => { const u = 1 - t; return [3*u*u*(P1[0]-A[0]) + 6*u*t*(P2[0]-P1[0]) + 3*t*t*(B[0]-P2[0]), 3*u*u*(P1[1]-A[1]) + 6*u*t*(P2[1]-P1[1]) + 3*t*t*(B[1]-P2[1])]; };
+  // arc-length table so the coils stay evenly spaced along the bend
+  const M = 200, S = [0]; let prev = bez(0); for (let i = 1; i <= M; i++){ const q = bez(i / M); S.push(S[i-1] + Math.hypot(q[0]-prev[0], q[1]-prev[1])); prev = q; }
+  const tAt = f => { const L = f * S[M]; let i = 1; while (i < M && S[i] < L) i++; return (i - 1 + (L - S[i-1]) / ((S[i] - S[i-1]) || 1)) / M; };
+  const N = SPR_COILS * 24;
+  const pt = k => { const f = k / N, t = tAt(f), c = bez(t), g = tan(t), gl = Math.hypot(g[0], g[1]) || 1, nx = -g[1]/gl, nz = g[0]/gl, th = 2 * Math.PI * SPR_COILS * f, o = SPR_RM * Math.cos(th);
+    return [toX(c[0] + nx * o), toY(c[1] + nz * o), Math.sin(th)]; };
+  ctx.save(); ctx.lineCap = "round";
+  for (const front of [false, true]){
+    ctx.beginPath(); let on = false;
+    for (let k = 0; k <= N; k++){ const [x, y, sn] = pt(k); const vis = front ? sn >= 0 : sn < 0; if (vis){ on ? ctx.lineTo(x, y) : ctx.moveTo(x, y); on = true; } else on = false; }
+    if (front){ ctx.strokeStyle = "rgba(20,24,28,.9)"; ctx.lineWidth = SPR_WIRE * PX + 2.5; ctx.stroke(); ctx.strokeStyle = "#c3c9d1"; ctx.lineWidth = SPR_WIRE * PX - 1; ctx.stroke(); }
+    else { ctx.strokeStyle = "#6e757e"; ctx.lineWidth = SPR_WIRE * PX - 1; ctx.stroke(); }
+  }
+  ctx.restore();
+}
+function sprite(k, tf){ const s = DATA.sprites[k]; ctx.save(); tf && tf(); ctx.drawImage(imgs[k], s.x, s.y); ctx.restore(); }
+function rotAbout(c, a){ ctx.translate(toX(c[0]), toY(c[1])); ctx.rotate(a); ctx.translate(-toX(c[0]), -toY(c[1])); }
+function hline(z, col, dash, wdt){ if (z < -9) return; ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle = col; ctx.lineWidth = wdt; ctx.beginPath(); ctx.moveTo(toX(-11), toY(z)); ctx.lineTo(toX(11), toY(z)); ctx.stroke(); ctx.restore(); }
+function present(z){ for (const p of SIM.pieces) if (p.z.length > 1 && z >= p.z[0] && z <= p.z[p.z.length-1]) return true; return false; }
+const view = {guid: 0, balls: [0, 0]};
+function draw(dt){
+  const a = armAng(SIM.t), mag = document.getElementById("x-mag").checked ? 6 : 1, gearA = SIM.up / HOB_R;
+  view.guid += ((present(GEAR_Z) ? 0 : GUID_EMPTY * mag) - view.guid) * Math.min(1, dt * 7);
+  ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(imgs.base, 0, 0);
+  sprite("dgear", () => rotAbout(DRIVE_C, gearA));
+  sprite("guid", () => rotAbout(GUID_PIV, view.guid));
+  sprite("igear", () => { rotAbout(GUID_PIV, view.guid); rotAbout(IDLER_C, -gearA); });
+  drawSpring(a); sprite("socc");
+  sprite("arm", () => rotAbout(ARM_PIV, a));
+  sprite("slide", () => ctx.translate(slideDx(a) * PX, 0));
+  ctx.save(); ctx.globalAlpha = 0.45; drawSpring(a); ctx.restore();       // hidden behind the cut plane: shown faintly
+  for (const p of SIM.pieces) drawPiece(p);
+  hline(LINER, "rgba(122,135,150,.9)", [10, 6], 2); hline(HB_TOP, "#2a7fd4", [10, 6], 2.5);
+  hline(SIM.peakSoft, "#f08a24", [4, 4], 2.5); hline(SIM.peakLiq, "#c4122e", [4, 4], 2.5);
+  BALLS.forEach((b, i) => { const on = present(b.z), w = Math.min(W0, bore(b.z), gapw(b.z));
+    const tx = on ? cx(b.z) + w/2 + BALL_R : BALL_EMPTY_X; view.balls[i] += (tx - view.balls[i]) * Math.min(1, dt * 12);
+    const bx = view.balls[i], pr = bx + BALL_R;
+    if (pr < 6.0){ ctx.fillStyle = "#3a3d44"; ctx.fillRect(toX(Math.max(pr, 5.5)), toY(b.z + 0.57), (6.0 - Math.max(pr, 5.5)) * PX, 1.14 * PX); }
+    ctx.beginPath(); ctx.arc(toX(bx), toY(b.z), BALL_R * PX, 0, 2*Math.PI); ctx.fillStyle = "#e4e8ee"; ctx.fill(); ctx.fillStyle = hatch; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = "rgba(20,24,28,.85)"; ctx.stroke();
+    document.getElementById(b.chip).classList.toggle("on", on); });
+  const rel = z => z < -50 ? "none" : `${(z - HB_TOP) >= 0 ? "+" : "−"}${Math.abs(z - HB_TOP).toFixed(1)} mm vs heat break top`;
+  document.getElementById("m-soft").textContent = SIM.soft < -50 ? "none" : `Z ${SIM.soft.toFixed(1)}`;
+  document.getElementById("m-soft2").textContent = `${rel(SIM.soft)}; peak ${rel(SIM.peakSoft)}`;
+  document.getElementById("m-liq").textContent = SIM.liq < -50 ? "none" : `Z ${SIM.liq.toFixed(1)}`;
+  document.getElementById("m-liq2").textContent = `${rel(SIM.liq)}; peak ${rel(SIM.peakLiq)}`;
+  document.getElementById("clock").textContent = `t = ${SIM.t.toFixed(2)} s (real time)`;
+}
+// ---- playback ----
+let idx = 0, phase = "anim", t0 = 0, playing = true, last = 0;
+const readMs = () => +document.getElementById("s-read").value * 1000;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const dots = document.getElementById("dots");
+const fmt = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(Math.abs(v) < 0.1 && v !== 0 ? 3 : 2).replace(/\.?0+$/, "") + " mm";
+function buildDots(){ dots.innerHTML = ""; STEPS.forEach((st, i) => { const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", `Step ${i+1}: ${st.t}`); b.onclick = () => go(i); dots.appendChild(b); }); }
+function eText(st){ const es = st.segs.filter(s => s.k === "e" && s.E !== 0); const rip = st.segs.some(s => s.k === "cutrip");
+  const parts = es.map(s => `${fmt(s.E)} at ${s.v} mm/s`); if (rip) parts.push("−1 mm at 3 mm/s (rip)"); return parts.length ? parts.join(", ") : "no move"; }
+function text(i){ const st = STEPS[i];
+  document.getElementById("stepno").textContent = `Step ${i+1} of ${STEPS.length}`;
+  document.getElementById("title").textContent = st.t; document.getElementById("narr").textContent = st.n();
+  document.getElementById("r-e").textContent = eText(st);
+  document.getElementById("r-t").textContent = `${fmt(st.E1)} since printing stopped`;
+  document.getElementById("r-h").textContent = st.h;
+  [...dots.children].forEach((d, j) => { d.className = j < i ? "done" : j === i ? "cur" : ""; d.setAttribute("aria-current", j === i ? "step" : "false"); }); }
+function speedText(sg){ if (!sg || sg.real <= 0) return ""; const r = sg.anim / 1000 / sg.real;
+  if (r > 1.05) return `Slowed ${r >= 10 ? Math.round(r) : r.toFixed(1)}× (not real time)`; if (r < 0.95) return `Sped up ${(1/r).toFixed(1)}× (time-lapse)`; return "Real time"; }
+function go(i){ idx = Math.max(0, Math.min(STEPS.length - 1, i)); phase = reduce ? "read" : "anim"; t0 = performance.now(); text(idx); setPlayLabel();
+  seek(reduce ? STEPS[idx].t1 : STEPS[idx].t0); }
+function curSeg(el){ const st = STEPS[idx]; let acc = 0; for (const sg of st.segs){ if (el <= acc + sg.anim) return [sg, sg.anim > 0 ? (el - acc) / sg.anim : 1]; acc += sg.anim; } return [st.segs[st.segs.length-1], 1]; }
+function frame(now){
+  const dt = last ? Math.min(0.1, (now - last)/1000) : 0.016; last = now;
+  const st = STEPS[idx]; let el = now - t0;
+  if (!playing){ el = Math.min(el, phase === "anim" ? st.anim : readMs()); t0 = now - el; }
+  if (phase === "anim"){
+    if (el >= st.anim){ phase = "read"; t0 = now; el = 0; seek(st.t1); document.getElementById("speed").textContent = ""; }
+    else { const [sg, f] = curSeg(el); seek(sg.t0 + (sg.t1 - sg.t0) * f); document.getElementById("speed").textContent = speedText(sg); } }
+  const tot = st.anim + readMs(), done = phase === "anim" ? el : st.anim + el;
+  document.getElementById("bar").style.width = (100 * Math.min(1, done / tot)) + "%";
+  if (phase === "read" && playing && el >= readMs()){ if (idx < STEPS.length - 1) go(idx + 1); else { playing = false; setPlayLabel(); } }
+  draw(dt); requestAnimationFrame(frame);
+}
+function setPlayLabel(){ document.getElementById("b-play").textContent = playing ? "Pause" : (idx === STEPS.length - 1 && phase === "read" ? "Replay" : "Play"); }
+document.getElementById("b-play").onclick = () => { if (!playing && idx === STEPS.length - 1 && phase === "read"){ playing = true; go(0); } else { playing = !playing; setPlayLabel(); } };
+document.getElementById("b-next").onclick = () => go(idx + 1);
+document.getElementById("b-prev").onclick = () => go(idx - 1);
+document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("select,input")) return;
+  if (e.key === "ArrowRight") go(idx + 1); else if (e.key === "ArrowLeft") go(idx - 1); else if (e.key === " "){ e.preventDefault(); document.getElementById("b-play").click(); } });
+function syncOut(){ document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-tau").textContent = P.tau + " s"; }
+function rerun(){ layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
+[["k-ret","ret"],["k-push","push"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("change", e => { P[k] = +e.target.value; rerun(); }));
+[["k-ret","ret"],["k-push","push"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("input", e => { P[k] = +e.target.value; syncOut(); }));
+document.getElementById("b-reset").onclick = () => { P = {ret: 18, push: 15, tau: 3}; document.getElementById("k-ret").value = 18; document.getElementById("k-push").value = 15; document.getElementById("k-tau").value = 3; rerun(); };
+function start(){ layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
+</script>
