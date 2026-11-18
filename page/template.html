@@ -8,6 +8,7 @@
 --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16181c;--paper:#ffffff;--fg:#e6e8eb;--muted:#9aa2ad;--rule:#33373e;--accent:#e2475d;--chip:#262a30;--on:#5cc27a;--off:#e08a5a;--warn:#f0b44c;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#16181c;--paper:#ffffff;--fg:#e6e8eb;--muted:#9aa2ad;--rule:#33373e;--accent:#e2475d;--chip:#262a30;--on:#5cc27a;--off:#e08a5a;--warn:#f0b44c;color-scheme:dark}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
 .wrap{max-width:1280px;margin:0 auto;padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:28px;align-items:start}
 @media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}}
@@ -86,7 +87,7 @@ dialog#help .x{float:right}
 <div>
 <p class="eyebrow">Section A–A · AFC toolchange unload</p>
 <h1>Where the hot plastic goes during a toolchange</h1>
-<p class="lede">AFC v1.2.0-5 with its shipped default settings, on a Stealthburner with a FilamATrix Clockwork 2 (dual switch) and a Phaetus Rapido V2 UHF. Extruder moves follow AFC's code exactly; temperatures come from a simple heat model (see the notes).</p>
+<p class="lede">AFC v1.2.0-5 with its shipped default settings, on a Stealthburner with <span id="lede-body">a FilamATrix Clockwork 2 (dual switch)</span> and a Phaetus Rapido V2 UHF. Extruder moves follow AFC's code exactly; temperatures come from a simple heat model (see the notes).</p>
 </div>
 <div class="panel" aria-live="polite">
 <div class="stepno"><span id="stepno"></span><span class="speed" id="speed"></span></div>
@@ -101,7 +102,7 @@ dialog#help .x{float:right}
 <div class="metric"><div class="k"><span class="ln" style="--c:#f08a24"></span><span id="l-soft">Softened</span></div><div class="v" id="m-soft"></div><div class="s" id="m-soft2"></div></div>
 <div class="metric"><div class="k"><span class="ln" style="--c:#c4122e"></span><span id="l-liq">Liquid</span></div><div class="v" id="m-liq"></div><div class="s" id="m-liq2"></div></div>
 </div>
-<div class="chips"><span class="chip" id="c-start"><b></b>Top switch (tool_start)</span><span class="chip" id="c-end"><b></b>Bottom switch (tool_end)</span></div>
+<div class="chips"><span class="chip" id="c-start"><b></b>Top switch (tool_start)</span><span class="chip" id="c-end"><b></b>Bottom switch (tool_end)</span><span class="chip" id="c-trl" hidden><b></b>Buffer trailing</span><span class="chip" id="c-adv" hidden><b></b>Buffer advance</span></div>
 <div class="progress"><div class="dots" id="dots"></div><div class="bar"><span id="bar"></span></div></div>
 <div class="ctrl">
 <button id="b-prev" type="button" aria-label="Previous step">◀ Back</button>
@@ -113,6 +114,7 @@ dialog#help .x{float:right}
 </div>
 <div class="tune">
 <h3>Try other settings</h3>
+<div class="row"><label for="k-body">Extruder body</label><select id="k-body"><option value="dual" selected>FilamATrix CW2, dual switch</option><option value="single">FilamATrix CW2, single switch</option><option value="none">FilamATrix CW2, no switch</option></select><output id="o-body" for="k-body"></output></div>
 <div class="row"><label for="k-mat">Material</label><select id="k-mat"><option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option><option value="ASA" selected>ASA</option><option value="PC">PC</option></select><output id="o-mat" for="k-mat"></output></div>
 <div class="row"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="20"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
 <div class="row"><label for="k-push">pushback_length</label><div class="rng"><input type="range" id="k-push" min="0" max="25" step="0.5" value="15"><span class="def" style="left:calc(60.000% + -1.60px)" title="AFC default: 15 mm"></span></div><output id="o-push" for="k-push"></output></div>
@@ -161,7 +163,14 @@ dialog#help .x{float:right}
 </dialog>
 <script>
 const DATA = __DATA__;
-const IMG = {base:"__BASE__", arm:"__ARM__", slide:"__SLIDE__", spring:"__SPRING__", guid:"__GUID__", dgear:"__DGEAR__", igear:"__IGEAR__", socc:"__SOCC__"};
+// render layers per extruder body, loaded on demand from assets/<body>/
+const LAYERS = ["base", "arm", "slide", "guid", "dgear", "igear", "socc"];
+const BODIES = {dual: {name: "Dual switch", balls: [0, 1]}, single: {name: "Single switch", balls: [0]}, none: {name: "No switch (buffer as sensor)", balls: []}};
+let imgs = {}, SPR = {}, loadedBody = null;
+async function loadBody(b){
+  const j = await (await fetch(`assets/${b}/sprites.json`)).json();
+  const ims = await Promise.all(LAYERS.map(k => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = `assets/${b}/${k === "base" ? "base.webp" : "sprite_" + k + ".png"}`; })));
+  imgs = {}; LAYERS.forEach((k, i) => imgs[k] = ims[i]); SPR = j; loadedBody = b; }
 const PX = DATA.px, toX = x => (x - DATA.xmin) * PX, toY = z => (DATA.zmax - z) * PX, NP = DATA.xc.length;
 function idxz(z){ let i = Math.round((z - DATA.z0) / DATA.dz); return i < 0 ? 0 : i >= NP ? NP - 1 : i; }
 const cx = z => DATA.xc[idxz(z)], bore = z => z > 149 ? 2.0 : DATA.bore[idxz(z)], gapw = z => DATA.w[idxz(z)];
@@ -200,12 +209,12 @@ function Tw(z){ if (z <= 25.3) return TP; if (z <= 28.1) return TP + (90 - TP) *
 function tcolor(T){ const st = [[40,[47,174,79]],[Math.max(45, TG - 40),[47,174,79]],[TG,[242,194,48]],[(TG + TL) / 2,[240,138,36]],[TL,[217,58,43]],[TP,[163,18,42]]];
   if (T <= st[0][0]) return st[0][1]; for (let i = 1; i < st.length; i++) if (T <= st[i][0]){ const [a, ca] = st[i-1], [b, cb] = st[i], u = (T - a)/(b - a); return ca.map((v, j) => Math.round(v + (cb[j] - v)*u)); } return st[st.length-1][1]; }
 // ---- the sequence ----
-const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA"};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
+const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA", body: "dual"};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
 let P = Object.assign({}, FACTORY);
 function buildSteps(){
   const R = P.ret, Q = P.push;
   return [
-  {t:"Printing", h:"On the part", n:() => "Steady printing. Filament heats as it travels down: soft from the heat break down, liquid in the block. The balls are pushed out by the filament and the hob teeth pinch it toward the drive gear.", segs:[{k:"wait", dur:0, anim:900}]},
+  {t:"Printing", h:"On the part", n:() => "Steady printing. Filament heats as it travels down: soft from the heat break down, liquid in the block. " + (P.body === "none" ? "There are no toolhead switches; the buffer is the sensor." : P.body === "single" ? "The ball of the one switch is pushed out by the filament." : "Both switch balls are pushed out by the filament.") + " The hob teeth pinch it toward the drive gear.", segs:[{k:"wait", dur:0, anim:900}]},
   {t:"Slicer retract and wipe", h:"Wipe, spiral lift, 5 mm z-hop", n:() => "The slicer's toolchange retract: 1.5 mm at 30 mm/s here, an example value (the last 0.033 mm during a 1 mm wipe). It is a slicer setting, not AFC's. Then the 0.4 mm spiral lift, the T command, and AFC's 5 mm z-hop, which moves the nozzle away from the bed (the bed drops on a Trident, the gantry lifts on a 2.4), about 0.6 s with no extruder move (estimated).", segs:[{k:"e", E:-1.467, v:30}, {k:"e", E:-0.033, v:30}, {k:"wait", dur:0.6}]},
   {t:"Quick pull, travel to the cutter", h:"Over the part, then to the cutter park point", n:() => "AFC pulls 2 mm at 25 mm/s and locks the lane motor to the extruder. The cut macro sets pressure advance to 0 and travels to the cutter park point, pin_park_dist (6 mm) short of the pin; about 1.5 s with no extruder move (estimated).", segs:[{k:"e", E:-2, v:25}, {k:"wait", dur:1.5}]},
   {t:"Cut retract", h:"At the cutter park point", n:() => R > 0 ? `retract_length: ${R} mm at 25 mm/s. This is the move that drags hot material up: the liquid stretches out of the block and the softened zone rides up toward the heat break top. Watch the two readouts.` : "retract_length is 0: no cut retract.", segs:[{k:"e", E:-R, v:25}]},
@@ -215,12 +224,28 @@ function buildSteps(){
     return `Two strokes onto the pin. The arm touches the pin ${PIN_PARK_DIST} mm from the park point; the head pushes on cut_move_dist (${P.cmd} mm), swinging the arm ${c.deg.toFixed(1)}° and sliding the blade ${c.slide.toFixed(1)} mm. ${where} On the second stroke, with the blade held closed, the extruder pulls 1 mm at 3 mm/s (rip_length 1).`; }, segs:[{k:"cut", dur:cutDur(false)}, {k:"cutrip", dur:cutDur(true)}]},
   {t:"Pushback", h:"At the cutter", n:() => Q > 0 ? `pushback_length: ${Q} mm down at 25 mm/s. After 1 mm the lane's cut end meets the cut-off piece and pushes it ${Math.max(0, Q - 1)} mm back down; its liquid end compresses back toward the nozzle.` : "pushback_length is 0: no pushback.", segs:[{k:"e", E:Q, v:25}, {k:"wait", dur:0.02}]},
   {t:"Pull back, park", h:"Cutter, then the park position", n:() => Q > 0 ? `${Q} mm back up at 25 mm/s. The cut-off piece stays where it was pushed. Then AFC_PARK travels to the park position, about 1.5 s (estimated).` : "Then AFC_PARK travels to the park position, about 1.5 s (estimated).", segs:[{k:"e", E:-Q, v:25}, {k:"wait", dur:1.5}]},
-  {t:"Unload: bottom switch clears", h:"Park position", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). After 13.3 mm the cut end passes the bottom ball and tool_end opens.", segs:[{k:"e", E:-13.27, v:25}]},
+  ].concat(unloadSteps());
+}
+// the toolhead unload depends on the extruder body's sensors (AFC.py unload_sequence)
+const WAIT_END = {k:"wait", dur:20, anim:3500};
+const END_TXT = "Then the lane pulls back to the hub and the next lane comes in; the cut-off piece sits in the hotend meanwhile. Shown: 20 s of that wait, sped up, as the piece reheats in place.";
+function unloadSteps(){
+  if (P.body === "dual") return [
+  {t:"Unload: bottom switch clears", h:"Park position", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). After 13.3 mm the cut end passes the bottom ball and tool_end opens. AFC does not check it until the move ends.", segs:[{k:"e", E:-13.27, v:25}]},
   {t:"Unload: guidler swings in", h:"Park position", n:() => "At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm until the gear teeth bottom.", segs:[{k:"e", E:-10.12, v:25}]},
   {t:"Unload: top switch clears", h:"Park position", n:() => "At 36.2 mm the end passes the top ball and tool_start opens: the filament has left the top sensor.", segs:[{k:"e", E:-12.81, v:25}]},
-  {t:"Unload ends, hotend waits", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. Then the lane pulls back to the hub and the next lane comes in; the cut-off piece sits in the hotend meanwhile. Shown: 20 s of that wait, sped up, as the piece reheats in place.", segs:[{k:"e", E:-63.8, v:25}, {k:"wait", dur:20, anim:3500}]},
-  ];
+  {t:"Unload ends, hotend waits", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. AFC now checks both switches; both are open, so it moves on. " + END_TXT, segs:[{k:"e", E:-63.8, v:25}, WAIT_END]}];
+  if (P.body === "single") return [
+  {t:"Unload: the end leaves the gears", h:"Park position", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). This body has no switch below the gears, so nothing changes state until the top switch. At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm.", segs:[{k:"e", E:-23.39, v:25}]},
+  {t:"Unload: top switch clears", h:"Park position", n:() => "At 36.2 mm the end passes the ball and tool_start opens: the filament has left the only toolhead sensor.", segs:[{k:"e", E:-12.81, v:25}]},
+  {t:"Unload ends, hotend waits", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. AFC checks tool_start; it is open, so it moves on. " + END_TXT, segs:[{k:"e", E:-63.8, v:25}, WAIT_END]}];
+  return [
+  {t:"Buffer: lane pulls back until trailing", h:"Park position", n:() => `No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane from the extruder and pulls the lane back ${SHORT_MOVE} mm at a time at ${SHORT_SPEED} mm/s, with a 0.5 s pause, until the buffer's trailing switch closes (up to tool_max_unload_attempts, 4). The extruder holds the filament, so nothing moves in the toolhead: the slack is taken up in the buffer. Shown with ${BUF_MOVES} moves (estimated; it depends on where the buffer sat).`, segs:[{k:"wait", dur:BUF_MOVES * (SHORT_MOVE / SHORT_SPEED + 0.5), buffer:true}]},
+  {t:"Unload: 100 mm, no sensor check", h:"Park position", n:() => "AFC syncs the lane again and runs the 100 mm unload at 25 mm/s (tool_stn_unload) with spool assist. At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm. With the buffer as the sensor, AFC does not check the toolhead afterwards; the 100 mm move is the whole unload.", segs:[{k:"e", E:-36.2, v:25}]},
+  {t:"Unload ends, hotend waits", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. " + END_TXT, segs:[{k:"e", E:-63.8, v:25}, WAIT_END]}];
 }
+// AFC.cfg shipped defaults for the buffer path
+const SHORT_MOVE = 10, SHORT_SPEED = 50, BUF_MOVES = 2;
 let STEPS = [], SEGS = [], T_END = 0;
 function layout(){
   STEPS = buildSteps(); SEGS = []; let t = 0, E = 0;
@@ -284,8 +309,7 @@ function measure(){ let s = -99, l = -99; for (const p of SIM.pieces) for (let i
 function seek(t){ if (t < SIM.t - 1e-9) simReset(); simStep(t); }
 // ---- drawing ----
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
-const imgs = {}; let loaded = 0;
-for (const k in IMG){ const im = new Image(); im.onload = () => { if (++loaded === Object.keys(IMG).length) start(); }; im.src = IMG[k]; imgs[k] = im; }
+
 const hatch = (() => { const c = document.createElement("canvas"); c.width = c.height = 9; const g = c.getContext("2d");
   g.strokeStyle = "rgba(0,0,0,0.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, 9); g.lineTo(9, 0); g.stroke(); return ctx.createPattern(c, "repeat"); })();
 function drawPiece(p){
@@ -326,11 +350,12 @@ function drawSpring(a){
   }
   ctx.restore();
 }
-function sprite(k, tf){ const s = DATA.sprites[k]; ctx.save(); tf && tf(); ctx.drawImage(imgs[k], s.x, s.y); ctx.restore(); }
+function sprite(k, tf){ const s = SPR[k]; ctx.save(); tf && tf(); ctx.drawImage(imgs[k], s.x, s.y); ctx.restore(); }
 function rotAbout(c, a){ ctx.translate(toX(c[0]), toY(c[1])); ctx.rotate(a); ctx.translate(-toX(c[0]), -toY(c[1])); }
 function hline(z, col, dash, wdt){ if (z < -9) return; ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle = col; ctx.lineWidth = wdt; ctx.beginPath(); ctx.moveTo(toX(-11), toY(z)); ctx.lineTo(toX(11), toY(z)); ctx.stroke(); ctx.restore(); }
 function present(z){ for (const p of SIM.pieces) if (p.z.length > 1 && z >= p.z[0] && z <= p.z[p.z.length-1]) return true; return false; }
 const view = {guid: 0, balls: [0, 0]};
+function bufferTrailing(){ const sg = SEGS.find(g => g.buffer); return !!sg && SIM.t >= sg.t1 - 1e-6; }
 function draw(dt){
   const a = armAng(SIM.t), mag = document.getElementById("x-mag").checked ? 6 : 1, gearA = SIM.up / HOB_R;
   view.guid += ((present(GEAR_Z) ? 0 : GUID_EMPTY * mag) - view.guid) * Math.min(1, dt * 7);
@@ -345,7 +370,7 @@ function draw(dt){
   for (const p of SIM.pieces) drawPiece(p);
   hline(LINER, "rgba(122,135,150,.9)", [10, 6], 2); hline(HB_TOP, "#2a7fd4", [10, 6], 2.5);
   hline(SIM.peakSoft, "#f08a24", [4, 4], 2.5); hline(SIM.peakLiq, "#c4122e", [4, 4], 2.5);
-  BALLS.forEach((b, i) => { const on = present(b.z), w = Math.min(W0, bore(b.z), gapw(b.z));
+  BALLS.forEach((b, i) => { if (!BODIES[P.body].balls.includes(i)) return; const on = present(b.z), w = Math.min(W0, bore(b.z), gapw(b.z));
     const tx = on ? cx(b.z) + w/2 + BALL_R : BALL_EMPTY_X; view.balls[i] += (tx - view.balls[i]) * Math.min(1, dt * 12);
     const bx = view.balls[i], pr = bx + BALL_R;
     if (pr < 6.0){ ctx.fillStyle = "#3a3d44"; ctx.fillRect(toX(Math.max(pr, 5.5)), toY(b.z + 0.57), (6.0 - Math.max(pr, 5.5)) * PX, 1.14 * PX); }
@@ -356,6 +381,7 @@ function draw(dt){
   document.getElementById("m-soft2").textContent = `${rel(SIM.soft)}; peak ${rel(SIM.peakSoft)}`;
   document.getElementById("m-liq").textContent = SIM.liq < -50 ? "none" : `Z ${SIM.liq.toFixed(1)}`;
   document.getElementById("m-liq2").textContent = `${rel(SIM.liq)}; peak ${rel(SIM.peakLiq)}`;
+  if (P.body === "none") document.getElementById("c-trl").classList.toggle("on", bufferTrailing());
   document.getElementById("clock").textContent = `t = ${SIM.t.toFixed(2)} s (real time)`;
 }
 // ---- playback ----
@@ -400,14 +426,20 @@ document.addEventListener("keydown", e => { if (e.target.closest && e.target.clo
 function syncOut(){ document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-cmd").textContent = P.cmd + " mm"; document.getElementById("o-tau").textContent = P.tau + " s";  const m = MATS[P.mat]; document.getElementById("o-mat").textContent = `${m.tp} °C`;
   document.getElementById("l-soft").textContent = `Softened, >${m.tg} °C`; document.getElementById("l-liq").textContent = `Liquid, >${m.tl} °C`;
   document.getElementById("tticks").innerHTML = `<span>40</span><span>${m.tg} (Tg)</span><span>${m.tl} (liquid)</span><span>${m.tp} °C</span>`; }
-function rerun(){ setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
+function bodyUI(){ const b = BODIES[P.body];
+  document.getElementById("c-start").hidden = !b.balls.includes(0); document.getElementById("c-end").hidden = !b.balls.includes(1);
+  document.getElementById("c-trl").hidden = document.getElementById("c-adv").hidden = P.body !== "none";
+  document.getElementById("lede-body").textContent = {dual: "a FilamATrix Clockwork 2 (dual switch)", single: "a FilamATrix Clockwork 2 (single switch)", none: "a FilamATrix Clockwork 2 (no switch, buffer as sensor)"}[P.body]; }
+function rerun(){ setMat(P.mat); bodyUI(); layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
 [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("change", e => { P[k] = +e.target.value; rerun(); }));
 [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("input", e => { P[k] = +e.target.value; syncOut(); }));
-document.getElementById("b-reset").onclick = () => { P = Object.assign({}, FACTORY); document.getElementById("k-mat").value = P.mat; [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); rerun(); };
+document.getElementById("b-reset").onclick = async () => { const keep = P.body; P = Object.assign({}, FACTORY, {body: keep}); document.getElementById("k-mat").value = P.mat; [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); rerun(); };
 const help = document.getElementById("help");
 document.getElementById("b-help").onclick = () => help.showModal();
 document.getElementById("b-help-x").onclick = () => help.close();
 help.addEventListener("click", e => { if (e.target === help) help.close(); });
 document.getElementById("k-mat").addEventListener("change", e => { P.mat = e.target.value; rerun(); });
-function start(){ setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
+document.getElementById("k-body").addEventListener("change", async e => { P.body = e.target.value; await loadBody(P.body); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); rerun(); });
+async function start(){ await loadBody(P.body); bodyUI(); setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
+start();
 </script>

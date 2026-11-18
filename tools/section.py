@@ -5,6 +5,10 @@
 # Cut faces are found as back faces seen through the cut (closed solids), drawn flat and hatched.
 import numpy as np, json, sys, re, os
 BASE = os.environ.get("BASE") == "1"
+BODY = os.environ.get("BODY", "dual")     # dual | single | none: FilamATrix CW2 main body (switch count)
+# parts each body leaves out: the single-switch body keeps only the upper switch (tool_start); the no-switch body has none
+BODY_SKIP = {"dual": [], "single": [r"FilamentSensor/", r"M2x10 STS v1$", r"M2x10 STS v002$"],
+             "none": [r"FilamentSensor", r"M2x10 STS v"]}[BODY]
 MODE = os.environ.get("MODE", "static")   # static | base | full | arm | slide | spring  (animation layers)
 def group(n):
     if n.endswith("Cutting_Arm v1 (1)"): return "arm"
@@ -25,6 +29,7 @@ def wanted(n):
     return g == MODE
 from PIL import Image
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "")   # repo root
+OUT = D + "build/" + BODY + "/"; os.makedirs(OUT, exist_ok=True)
 exec(open(D + "tools/binio.py").read())
 d = np.load(D + "cad/full_parts.npz"); N = json.load(open(D + "cad/full_names.json"))
 Y0 = float(sys.argv[1]) if len(sys.argv) > 1 else 0.0
@@ -39,7 +44,7 @@ RULES = [
  (r"PTFE_LINER", "PTFE liner (2 mm ID, 18 mm)", "#e9ece4"),
  (r"BOWDEN", "Bowden tube (4 x 2 mm PTFE)", "#e9ece4"),
  (r"FILAMENT", "Filament", "#2fae4f"),
- (r"Main_Body_Dual|Motor_Plate|Guilder_B|SB_Rapido_UHF_V2_(Front|Rear)|Stealthburner_UHF|x_carriage_frame|COVER_MINE", "Printed, main (black)", "#2d2e33"),
+ (r"Main_Body_(Dual|One|No)|Motor_Plate|Guilder_B|SB_Rapido_UHF_V2_(Front|Rear)|Stealthburner_UHF|x_carriage_frame|COVER_MINE", "Printed, main (black)", "#2d2e33"),
  (r"LDO-36STH021", "Motor (LDO-36STH20)", "#5b6068"),
  (r"LDO-36STH20$", "Motor pinion", "#c9ced6"),
  (r"Drive_Gear|Idler_Gear|50T_Drive|Shaft|Needle_Bear|Ballbearing|DIN 913", "Gears, bearings, shafts (steel)", "#b4bac3"),
@@ -88,6 +93,8 @@ def rot_guidler(V):
     x, z = _rot(THETA, V[:, 0], V[:, 2]); V = V.copy(); V[:, 0], V[:, 2] = x, z; return V
 ROT_RX = re.compile(r"(?!x)x") if True else re.compile(r"Guilder_[AB]$|BMG_Idler_Gear_Assembly/|M3x6 FHCS002$|M3 Threaded Insert00[38]$|M3x16 SHCS001$")
 for i, n in enumerate(N):
+    if n.endswith("Main_Body_Dual_Switch") and BODY != "dual": continue
+    if any(re.search(rx, n) for rx in BODY_SKIP): continue
     V, F = d["p%03d_V" % i].astype(float), d["p%03d_F" % i]
     if "5.5mmBall" in n:
         V = V + [FIL_R, 0, 0]           # ball pushed out by the filament (CAD shows it touching the axis)
@@ -96,6 +103,12 @@ for i, n in enumerate(N):
     if "Omron-D2F" in n:
         x0 = V[:, 0].min(); F = F[~(V[F][:, :, 0] < x0 + 0.45).any(1)]   # plunger pressed into the body: drop its 0.5 mm stub
     parts.append((n, V, F))
+# single- and no-switch main bodies, meshed from the same FilamATrix STEP (tools/export_bodies.py)
+if BODY != "dual":
+    _bd = np.load(D + "cad/bodies_cw2.npz"); _bn = json.load(open(D + "cad/bodies_cw2.json"))
+    for _i, _n in enumerate(_bn):
+        if ("No_Switch" in _n) == (BODY == "none"):
+            parts.append((_n, _bd["p%03d_V" % _i].astype(float), _bd["p%03d_F" % _i]))
 # extra mesh already in this frame: the author's sensor/fan cable cover
 for nm, tag in [("f25_cover_mine", "COVER_MINE")]:
     V, F = rdbin(D + "cad/cover_mine.bin"); parts.append((tag, V, F))
@@ -225,15 +238,15 @@ for dy, dx in [(0, 1), (1, 0)]:
     edge[:H - dy, :W - dx] |= e
 img[edge] = img[edge] * 0.25
 if MODE == "static":
-    im = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).resize((W // SS, H // SS), Image.LANCZOS); im.save(D + "build/section.png")
+    im = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).resize((W // SS, H // SS), Image.LANCZOS); im.save(OUT + "section.png")
 else:
     cov = (pb >= 0).astype(float)
     def down(a): return a.reshape(H // SS, SS, W // SS, SS, *a.shape[2:]).mean((1, 3))
     a = down(cov); rgb = down(img * cov[..., None]) / np.maximum(a, 1e-6)[..., None]
     if MODE == "base": a = np.ones_like(a); rgb = down(img)
     rgba = np.dstack([np.clip(rgb, 0, 255), a * 255]).astype(np.uint8)
-    Image.fromarray(rgba, "RGBA").save(D + f"build/layer_{MODE}.png")
-    zd = zb.reshape(H // SS, SS, W // SS, SS).min((1, 3)); np.save(D + f"build/depth_{MODE}.npy", zd.astype(np.float32))
+    Image.fromarray(rgba, "RGBA").save(OUT + f"layer_{MODE}.png")
+    zd = zb.reshape(H // SS, SS, W // SS, SS).min((1, 3)); np.save(OUT + f"depth_{MODE}.npy", zd.astype(np.float32))
     im = None
-json.dump({"legend": legend, "px_per_mm": PXMM, "xmin": xmin, "zmax": zmax, "W": W // SS, "H": H // SS}, open(D + "build/section_meta.json", "w"), indent=1)
+json.dump({"legend": legend, "px_per_mm": PXMM, "xmin": xmin, "zmax": zmax, "W": W // SS, "H": H // SS}, open(OUT + "section_meta.json", "w"), indent=1)
 print("saved", MODE)

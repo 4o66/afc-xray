@@ -29,6 +29,9 @@ too much?** It came out of chasing repeated jams at the top of the heat break.
   - the filament-switch balls.
 - Readouts of how high softened (above 100 °C) and liquid (above 200 °C) plastic reaches, relative to the top of the
   heat break.
+- An extruder-body choice: FilamATrix CW2 dual switch, single switch (top switch only), or no switch. With no switch,
+  AFC uses the buffer as its sensor, and the page follows that path: the lane pulls back until the buffer reads trailing,
+  then the 100 mm unload runs with no toolhead check.
 - A material preset (PLA, PETG, ABS, ASA, PC). It sets the print temperature, glass transition and liquid threshold
   in the heat model, and the color scale follows it.
 - Sliders for `retract_length`, `pushback_length`, `cut_move_dist` and the heat model's time constant. They start at
@@ -73,9 +76,11 @@ most sensitive.
 
 | Path | What it is |
 |---|---|
-| `index.html` | The page, self-contained. GitHub Pages serves it. |
+| `index.html` | The page. GitHub Pages serves it. |
+| `assets/<body>/` | The render layers for each extruder body, which the page loads on demand. |
 | `page/template.html` | The page source: layout, narration, heat model and animation. |
-| `tools/export_full.py`, `tools/export_voron.py` | Mesh the source STEP files with FreeCAD. |
+| `tools/export_full.py`, `tools/export_bodies.py`, `tools/export_voron.py` | Mesh the source STEP files with FreeCAD. |
+| `build_all.sh` | Renders every body variant and assembles the page. |
 | `tools/section.py` | Render the section and the moving layers. A NumPy z-buffer renderer that draws cut faces hatched. |
 | `tools/path_data.py`, `tools/sprites.py`, `tools/build_page.py` | Filament path data, sprite cutting, and page assembly. |
 | `tools/sweep/` | Runs the page's heat model headless and sweeps `retract_length` per material. |
@@ -86,8 +91,7 @@ most sensitive.
 Python 3 with NumPy, SciPy and Pillow. FreeCAD is only needed to re-extract meshes from the STEP files.
 
 ```zsh
-for m in base full arm slide guid dgear igear; do MODE=$m python3 tools/section.py; done
-python3 tools/path_data.py && python3 tools/sprites.py && python3 tools/build_page.py
+PY=python3 ./build_all.sh
 python3 tools/sweep/run_sweep.py
 ```
 
