@@ -7,7 +7,7 @@ An animated, narrated section of a Voron Stealthburner toolhead showing what hap
 extrusion of the old color until the filament leaves the top filament sensor.
 
 It was built to answer one question: **where does the hot plastic go during the cut retract, and how much retraction is
-too much?** The printer it models had repeated jams at the top of the heat break.
+too much?** It came out of chasing repeated jams at the top of the heat break.
 
 ## What it shows
 
@@ -15,7 +15,7 @@ too much?** The printer it models had repeated jams at the top of the heat break
   The toolhead is a Stealthburner with a FilamATrix dual-switch Clockwork 2, a Phaetus Rapido V2 UHF and a FilamATrix
   cutter.
 - Every extruder move of the sequence, with its exact distance and speed. The moves come from AFC v1.2.0-5's
-  `TOOL_UNLOAD`, its `AFC_CUT` macro, and the printer's config. Moves are shown slowed down and waits sped up, and each
+  `TOOL_UNLOAD` and its `AFC_CUT` macro, using AFC's shipped default settings. Moves are shown slowed down and waits sped up, and each
   step says by how much.
 - The filament as a chain of 0.25 mm pieces, each carrying its own temperature. The colors run from 40 °C (green)
   through the glass transition (yellow) to print temperature (red).
@@ -29,8 +29,11 @@ too much?** The printer it models had repeated jams at the top of the heat break
   - the filament-switch balls.
 - Readouts of how high softened (above 100 °C) and liquid (above 200 °C) plastic reaches, relative to the top of the
   heat break.
-- Sliders for `retract_length`, `pushback_length` and the heat model's time constant. Red arrows mark AFC's shipped
-  defaults.
+- Sliders for `retract_length`, `pushback_length`, `cut_move_dist` and the heat model's time constant. They start at
+  AFC's shipped defaults, which red arrows mark. With `cut_move_dist`, the narration says where the blade crosses the
+  filament, and whether it gets through at all.
+- A "Where do I find these settings?" pop-up. It names the file, section and variable for each setting, says how to try a
+  value without editing the file, and points to the slicer setting behind the toolchange retract.
 
 ## The heat model is an estimate
 
@@ -96,8 +99,7 @@ The source STEP files are not in this repository. They are:
 - **Vendor models** included in that CAD are credited to their makers: the Phaetus Rapido V2 UHF hotend, the LDO
   stepper motor, the Omron D2F switches, and standard hardware.
 - The cable cover is the author's own design and is included under GPL-3.0.
-- The toolhead board drawn is Voron's reference Stealthburner PCB. The modeled printer runs a BTT SB2209 in the same
-  place.
+- The toolhead board drawn is Voron's reference Stealthburner PCB. Boards such as BTT's SB2209 mount in the same place.
 - The sequence and default values come from
   [AFC-Klipper-Add-On](https://github.com/AFCProject/AFC-Klipper-Add-On) and
   [Armored Turtle's documentation](https://github.com/ArmoredTurtle/AT-Documentation).

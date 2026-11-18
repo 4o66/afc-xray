@@ -65,6 +65,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .tticks{display:flex;justify-content:space-between;font:500 11.5px var(--mono);color:var(--muted)}
 .key div.i{display:flex;gap:9px;align-items:center}
 .sw{flex:none;width:15px;height:15px;border-radius:2px;background:var(--c);border:1px solid rgba(0,0,0,.35)}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--accent);text-decoration:underline;cursor:pointer}
+dialog#help{max-width:min(640px,calc(100vw - 32px));border:1px solid var(--rule);border-radius:6px;padding:20px 22px;background:var(--bg);color:var(--fg);font-size:14px;line-height:1.5}
+dialog#help::backdrop{background:rgba(10,12,16,.55)}
+dialog#help h3{margin:0 0 10px;font-size:1.1rem}
+dialog#help dl{display:grid;gap:10px;margin:0 0 12px}
+dialog#help dt{font-weight:600}
+dialog#help dd{margin:2px 0 0;color:var(--muted)}
+dialog#help code{font-family:var(--mono);font-size:12.5px;background:var(--chip);color:var(--fg);padding:1px 4px;border-radius:3px;overflow-wrap:anywhere}
+dialog#help .x{float:right}
 .notes{font-size:13px;color:var(--muted)} .notes p{margin:0 0 7px} .notes strong{color:var(--fg);font-weight:600}
 </style>
 <div class="wrap">
@@ -76,7 +85,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 <div>
 <p class="eyebrow">Section A–A · Trident toolchange unload</p>
 <h1>Where the hot plastic goes during a toolchange</h1>
-<p class="lede">AFC v1.2.0-5 and the live config of one Voron Trident (Stealthburner, FilamATrix Clockwork 2, Rapido V2 UHF, BoxTurtle). Extruder moves are exact; temperatures come from a simple heat model (see the notes).</p>
+<p class="lede">AFC v1.2.0-5 with its shipped default settings, on a Stealthburner with a FilamATrix Clockwork 2 (dual switch) and a Phaetus Rapido V2 UHF. Extruder moves follow AFC's code exactly; temperatures come from a simple heat model (see the notes).</p>
 </div>
 <div class="panel" aria-live="polite">
 <div class="stepno"><span id="stepno"></span><span class="speed" id="speed"></span></div>
@@ -103,11 +112,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 </div>
 <div class="tune">
 <h3>Try other settings</h3>
-<div class="row"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="18"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
+<div class="row"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="20"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
 <div class="row"><label for="k-push">pushback_length</label><div class="rng"><input type="range" id="k-push" min="0" max="25" step="0.5" value="15"><span class="def" style="left:calc(60.000% + -1.60px)" title="AFC default: 15 mm"></span></div><output id="o-push" for="k-push"></output></div>
+<div class="row"><label for="k-cmd">cut_move_dist</label><div class="rng"><input type="range" id="k-cmd" min="4" max="13" step="0.5" value="8.5"><span class="def" style="left:calc(50.000% + 0.00px)" title="AFC default: 8.5 mm"></span></div><output id="o-cmd" for="k-cmd"></output></div>
 <div class="row"><label for="k-tau">Heat time constant</label><div class="rng"><input type="range" id="k-tau" min="0.5" max="8" step="0.5" value="3"></div><output id="o-tau" for="k-tau"></output></div>
-<p class="hint"><span class="defkey" aria-hidden="true"></span>Red arrows mark AFC's shipped defaults (AFC_Macro_Vars.cfg, v1.2.0-5): retract_length 20, pushback_length 15. This printer ran 18 and 15 when this was made, and is now trialing 6 and 4. Changing a slider reruns the sequence from the start. The 1.5 mm slicer retract and AFC's 2 mm quick pull are fixed.</p>
-<div class="ctrl"><button id="b-reset" type="button">Reset to this printer's config</button></div>
+<p class="hint"><span class="defkey" aria-hidden="true"></span>Red arrows mark AFC's shipped defaults (v1.2.0-5), which the sliders start at. Changing a slider reruns the sequence from the start. The slicer retract (example 1.5 mm) and AFC's 2 mm quick pull are fixed. <button type="button" class="linkbtn" id="b-help">Where do I find these settings?</button></p>
+<div class="ctrl"><button id="b-reset" type="button">Reset to AFC defaults</button></div>
 </div>
 <div class="key">
 <h3>Filament temperature</h3>
@@ -122,12 +132,31 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 <p><strong>Heat model (estimates, not measured):</strong> wall temperature 265 °C in the block, falling to 90 °C across the exposed heat break (Z 25.3 to 28.1), 90 to 55 °C up the heat break inside the heatsink, 50 °C in the heatsink above it and 40 °C above the heatsink. Each 0.25 mm of filament moves toward its local wall temperature with the time constant set above (3 s is a rough figure for 1.75 mm filament in a close bore). The start state is steady printing at 2.5 mm/s of filament.</p>
 <p><strong>Liquid:</strong> material above 200 °C cannot be pulled up as a solid. On a pull, the tip moves 6 % of the pull and the liquid column stretches and thins (volume kept). On a push, it compresses back; anything pushed past the nozzle tip is extruded. Thinning is drawn by narrowing the filament.</p>
 <p><strong>Timing:</strong> extruder moves are shown slowed down and waits are shown sped up; the label above the step title gives the factor. The heat model always runs on real time. Head travel times are estimates (marked in the steps).</p>
-<p><strong>Toolhead board:</strong> drawn as Voron Design's reference Stealthburner toolhead PCB; this printer runs a BTT SB2209 in the same place. The board does not affect the analysis.</p>
-<p><strong>Moving parts:</strong> both extruder gears turn with every extruder move (hob contact radius 3.7 mm); the cutter arm is driven by the head motion (touch at X14, push to X3, the configured cut speeds) on its M3 pivot, blade holder sliding in X, the return spring (drawn as the parts-list spring: 0.5 × 4 × 25 mm, 14 coils, bent between the arm's pocket, tilted 18° up, and the level printhead pocket; compressed to about 13.1 mm at rest and 11.1 mm at full stroke, its arm end turning from 18° to 6°; it sits behind the cut plane inside the arm's pocket, so where the arm covers it, it is drawn faintly as a hidden part; the CAD models a straight 15 mm spring), guidler swinging in 0.15 mm when the gears are empty, switch balls riding on the filament.</p>
+<p><strong>Toolhead board:</strong> drawn as Voron Design's reference Stealthburner toolhead PCB; toolhead boards such as BTT's SB2209 mount in the same place. The board does not affect the analysis.</p>
+<p><strong>Moving parts:</strong> both extruder gears turn with every extruder move (hob contact radius 3.7 mm); the cutter arm is driven by the head motion (touch at the pin, then cut_move_dist further, at AFC's cut speeds) on its M3 pivot, blade holder sliding in X, the return spring (drawn as the parts-list spring: 0.5 × 4 × 25 mm, 14 coils, bent between the arm's pocket, tilted 18° up, and the level printhead pocket; compressed to about 13.1 mm at rest and 11.1 mm at full stroke, its arm end turning from 18° to 6°; it sits behind the cut plane inside the arm's pocket, so where the arm covers it, it is drawn faintly as a hidden part; the CAD models a straight 15 mm spring), guidler swinging in 0.15 mm when the gears are empty, switch balls riding on the filament.</p>
 <p><strong>Credits and licenses:</strong> page code and the heat model are AGPL-3.0. The drawing is rendered from <a href="https://github.com/thunderkeys/FilamATrix">FilamATrix</a> (thunderkeys) and <a href="https://github.com/VoronDesign">Voron Design</a> CAD (Stealthburner, Clockwork 2, and the <a href="https://github.com/VoronDesign/Voron-Hardware">Stealthburner toolhead PCB</a>), all GPL-3.0, so the rendered images and mesh data are GPL-3.0 too. Vendor models inside that CAD: Phaetus Rapido V2 UHF hotend, LDO stepper, Omron D2F switches and standard hardware, credited to their makers. Sequence and values from <a href="https://github.com/AFCProject/AFC-Klipper-Add-On">AFC-Klipper-Add-On</a> and Armored Turtle's documentation. Source: <a href="https://github.com/4o66/afc-xray">github.com/4o66/afc-xray</a>.</p>
 </div>
 </div>
 </div>
+<dialog id="help" aria-labelledby="help-t">
+<button type="button" class="x linkbtn" id="b-help-x">Close</button>
+<h3 id="help-t">Where these settings live</h3>
+<p>All AFC files are in your Klipper config folder (<code>printer_data/config/</code>), under <code>AFC/</code>. Edit them from Mainsail or Fluidd (Machine tab), save, then run <code>RESTART</code>.</p>
+<dl>
+<dt>retract_length, pushback_length, cut_move_dist</dt>
+<dd><code>AFC/AFC_Macro_Vars.cfg</code>, section <code>[gcode_macro _AFC_CUT_TIP_VARS]</code>: <code>variable_retract_length</code>, <code>variable_pushback_length</code>, <code>variable_cut_move_dist</code>. The pin location, cut speeds and <code>rip_length</code> are in the same section. If your config has a per-extruder <code>_AFC_CUT_TIP_VARS_&lt;extruder&gt;</code> macro, its values override these.</dd>
+<dt>Try a value without editing the file</dt>
+<dd><code>SET_GCODE_VARIABLE MACRO=_AFC_CUT_TIP_VARS VARIABLE=retract_length VALUE=6</code> takes effect at the next cut and lasts until the next restart. The variable name drops the <code>variable_</code> prefix.</dd>
+<dt>tool_stn_unload (the 100 mm unload)</dt>
+<dd><code>AFC/AFC_Hardware.cfg</code>, section <code>[AFC_extruder extruder]</code>, with <code>tool_unload_speed</code>.</dd>
+<dt>z_hop</dt>
+<dd><code>AFC/AFC.cfg</code>, section <code>[AFC]</code>.</dd>
+<dt>The slicer's toolchange retract</dt>
+<dd>Not an AFC setting. In OrcaSlicer: Printer settings, Extruder, "Retraction when switching material", Length.</dd>
+<dt>Starting values for your hotend</dt>
+<dd>Armored Turtle's <a href="https://github.com/ArmoredTurtle/AT-Documentation/blob/main/docs/initial-startup/06-hotend-values.md">hotend values</a> page lists retract and pushback lengths by hotend and extruder.</dd>
+</dl>
+</dialog>
 <script>
 const DATA = __DATA__;
 const IMG = {base:"__BASE__", arm:"__ARM__", slide:"__SLIDE__", spring:"__SPRING__", guid:"__GUID__", dgear:"__DGEAR__", igear:"__IGEAR__", socc:"__SOCC__"};
@@ -140,15 +169,23 @@ const BALLS = [{z:99.12, chip:"c-start"}, {z:76.19, chip:"c-end"}], BALL_R = 2.7
 const ARM_PIV = [-25.48, 46.18], ARM_PIN = [-31.57, 64.06], SPR_A = [-28.5, 54.76], SPR_A_ANG = 18 * Math.PI / 180, SPR_B = [-15.5, 55.65];
 const GUID_PIV = [-5.40, 73.16], GUID_EMPTY = 0.15 / 13.24, BLADE_TIP0 = -1.8;
 function rotPt(p, c, a){ const dx = p[0]-c[0], dz = p[1]-c[1], co = Math.cos(a), si = Math.sin(a); return [c[0] + dx*co + dz*si, c[1] - dx*si + dz*co]; }
-// cutter arm driven by the head: the arm tip (X -40.07, Z 96.36) touches the pin at head X14 (pin_loc_xy); the head pushes on to X3
-const ARM_TIP = [-40.07, 96.36], PIN_TOUCH_X = 14, PIN_PARK_X = 20, CUT_END_X = 3, FAST_END_X = 5.55;
-const ARM_TAB = []; for (let i = 0; i <= 120; i++){ const push = i * 0.1; let lo = 0, hi = 0.6; for (let k = 0; k < 40; k++){ const m = (lo+hi)/2; (rotPt(ARM_TIP, ARM_PIV, m)[0] - ARM_TIP[0] < push) ? lo = m : hi = m; } ARM_TAB.push((lo+hi)/2); }
-const armFromPush = p => { if (p <= 0) return 0; const f = Math.min(p, 11.99) / 0.1, i = Math.floor(f); return ARM_TAB[i] + (ARM_TAB[i+1] - ARM_TAB[i]) * (f - i); };
-// head X through one cut stroke (AFC_CUT _DO_CUT_MOTION): fast 32 mm/s to X5.55, slow 10 mm/s to X3, 50 ms dwell, [rip], 200 ms, evacuate 150 mm/s, 200 ms
-const T_FAST = (PIN_PARK_X - FAST_END_X) / 32, T_SLOW = (FAST_END_X - CUT_END_X) / 10, T_DW = 0.05, T_RIP = 1 / 3, T_P = 0.2, T_EV = (PIN_PARK_X - CUT_END_X) / 150;
-function headX(tt, rip){ if (tt < T_FAST) return PIN_PARK_X - 32 * tt; tt -= T_FAST; if (tt < T_SLOW) return FAST_END_X - 10 * tt; tt -= T_SLOW;
-  const hold = T_DW + (rip ? T_RIP : 0) + T_P; if (tt < hold) return CUT_END_X; tt -= hold; if (tt < T_EV) return CUT_END_X + 150 * tt; return PIN_PARK_X; }
-const CUT_DUR = T_FAST + T_SLOW + T_DW + T_P + T_EV + T_P, RIP_DUR = CUT_DUR + T_RIP, RIP_START = T_FAST + T_SLOW + T_DW;
+// cutter arm driven by the head (AFC_CUT _DO_CUT_MOTION). Distances are along the cut axis, measured from the cutter park
+// point, which is pin_park_dist (6 mm) before the point where the arm tip (X -40.07, Z 96.36) touches the pin. The head then
+// pushes on cut_move_dist: the first 85 % of the whole stroke at 32 mm/s, the rest at 10 mm/s; 50 ms dwell, [rip], 200 ms,
+// back to the park point at 150 mm/s, 200 ms.
+const ARM_TIP = [-40.07, 96.36], PIN_PARK_DIST = 6, V_FAST = 32, V_SLOW = 10, V_EV = 150, FAST_FRAC = 0.85;
+const ARM_TAB = []; for (let i = 0; i <= 140; i++){ const push = i * 0.1; let lo = 0, hi = 0.7; for (let k = 0; k < 40; k++){ const m = (lo+hi)/2; (rotPt(ARM_TIP, ARM_PIV, m)[0] - ARM_TIP[0] < push) ? lo = m : hi = m; } ARM_TAB.push((lo+hi)/2); }
+const armFromPush = p => { if (p <= 0) return 0; const f = Math.min(p, 13.99) / 0.1, i = Math.floor(f); return ARM_TAB[i] + (ARM_TAB[i+1] - ARM_TAB[i]) * (f - i); };
+const T_DW = 0.05, T_RIP = 1 / 3, T_P = 0.2;
+function cutG(){ const tot = P.cmd + PIN_PARK_DIST, sf = tot * FAST_FRAC; return {tot, sf, tF: sf / V_FAST, tS: (tot - sf) / V_SLOW, tE: tot / V_EV}; }
+function headS(tt, rip){ const g = cutG(); if (tt < g.tF) return V_FAST * tt; tt -= g.tF; if (tt < g.tS) return g.sf + V_SLOW * tt; tt -= g.tS;
+  const hold = T_DW + (rip ? T_RIP : 0) + T_P; if (tt < hold) return g.tot; tt -= hold; if (tt < g.tE) return g.tot - V_EV * tt; return 0; }
+const cutDur = rip => { const g = cutG(); return g.tF + g.tS + T_DW + (rip ? T_RIP : 0) + T_P + g.tE + T_P; };
+const ripStart = () => { const g = cutG(); return g.tF + g.tS + T_DW; };
+function cutFacts(){ // arm swing, blade travel, and where the blade crosses the filament, for the narration
+  const g = cutG(), aMax = armFromPush(P.cmd), slide = slideDx(aMax);
+  const pushAt = x => { for (let p = 0; p <= P.cmd + 1e-9; p += 0.01) if (BLADE_TIP0 + slideDx(armFromPush(p)) >= x) return p; return null; };
+  return {deg: aMax * 180 / Math.PI, slide, enter: pushAt(-0.875), exit: pushAt(0.875), fastPush: g.sf - PIN_PARK_DIST}; }
 const DRIVE_C = [4.675, 86.31], IDLER_C = [-3.825, 86.31], HOB_R = 3.7;
 const slideDx = a => rotPt(ARM_PIN, ARM_PIV, a)[0] - ARM_PIN[0];
 // ---- heat model ----
@@ -157,21 +194,25 @@ function Tw(z){ if (z <= 25.3) return TP; if (z <= 28.1) return TP + (90 - TP) *
 function tcolor(T){ const st = [[40,[47,174,79]],[60,[47,174,79]],[100,[242,194,48]],[160,[240,138,36]],[210,[217,58,43]],[265,[163,18,42]]];
   if (T <= st[0][0]) return st[0][1]; for (let i = 1; i < st.length; i++) if (T <= st[i][0]){ const [a, ca] = st[i-1], [b, cb] = st[i], u = (T - a)/(b - a); return ca.map((v, j) => Math.round(v + (cb[j] - v)*u)); } return st[st.length-1][1]; }
 // ---- the sequence ----
-let P = {ret: 18, push: 15, tau: 3};
+const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
+let P = Object.assign({}, FACTORY);
 function buildSteps(){
   const R = P.ret, Q = P.push;
   return [
   {t:"Printing", h:"On the part", n:() => "Steady printing. Filament heats as it travels down: soft from the heat break down, liquid in the block. The balls are pushed out by the filament and the hob teeth pinch it toward the drive gear.", segs:[{k:"wait", dur:0, anim:900}]},
-  {t:"Slicer retract and wipe", h:"Wipe, spiral lift, 5 mm z-hop", n:() => "Orca's toolchange retract, 1.5 mm at 30 mm/s (the last 0.033 mm during a 1 mm wipe). Then the 0.4 mm spiral lift, the T command, and AFC's 5 mm z-hop, which moves the nozzle away from the bed (the bed drops on a Trident, the gantry lifts on a 2.4), about 0.6 s with no extruder move (estimated).", segs:[{k:"e", E:-1.467, v:30}, {k:"e", E:-0.033, v:30}, {k:"wait", dur:0.6}]},
-  {t:"Quick pull, travel to the cutter", h:"Over the part, then to X20 Y317", n:() => "AFC pulls 2 mm at 25 mm/s and locks the lane motor to the extruder. The cut macro sets pressure advance to 0 and travels to the cutter park point; about 1.5 s with no extruder move (estimated).", segs:[{k:"e", E:-2, v:25}, {k:"wait", dur:1.5}]},
-  {t:"Cut retract", h:"Parked at X20 Y317", n:() => R > 0 ? `retract_length: ${R} mm at 25 mm/s. This is the move that drags hot material up: the liquid stretches out of the block and the softened zone rides up toward the heat break top. Watch the two readouts.` : "retract_length is 0: no cut retract.", segs:[{k:"e", E:-R, v:25}]},
-  {t:"Cut, twice, with rip", h:"X20 → 5.55 → 3, twice", n:() => "Two strokes onto the pin, from the configured cut settings. The arm touches the pin at head X14; the head pushes on 11 mm to X3, swinging the arm 12.3° and sliding the blade 3.9 mm. The blade crosses the filament between head X11.4 and X6.5, still in the 32 mm/s fast phase; the 10 mm/s slow phase starts at X5.55, after the cut. On the second stroke, with the blade held closed, the extruder pulls 1 mm at 3 mm/s (rip_length 1).", segs:[{k:"cut", dur:CUT_DUR}, {k:"cutrip", dur:RIP_DUR}]},
+  {t:"Slicer retract and wipe", h:"Wipe, spiral lift, 5 mm z-hop", n:() => "The slicer's toolchange retract: 1.5 mm at 30 mm/s here, an example value (the last 0.033 mm during a 1 mm wipe). It is a slicer setting, not AFC's. Then the 0.4 mm spiral lift, the T command, and AFC's 5 mm z-hop, which moves the nozzle away from the bed (the bed drops on a Trident, the gantry lifts on a 2.4), about 0.6 s with no extruder move (estimated).", segs:[{k:"e", E:-1.467, v:30}, {k:"e", E:-0.033, v:30}, {k:"wait", dur:0.6}]},
+  {t:"Quick pull, travel to the cutter", h:"Over the part, then to the cutter park point", n:() => "AFC pulls 2 mm at 25 mm/s and locks the lane motor to the extruder. The cut macro sets pressure advance to 0 and travels to the cutter park point, pin_park_dist (6 mm) short of the pin; about 1.5 s with no extruder move (estimated).", segs:[{k:"e", E:-2, v:25}, {k:"wait", dur:1.5}]},
+  {t:"Cut retract", h:"At the cutter park point", n:() => R > 0 ? `retract_length: ${R} mm at 25 mm/s. This is the move that drags hot material up: the liquid stretches out of the block and the softened zone rides up toward the heat break top. Watch the two readouts.` : "retract_length is 0: no cut retract.", segs:[{k:"e", E:-R, v:25}]},
+  {t:"Cut, twice, with rip", h:"Onto the pin and back, twice", n:() => { const c = cutFacts(), g = cutG();
+    const fail = " AFC does not check the cut and carries on, so the unload later pulls the whole filament, hot end included, up the path.";
+    const where = c.enter === null ? "The blade does not reach the filament at this cut_move_dist." + fail : c.exit === null ? `The blade enters the filament ${c.enter.toFixed(1)} mm past the touch point but does not get through it at this cut_move_dist.` + fail : `The blade crosses the filament from ${c.enter.toFixed(1)} to ${c.exit.toFixed(1)} mm past the touch point, ${c.exit <= c.fastPush ? "inside the 32 mm/s fast phase; the 10 mm/s slow phase starts at " + c.fastPush.toFixed(1) + " mm, after the cut" : "partly in the 10 mm/s slow phase, which starts at " + c.fastPush.toFixed(1) + " mm"}.`;
+    return `Two strokes onto the pin. The arm touches the pin ${PIN_PARK_DIST} mm from the park point; the head pushes on cut_move_dist (${P.cmd} mm), swinging the arm ${c.deg.toFixed(1)}° and sliding the blade ${c.slide.toFixed(1)} mm. ${where} On the second stroke, with the blade held closed, the extruder pulls 1 mm at 3 mm/s (rip_length 1).`; }, segs:[{k:"cut", dur:cutDur(false)}, {k:"cutrip", dur:cutDur(true)}]},
   {t:"Pushback", h:"At the cutter", n:() => Q > 0 ? `pushback_length: ${Q} mm down at 25 mm/s. After 1 mm the lane's cut end meets the cut-off piece and pushes it ${Math.max(0, Q - 1)} mm back down; its liquid end compresses back toward the nozzle.` : "pushback_length is 0: no pushback.", segs:[{k:"e", E:Q, v:25}, {k:"wait", dur:0.02}]},
-  {t:"Pull back, park", h:"Cutter, then the park pad X114 Y356", n:() => Q > 0 ? `${Q} mm back up at 25 mm/s. The cut-off piece stays where it was pushed. Then AFC_PARK travels to the pad, about 1.5 s (estimated).` : "Then AFC_PARK travels to the pad, about 1.5 s (estimated).", segs:[{k:"e", E:-Q, v:25}, {k:"wait", dur:1.5}]},
-  {t:"Unload: bottom switch clears", h:"Park pad", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). After 13.3 mm the cut end passes the bottom ball and tool_end opens.", segs:[{k:"e", E:-13.27, v:25}]},
-  {t:"Unload: guidler swings in", h:"Park pad", n:() => "At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm until the gear teeth bottom.", segs:[{k:"e", E:-10.12, v:25}]},
-  {t:"Unload: top switch clears", h:"Park pad", n:() => "At 36.2 mm the end passes the top ball and tool_start opens: the filament has left the top sensor.", segs:[{k:"e", E:-12.81, v:25}]},
-  {t:"Unload ends, hotend waits", h:"Park pad", n:() => "The last 63.8 mm carries the end up the bowden. Then the lane pulls back to the hub and the next lane comes in; the cut-off piece sits in the hotend meanwhile. Shown: 20 s of that wait, sped up, as the piece reheats in place.", segs:[{k:"e", E:-63.8, v:25}, {k:"wait", dur:20, anim:3500}]},
+  {t:"Pull back, park", h:"Cutter, then the park position", n:() => Q > 0 ? `${Q} mm back up at 25 mm/s. The cut-off piece stays where it was pushed. Then AFC_PARK travels to the park position, about 1.5 s (estimated).` : "Then AFC_PARK travels to the park position, about 1.5 s (estimated).", segs:[{k:"e", E:-Q, v:25}, {k:"wait", dur:1.5}]},
+  {t:"Unload: bottom switch clears", h:"Park position", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). After 13.3 mm the cut end passes the bottom ball and tool_end opens.", segs:[{k:"e", E:-13.27, v:25}]},
+  {t:"Unload: guidler swings in", h:"Park position", n:() => "At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm until the gear teeth bottom.", segs:[{k:"e", E:-10.12, v:25}]},
+  {t:"Unload: top switch clears", h:"Park position", n:() => "At 36.2 mm the end passes the top ball and tool_start opens: the filament has left the top sensor.", segs:[{k:"e", E:-12.81, v:25}]},
+  {t:"Unload ends, hotend waits", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. Then the lane pulls back to the hub and the next lane comes in; the cut-off piece sits in the hotend meanwhile. Shown: 20 s of that wait, sped up, as the piece reheats in place.", segs:[{k:"e", E:-63.8, v:25}, {k:"wait", dur:20, anim:3500}]},
   ];
 }
 let STEPS = [], SEGS = [], T_END = 0;
@@ -186,8 +227,8 @@ function layout(){
 }
 // lane displacement (mm, + = filament moves up) and arm fraction as functions of sim time
 function laneUp(t){ for (const sg of SEGS){ if (t <= sg.t1 || sg === SEGS[SEGS.length-1]){ const f = sg.real > 0 ? Math.max(0, Math.min(1, (t - sg.t0) / sg.real)) : 1;
-  if (sg.k === "e") return -(sg.E0 + (sg.E1 - sg.E0) * f); if (sg.k === "cutrip"){ const tt = t - sg.t0; const r = Math.max(0, Math.min(1, (tt - RIP_START) / T_RIP)); return -(sg.E0 - r); } return -sg.E0; } } return -SEGS[SEGS.length-1].E1; }
-function armAng(t){ for (const sg of SEGS){ if (t < sg.t0 || t > sg.t1) continue; if (sg.k === "cut" || sg.k === "cutrip") return armFromPush(PIN_TOUCH_X - headX(t - sg.t0, sg.k === "cutrip")); } return 0; }
+  if (sg.k === "e") return -(sg.E0 + (sg.E1 - sg.E0) * f); if (sg.k === "cutrip"){ const tt = t - sg.t0; const r = Math.max(0, Math.min(1, (tt - ripStart()) / T_RIP)); return -(sg.E0 - r); } return -sg.E0; } } return -SEGS[SEGS.length-1].E1; }
+function armAng(t){ for (const sg of SEGS){ if (t < sg.t0 || t > sg.t1) continue; if (sg.k === "cut" || sg.k === "cutrip") return armFromPush(headS(t - sg.t0, sg.k === "cutrip") - PIN_PARK_DIST); } return 0; }
 const smooth = a => a*a*(3 - 2*a);
 // ---- simulation state: pieces of filament as chains of nodes (z, T), z along the path ----
 const SIM = {};
@@ -212,7 +253,7 @@ function simStep(t1){
   while (SIM.t < t1 - 1e-9){
     const dt = Math.min(H, t1 - SIM.t), tn = SIM.t + dt;
     // cut when the blade passes the filament
-    if (!SIM.cut && BLADE_TIP0 + slideDx(armAng(tn)) > cx(BLADE_Z)) cutAt(BLADE_Z);
+    if (!SIM.cut && BLADE_TIP0 + slideDx(armAng(tn)) >= cx(BLADE_Z) + W0 / 2) cutAt(BLADE_Z);   // only a blade that gets all the way through severs it
     const up = laneUp(tn), d = up - SIM.up; SIM.up = up;
     if (d !== 0){
       const lane = SIM.pieces.find(p => p.lane), rem = SIM.pieces.find(p => !p.lane);
@@ -350,10 +391,14 @@ document.getElementById("b-next").onclick = () => go(idx + 1);
 document.getElementById("b-prev").onclick = () => go(idx - 1);
 document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("select,input")) return;
   if (e.key === "ArrowRight") go(idx + 1); else if (e.key === "ArrowLeft") go(idx - 1); else if (e.key === " "){ e.preventDefault(); document.getElementById("b-play").click(); } });
-function syncOut(){ document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-tau").textContent = P.tau + " s"; }
+function syncOut(){ document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-cmd").textContent = P.cmd + " mm"; document.getElementById("o-tau").textContent = P.tau + " s"; }
 function rerun(){ layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
-[["k-ret","ret"],["k-push","push"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("change", e => { P[k] = +e.target.value; rerun(); }));
-[["k-ret","ret"],["k-push","push"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("input", e => { P[k] = +e.target.value; syncOut(); }));
-document.getElementById("b-reset").onclick = () => { P = {ret: 18, push: 15, tau: 3}; document.getElementById("k-ret").value = 18; document.getElementById("k-push").value = 15; document.getElementById("k-tau").value = 3; rerun(); };
+[["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("change", e => { P[k] = +e.target.value; rerun(); }));
+[["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("input", e => { P[k] = +e.target.value; syncOut(); }));
+document.getElementById("b-reset").onclick = () => { P = Object.assign({}, FACTORY); [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); rerun(); };
+const help = document.getElementById("help");
+document.getElementById("b-help").onclick = () => help.showModal();
+document.getElementById("b-help-x").onclick = () => help.close();
+help.addEventListener("click", e => { if (e.target === help) help.close(); });
 function start(){ layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
 </script>
