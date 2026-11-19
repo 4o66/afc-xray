@@ -34,7 +34,7 @@ for ver in VERS:
         full = np.load(B + "depth_full.npy")
         for g in [m for m in MODES[view] if m not in ("base", "full")]:
             im = Image.open(B + f"layer_{g}.png")
-            if g == "over": spr, box = crop(im)
+            if g in ("over", "bear"): spr, box = crop(im)   # see-through layer, and the uncut sensor bearing: whole
             elif g == "overmove":   # only the depressor leg where it meets the prep switch, 3 mm either side of the switch
                 z0, z1 = G["spool"]["d2f_z"]; rows = np.zeros((H, W)); a_, b_ = int((vmax - (z1 + 3 - O @ V)) * px), int((vmax - (z0 - 3 - O @ V)) * px)
                 rows[max(a_, 0):max(b_, 0)] = 1; spr, box = crop(im, rows)

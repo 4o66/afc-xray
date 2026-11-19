@@ -309,7 +309,8 @@ else:
     if VER == "v10": O, U, VV = np.array([105.1, 240.0, 0]), np.array([0, -1.0, 0]), Z
     else: O, U, VV = np.array([105.0, 0, 0]), np.array([0, 1.0, 0]), Z
     bounds = (4.0, 66.0, 34.0, 164.0)
-    trig = trig_rx + "|" + b_mov + "|" + axle_rx
+    # the feeder bowden sits in the trigger's bore: it and its feeder collar pivot with the trigger (repo owner)
+    trig = trig_rx + "|" + b_mov + "|" + axle_rx + "|" + feeder + "|" + bow
     MOV = {"trig": trig}
     OVER = (r"Spur Gear \(12 teeth\)|N20 DC MOTOR|gearbox_cover|motor_mount_x007|Tire001|new_wheel_1\.012|spooler_cover|Lightbox v5.*SOLID025|D2F"
             if VER != "v10" else r"helical_gear|gear_30_spacer|gearbox_cover|motor_mount_x006/SOLID022|Wheel v011/.*(Tire004|SOLID024|Drive012)|Lightbox v007/SOLID023|D2F")
@@ -348,6 +349,7 @@ for n, V, F in parts:
     if MODE == "over":   # viewer-side parts uncut, with the gear train drawn over the motor plate; parts behind the cut on top
         Dp = Dp + ((50.0 if re.search(GEARTOP, n) else 100.0) if Dp.min() < 0 else 0.0)
     if MODE == "overmove": Dp = Dp - OM_DEPTH
+    if MODE == "bear": Dp = Dp + 100.0   # the load-sensor bearing is drawn whole, not cut (repo owner)
     M = np.c_[X, Dp, Up]; T = M[F]
     keep = (T[:, :, 0].max(1) >= xmin - 1) & (T[:, :, 0].min(1) <= xmax + 1) & (T[:, :, 2].max(1) >= zmin - 1) & (T[:, :, 2].min(1) <= zmax + 1) & (T[:, :, 1].max(1) >= 0)
     if keep.any(): mapped.append((n, M, F[keep]))

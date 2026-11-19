@@ -484,8 +484,10 @@ function drawPiece(p){
   if (L.length < 2) return;
   ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]); for (const q of L) ctx.lineTo(q[0], q[1]); for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]); ctx.closePath();
   ctx.fillStyle = hatch; ctx.fill();
-  ctx.save(); ctx.strokeStyle = "rgba(10,12,16,.38)"; ctx.lineWidth = 2;
-  for (let i = 0; i < L.length; i++){ if ((i + (p.sh || 0)) % 8) continue; ctx.beginPath(); ctx.moveTo(L[i][0], L[i][1] + 3); ctx.lineTo(R[i][0], R[i][1] - 3); ctx.stroke(); }
+  ctx.save(); ctx.lineWidth = 2;
+  for (let i = 0; i < L.length; i++){ if ((i + (p.sh || 0)) % 8) continue;
+    ctx.strokeStyle = "rgba(10,12,16,.45)"; ctx.beginPath(); ctx.moveTo(L[i][0], L[i][1] + 3); ctx.lineTo(R[i][0], R[i][1] - 3); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.moveTo(L[i][0], L[i][1] + 6); ctx.lineTo(R[i][0], R[i][1]); ctx.stroke(); }
   ctx.restore(); ctx.lineWidth = p.old ? 3 : 1.4; ctx.strokeStyle = p.old ? "#8a3fd0" : "rgba(20,24,28,0.85)"; ctx.stroke();
 }
 // cutter return spring, BOM part: 0.5 mm wire, 4 mm OD, 25 mm free, 14 coils. Its arm end sits in a pocket tilted 18 deg up
@@ -542,8 +544,9 @@ function drawBuffer(dt){ if (!BUF) return; const j = BUF.j, d = bufDX(SIM.t), of
   if (fx2 > fx){ bctx.fillStyle = "#2fae4f"; bctx.fillRect(fx, fy, fx2 - fx, fw); bctx.fillStyle = hatch; bctx.fillRect(fx, fy, fx2 - fx, fw);
     bctx.strokeStyle = "rgba(20,24,28,.85)"; bctx.lineWidth = 1.4; bctx.strokeRect(fx, fy, fx2 - fx, fw);
     const flow = bufKind() === "tn" ? -1 : 1;   // filament runs right to left through the TurtleNeck, left to right through the combo
-    const ph = tnEnd != null ? (((tnEnd - (j.xmin - 2)) % 2) + 2) % 2 : (((flow * lanePos(SIM.t)) % 2) + 2) % 2; bctx.save();   // ticks fixed to the material bctx.strokeStyle = "rgba(10,12,16,.38)"; bctx.lineWidth = 2;
-    for (let xm = j.xmin - 2 + ph; (xm - j.xmin) * PX < cvb.width; xm += 2){ const x = (xm - j.xmin) * PX; if (x < fx || x > fx2) continue; bctx.beginPath(); bctx.moveTo(x - 3, fy + fw); bctx.lineTo(x + 3, fy); bctx.stroke(); }
+    const ph = tnEnd != null ? (((tnEnd - (j.xmin - 2)) % 2) + 2) % 2 : (((flow * lanePos(SIM.t)) % 2) + 2) % 2;   // ticks fixed to the material
+    bctx.save(); bctx.lineWidth = 2;
+    for (let xm = j.xmin - 2 + ph; (xm - j.xmin) * PX < cvb.width; xm += 2){ const x = (xm - j.xmin) * PX; if (x < fx || x > fx2) continue; bctx.strokeStyle = "rgba(10,12,16,.45)"; bctx.beginPath(); bctx.moveTo(x - 3, fy + fw); bctx.lineTo(x + 3, fy); bctx.stroke(); bctx.strokeStyle = "rgba(255,255,255,.4)"; bctx.beginPath(); bctx.moveTo(x, fy + fw); bctx.lineTo(x + 6, fy); bctx.stroke(); }
     bctx.restore(); }
   if (BUF.bear && HUBP){ const ey = axisEndY(tip), f = bearLift(ey, j.bear.y_mm + off, j.bear.lift, "bearB", dt) / j.bear.lift; bctx.drawImage(BUF.bear, j.bear.x + off * PX + f * j.bear.dx, j.bear.y + f * j.bear.dy); }
   if (P.band && bufKind() === "tn"){ bctx.save(); bctx.strokeStyle = "rgba(226,170,40,.9)"; bctx.lineWidth = 5; [6.2, -6.2].forEach(o => { bctx.beginPath(); bctx.moveTo(bx(14.5 + off), by(j.axisY + o)); bctx.lineTo(bx(82.5), by(j.axisY + o)); bctx.stroke(); }); bctx.restore(); }
@@ -711,7 +714,8 @@ function drawBed(){
   // the printed line: what left the nozzle a moment ago is now further left; hot when fresh, cooling as it goes
   for (let d = 0; d * PX < xN; d += 0.25){ const age = d / disp * (1 / BED_SLOW), f = flowAt(SIM.t - d / disp); if (f <= 0.05) continue;
     const h = BED_GAP * Math.min(1, f / PRINT_V), c = tcolor(40 + (TP - 40) * Math.exp(-age / 0.6));
-    ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(xN - (d + 0.25) * PX, y0 - h * PX, 0.25 * PX + 1, h * PX); }
+    const tick = (((d + SIM.t * disp) % 2) + 2) % 2 < 0.25;   // texture fixed to the line, travelling with the bed
+    ctx.fillStyle = tick ? `rgb(${Math.round(c[0] * 0.6)},${Math.round(c[1] * 0.6)},${Math.round(c[2] * 0.6)})` : `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(xN - (d + 0.25) * PX, y0 - h * PX, 0.25 * PX + 1, h * PX); }
   ctx.restore(); }
 // 4x inset of the nozzle tip, the 0.2 mm gap and the printed line, in the free space left of the nozzle
 function drawInset(){
@@ -784,9 +788,13 @@ const hubTube = () => (P.lane === 1 || P.lane === 4) ? 171 : 101;
 // lane s (mm from the feeder mouth) -> s along the hub's lane path (whose tube seat is at s 60)
 const laneToHubS = s => s - LE().ext_out_s - hubTube() + 60;
 const hubToLaneS = s => s + LE().ext_out_s + hubTube() - 60;
-function lanePathView(v, tip){ const j = v.j, pts = [], S = j.s_mm;
-  for (let i = 0; i < j.path.length; i++){ if (S[i] <= tip) pts.push(j.path[i]); else { if (i > 0 && S[i - 1] < tip){ const f = (tip - S[i - 1]) / (S[i] - S[i - 1]); pts.push([j.path[i - 1][0] + (j.path[i][0] - j.path[i - 1][0]) * f, j.path[i - 1][1] + (j.path[i][1] - j.path[i - 1][1]) * f]); } break; } }
-  return pts; }
+function lanePathView(v, tip, rot){ const j = v.j, pts = [], S = j.s_mm;
+  for (let i = 0; i < j.path.length; i++){ if (S[i] <= tip) pts.push([...j.path[i], S[i]]); else { if (i > 0 && S[i - 1] < tip){ const f = (tip - S[i - 1]) / (S[i] - S[i - 1]); pts.push([j.path[i - 1][0] + (j.path[i][0] - j.path[i - 1][0]) * f, j.path[i - 1][1] + (j.path[i][1] - j.path[i - 1][1]) * f, tip]); } break; } }
+  if (rot && rot.deg){   // above the prep rollers the filament sits in the feeder bowden, which pivots with the trigger
+    const nip = LE().prep_nip_s;
+    for (const q of pts){ const w = Math.max(0, Math.min(1, (nip - 2 - q[2]) / 8)), a = rot.deg * w * Math.PI / 180, dx = q[0] - rot.cx, dy = q[1] - rot.cy;
+      q[0] = rot.cx + dx * Math.cos(a) - dy * Math.sin(a); q[1] = rot.cy + dx * Math.sin(a) + dy * Math.cos(a); } }
+  return pts.map(q => [q[0], q[1]]); }
 function drawLaneView(g, cvx, v, tip, motor, dt){
   const j = v.j; g.clearRect(0, 0, cvx.width, cvx.height); g.drawImage(v.base, 0, 0);
   const prep = Math.max(0, Math.min(1, (tip - LE().prep_nip_s + 1) / 2)), load = Math.max(0, Math.min(1, (tip - LE().load_s + 1) / 2));
@@ -796,7 +804,7 @@ function drawLaneView(g, cvx, v, tip, motor, dt){
   if (v.dgear) rot(v.dgear, j.dgear, j.dgear.canvas_deg_per_mm * motor);
   if (v.igear) rot(v.igear, j.igear, j.igear.canvas_deg_per_mm * motor);
   if (v.bear) g.drawImage(v.bear, j.bear.x + j.bear.dx_px * view.lload, j.bear.y + j.bear.dy_px * view.lload);
-  const pts = lanePathView(v, tip); if (pts.length > 1) hubFil(g, pts, p => p, tip > j.s_mm[j.s_mm.length - 1] ? (((motor % 2) + 2) % 2) : 1);
+  const pts = lanePathView(v, tip, v.trig ? {cx: j.trig.cx, cy: j.trig.cy, deg: j.trig.angle_deg_with_filament * view.lprep} : null); if (pts.length > 1) hubFil(g, pts, p => p, tip > j.s_mm[j.s_mm.length - 1] ? (((motor % 2) + 2) % 2) : 1);
   g.save(); g.globalAlpha = LANE_SEE; if (v.over) g.drawImage(v.over, j.over.x, j.over.y); if (v.overmove) rot(v.overmove, j.overmove, j.overmove.angle_deg_with_filament * view.lprep); g.restore(); }
 const cvsp = document.getElementById("cvsp"), spctx = cvsp.getContext("2d"), cve = document.getElementById("cve"), ectx = cve.getContext("2d");
 function drawLane(dt){ if (!LANEA.spool || !LANEP) return; const tip = laneTip(SIM.t), motor = lanePos(SIM.t);
@@ -815,9 +823,10 @@ function hubTipS(t){ const lp = lanePath();
   return 1e9; }
 function hubTipText(tip){ const lp = lanePath(), d = tip - lp.sw; if (tip > 1e8) return "through the hub"; return Math.abs(d) < 0.5 ? "at the hub switch" : `${Math.abs(d) > 500 ? "far" : Math.abs(d).toFixed(0) + " mm"} ${d < 0 ? "short of" : "past"} the hub switch`; }
 function pathPt(pts, d){ for (let i = pts.length - 1; i > 0; i--){ const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= L){ const f = d / (L || 1); return [pts[i][0] + (pts[i - 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i - 1][1] - pts[i][1]) * f, pts[i - 1][0] - pts[i][0], pts[i - 1][1] - pts[i][1]]; } d -= L; } return null; }
-function filTicks(g, pts, map, phase){ g.save(); g.strokeStyle = "rgba(10,12,16,.38)"; g.lineWidth = 2;
+function filTicks(g, pts, map, phase){ g.save(); g.lineWidth = 2;
   for (let d = phase; d < 400; d += 2){ const q = pathPt(pts, d); if (!q) break; const [x, y] = map(q), [x2, y2] = map([q[0] + q[2], q[1] + q[3]]), l = Math.hypot(x2 - x, y2 - y) || 1, nx = -(y2 - y) / l, ny = (x2 - x) / l, h = 0.8 * PX;
-    g.beginPath(); g.moveTo(x - nx * h + (x2 - x) / l * 3, y - ny * h + (y2 - y) / l * 3); g.lineTo(x + nx * h - (x2 - x) / l * 3, y + ny * h - (y2 - y) / l * 3); g.stroke(); }
+    for (const [col, o] of [["rgba(10,12,16,.45)", 0], ["rgba(255,255,255,.4)", 3]]){ const ox = (x2 - x) / l * o, oy = (y2 - y) / l * o; g.strokeStyle = col;
+      g.beginPath(); g.moveTo(x - nx * h + (x2 - x) / l * 3 + ox, y - ny * h + (y2 - y) / l * 3 + oy); g.lineTo(x + nx * h - (x2 - x) / l * 3 + ox, y + ny * h - (y2 - y) / l * 3 + oy); g.stroke(); } }
   g.restore(); }
 function hubFil(g, pts, map, phase){ if (pts.length < 2) return; g.save(); g.lineCap = "butt"; g.lineJoin = "round"; g.beginPath(); pts.forEach((p, i) => { const [x, y] = map(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
   g.strokeStyle = "rgba(20,24,28,.85)"; g.lineWidth = 1.75 * PX + 3; g.stroke(); g.strokeStyle = "#2fae4f"; g.lineWidth = 1.75 * PX - 1; g.stroke(); g.restore(); filTicks(g, pts, map, phase == null ? 1 : phase); }
