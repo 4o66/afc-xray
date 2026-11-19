@@ -485,6 +485,7 @@ const cvb = document.getElementById("cvb"), bctx = cvb.getContext("2d"); let BUF
 async function loadBuffer(){ const dir = `assets/buffer_${bufKind()}/`, j = await (await fetch(dir + "sprites.json")).json();
   const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
   BUF = {j, base: await ld(dir + "base.webp"), slide: await ld(dir + "sprite_slide.png"), bear: j.bear ? await ld(dir + "sprite_bear.png") : null, occ: j.occ ? await ld(dir + "sprite_occ.png") : null};
+  for (const m of ["levR", "levL", "btnR", "btnL"]) if (j[m]) BUF[m] = await ld(dir + `sprite_${m}.png`);
   cvb.width = j.W; cvb.height = j.H; cvb.style.aspectRatio = `${j.W}/${j.H}`; document.getElementById("buf-cap").textContent = BB().cap; }
 // the lane's filament end along the outlet axis (hub CAD Y), or null when it has not reached the axis
 function axisEndY(tip){ const lp = lanePath(); for (let i = 1; i < lp.pts.length; i++){ const p = lp.pts[i];
@@ -493,6 +494,11 @@ function axisEndY(tip){ const lp = lanePath(); for (let i = 1; i < lp.pts.length
 function bearLift(endY, bearY, lift, key, dt){ const on = endY != null && endY >= bearY - 1; view[key] = (view[key] || 0) + ((on ? lift : 0) - (view[key] || 0)) * Math.min(1, (dt || 0.016) * 12); return view[key]; }
 function drawBuffer(dt){ if (!BUF) return; const j = BUF.j, d = bufDX(SIM.t), off = BB().sign * d, bx = x => (x - j.xmin) * PX, by = y => (j.zmax - y) * PX;
   bctx.clearRect(0, 0, cvb.width, cvb.height); bctx.drawImage(BUF.base, 0, 0); bctx.drawImage(BUF.slide, j.slide.x + off * PX, j.slide.y); if (BUF.occ) bctx.drawImage(BUF.occ, j.occ.x, j.occ.y);
+  // switch levers swing down and buttons push in as the trigger reaches each switch (trailing: right, advance: left)
+  const pr = {R: Math.max(0, Math.min(1, (BUF_TRIG_OF() + 0.8 - d) / 0.8)), L: Math.max(0, Math.min(1, (d - (BUF_TRAVEL_OF() - BUF_TRIG_OF() - 0.8)) / 0.8))};
+  for (const sd of ["R", "L"]){ const b = j["btn" + sd], l = j["lev" + sd];
+    if (b && BUF["btn" + sd]) bctx.drawImage(BUF["btn" + sd], b.x, b.y + pr[sd] * b.dy);
+    if (l && BUF["lev" + sd]){ bctx.save(); bctx.translate(l.px, l.py); bctx.rotate(l.sign * pr[sd] * l.deg * Math.PI / 180); bctx.translate(-l.px, -l.py); bctx.drawImage(BUF["lev" + sd], l.x, l.y); bctx.restore(); } }
   const tip = HUBP ? hubTipS(SIM.t) : 1e9, fy = by(j.axisY + 0.875), fw = 1.75 * PX; let fx = Math.max(0, bx(j.filFrom)), fx2 = cvb.width + 4;
   if (P.buf === "bt" && HUBP){ const ey = axisEndY(tip); if (ey == null) fx2 = fx; else { fx = Math.max(fx, bx(Math.min(...lanePath().pts.filter(p => Math.abs(p[0] - HUBP.axis_x) < 1e-6).map(p => p[1])))); fx2 = Math.min(fx2, bx(ey)); } }
   else if (HUBP && tip < lanePath().sw + 30) fx2 = fx;     // the end is back at the hub: the TurtleNeck is empty
@@ -501,7 +507,7 @@ function drawBuffer(dt){ if (!BUF) return; const j = BUF.j, d = bufDX(SIM.t), of
     const ph = ((lanePos(SIM.t) % 2) + 2) % 2; bctx.save(); bctx.strokeStyle = "rgba(10,12,16,.38)"; bctx.lineWidth = 2;
     for (let xm = j.xmin - 2 + ph; (xm - j.xmin) * PX < cvb.width; xm += 2){ const x = (xm - j.xmin) * PX; if (x < fx || x > fx2) continue; bctx.beginPath(); bctx.moveTo(x - 3, fy + fw); bctx.lineTo(x + 3, fy); bctx.stroke(); }
     bctx.restore(); }
-  if (BUF.bear && HUBP){ const ey = axisEndY(tip), lift = bearLift(ey, j.bear.y_mm + off, j.bear.lift, "bearB", dt); bctx.drawImage(BUF.bear, j.bear.x + off * PX, j.bear.y - lift * PX); }
+  if (BUF.bear && HUBP){ const ey = axisEndY(tip), f = bearLift(ey, j.bear.y_mm + off, j.bear.lift, "bearB", dt) / j.bear.lift; bctx.drawImage(BUF.bear, j.bear.x + off * PX + f * j.bear.dx, j.bear.y + f * j.bear.dy); }
   if (P.band && bufKind() === "tn"){ bctx.save(); bctx.strokeStyle = "rgba(226,170,40,.9)"; bctx.lineWidth = 5; [6.2, -6.2].forEach(o => { bctx.beginPath(); bctx.moveTo(bx(14.5 + off), by(j.axisY + o)); bctx.lineTo(bx(82.5), by(j.axisY + o)); bctx.stroke(); }); bctx.restore(); }
   const st = d <= BUF_TRIG_OF() ? "trailing" : d >= BUF_TRAVEL_OF() - BUF_TRIG_OF() ? "advance" : "between switches";
   bctx.save(); bctx.font = "500 26px IBM Plex Mono, monospace"; bctx.fillStyle = "#1c1e22"; bctx.fillText(`${BB().name}: ${d.toFixed(1)} mm from collapsed, ${st}`, 16, cvb.height - 18); bctx.restore(); }
@@ -738,6 +744,7 @@ function drawHubTop(g, cvx, tip){
   if (T.hwfix) g.drawImage(T.hwfix, T.j.hwfix.x, T.j.hwfix.y); if (T.hwslide) g.drawImage(T.hwslide, T.j.hwslide.x + off, T.j.hwslide.y);
   if (hubKey() === "combo") BARRELS.forEach(xc => drawBarrelSpring(g, xc, BARREL_HEAD + off / PX, BARREL_WASHER));
   hubFil(g, hubUpto(lp, tip), p => [(p[1] - 192) * PX, (p[0] - 122) * PX], tip > 1e8 ? ((-lanePos(SIM.t)) % 2 + 2) % 2 : 1);
+  if (T.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, f = bearLift(axisEndY(tip), T.j.bear.y_mm + offmm, T.j.bear.lift, cvx === cvh ? "bearT" : "bearTm", 0.016) / T.j.bear.lift; g.drawImage(T.bear, T.j.bear.x + offmm * PX + f * T.j.bear.dx, T.j.bear.y + f * T.j.bear.dy); }
   g.save(); g.globalAlpha = P.see / 100; if (T.over) g.drawImage(T.over, T.j.over.x, T.j.over.y); if (T.overslide) g.drawImage(T.overslide, T.j.overslide.x + off, T.j.overslide.y); g.restore();
   g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; const sx = (lp.swY - 192) * PX; g.beginPath(); g.moveTo(sx, (HUBP.axis_x - 6 - 122) * PX); g.lineTo(sx, (HUBP.axis_x + 6 - 122) * PX); g.stroke(); g.restore();
   hubLabel(g, `Top · lane ${P.lane} end: ${hubTipText(tip)}`, cvx.height); }
@@ -747,7 +754,7 @@ function drawHubSide(g, cvx, tip, dt, key){
   g.clearRect(0, 0, cvx.width, cvx.height); g.drawImage(S.base, 0, 0); if (S.slide) g.drawImage(S.slide, S.j.slide.x + off, S.j.slide.y);
   const onAxis = upto.filter(p => Math.abs(p[0] - HUBP.axis_x) < 1e-6), last = upto[upto.length - 1];
   if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6){ const zy = (48 - h.az) * PX; hubFil(g, [[0, onAxis[0][1]], [0, last[1]]], p => [(p[1] - 192) * PX, zy], 1); }
-  if (S.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, lift = bearLift(axisEndY(tip), S.j.bear.y_mm + offmm, S.j.bear.lift, key, dt); g.drawImage(S.bear, S.j.bear.x + offmm * PX, S.j.bear.y - lift * PX); }
+  if (S.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, f = bearLift(axisEndY(tip), S.j.bear.y_mm + offmm, S.j.bear.lift, key, dt) / S.j.bear.lift; g.drawImage(S.bear, S.j.bear.x + offmm * PX + f * S.j.bear.dx, S.j.bear.y + f * S.j.bear.dy); }
   g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; g.beginPath(); g.moveTo(sx, (48 - h.az - 7) * PX); g.lineTo(sx, (48 - h.az + 7) * PX); g.stroke(); g.restore(); }
 function drawHub(dt){
   if (!HUBA.top || !HUBP) return; const tip = laneTip(SIM.t);

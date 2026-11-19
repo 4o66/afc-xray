@@ -42,14 +42,14 @@ def wanted(n):
     g = group(n)
     if MODE in ("static", "full"): return not (VIEW == "top" and (re.search(HW, n) or re.search(SPRING, n)))
     if MODE == "bear": return bool(re.search(BEAR, n))
-    if VIEW == "side" and re.search(BEAR, n): return False
+    if re.search(BEAR, n): return False          # drawn whole, in its own layer
     if MODE == "hwfix": return g is None and bool(re.search(HW, n))
     if MODE == "hwslide": return g == "slide" and bool(re.search(HW, n))
     if VIEW == "top" and (re.search(HW, n) or re.search(SPRING, n)): return False
     if MODE == "base": return g is None
     if MODE == "slide": return g == "slide"
-    if MODE == "over": return g is None and re.search(OVER, n)
-    if MODE == "overslide": return g == "slide" and re.search(OVER, n)
+    if MODE == "over": return g is None and re.search(OVER, n) and not re.search(BEAR, n)
+    if MODE == "overslide": return g == "slide" and re.search(OVER, n) and not re.search(BEAR, n)
 src = {"combo": "btcombo", "loadonly": "bthub_loadonly", "v10": "bthub10"}[HUB]
 d = np.load(D + f"cad/{src}.npz"); N = json.load(open(D + f"cad/{src}.json")); parts = []
 for i, n in enumerate(N): parts.append((n, d["p%03d_V" % i].astype(float), d["p%03d_F" % i]))
@@ -92,10 +92,11 @@ add_tube("PTFE_TOOLHEAD" if HUB == "combo" else "PTFE_OUT", [*(sh - v * (330.0 -
 place_collet("ECAS Bowden Collet (1)" if HUB == "combo" else "ECAS Bowden Collet out", o["collet"])
 SLIDE_DY = float(os.environ.get("SLIDE_DY", "0"))
 parts = [(n, V + ([0, SLIDE_DY, 0] if group(n) == "slide" else 0), F) for n, V, F in parts]
-if VIEW == "side":   # from +X: screen right = +Y, up = Z, depth = AX - X (keep X <= AX)
-    parts = [(n, np.c_[V[:, 1], AX - V[:, 0], V[:, 2]], F) for n, V, F in parts]; bounds = "xmin, xmax = 192.0, 292.0; zmin, zmax = -10.0, 48.0"
+if VIEW == "side":   # from +X: screen right = +Y, up = Z, depth = AX - X (keep X <= AX); the sensor layer is uncut
+    _l = 100.0 if MODE == "bear" else 0.0
+    parts = [(n, np.c_[V[:, 1], AX - V[:, 0] + _l, V[:, 2]], F) for n, V, F in parts]; bounds = "xmin, xmax = 192.0, 292.0; zmin, zmax = -10.0, 48.0"
 else:                # from +Z: screen right = +Y, up = -X, depth = AZ - Z (keep Z <= AZ); "over" layers are uncut
-    lift = 100.0 if MODE.startswith("over") or MODE.startswith("hw") else 0.0
+    lift = 100.0 if MODE.startswith("over") or MODE.startswith("hw") or MODE == "bear" else 0.0
     parts = [(n, np.c_[V[:, 1], AZ + lift - V[:, 2], -V[:, 0]], F) for n, V, F in parts]; bounds = "xmin, xmax = 192.0, 292.0; zmin, zmax = -178.0, -122.0"
 CAPOVR = {"PTFE tube, inferred (cut face pink)": "#f4a3c4"}
 src_r = open(D + "tools/section.py").read()

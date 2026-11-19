@@ -30,9 +30,23 @@ Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", quality=90
 W, H = Image.open(B + "layer_base.png").size
 j = {"slide": dict(x=int(x0), y=int(y0), w=int(x1 - x0), h=int(y1 - y0)), "W": W, "H": H, **META}
 if OCC: j["occ"] = OCC
-if os.path.exists(B + "layer_bear.png"):   # hub sensor bearing (combo): lift = filament top - bearing bottom, from the CAD
-    im = np.array(Image.open(B + "layer_bear.png")).astype(float); zb = np.load(B + "depth_bear.npy"); im[..., 3] *= binary_dilation((zb <= full + 0.05) & np.isfinite(zb), iterations=1)
+# TurtleNeck switches: lever (rotates about its hinge) and button (pushed in) per switch; R = trailing, L = advance.
+# Hinge points from the CAD: the right switch's lever is hinged at its left end, the left switch's at its right end.
+if K == "tn":
+    PIV = {"R": (49.95, 105.45), "L": (31.25, 105.45)}
+    for m, kind in (("levR", "lev"), ("levL", "lev"), ("btnR", "btn"), ("btnL", "btn")):
+        if not os.path.exists(B + f"layer_{m}.png"): continue
+        im = np.array(Image.open(B + f"layer_{m}.png")).astype(float); ys, xs = np.where(im[..., 3] > 0)
+        bx0, bx1, by0, by1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+        Image.fromarray(im[by0:by1, bx0:bx1].astype(np.uint8), "RGBA").save(A + f"sprite_{m}.png")
+        e = dict(x=int(bx0), y=int(by0), w=int(bx1 - bx0), h=int(by1 - by0)); side = m[-1]
+        if kind == "lev": px, py = PIV[side]; e.update(px=round((px - META["xmin"]) * 14, 1), py=round((META["zmax"] - py) * 14, 1), sign=1 if side == "R" else -1, deg=10.0)
+        else: e.update(dy=0.6 * 14)
+        j[m] = e
+if os.path.exists(B + "layer_bear.png"):   # the combo's sensor bearing, whole; it rises straight up 2.375 mm onto the filament
+    im = np.array(Image.open(B + "layer_bear.png")).astype(float)
     ys, xs = np.where(im[..., 3] > 0); bx0, bx1, by0, by1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
-    Image.fromarray(im[by0:by1, bx0:bx1].astype(np.uint8), "RGBA").save(A + "sprite_bear.png"); j["bear"] = dict(x=int(bx0), y=int(by0), w=int(bx1 - bx0), h=int(by1 - by0), lift=2.38, y_mm=267.57)
+    Image.fromarray(im[by0:by1, bx0:bx1].astype(np.uint8), "RGBA").save(A + "sprite_bear.png")
+    j["bear"] = dict(x=int(bx0), y=int(by0), w=int(bx1 - bx0), h=int(by1 - by0), lift=2.375, dx=0.0, dy=-2.375 * 14, y_mm=267.57)
 json.dump(j, open(A + "sprites.json", "w"))
 print("assets", K, W, H)

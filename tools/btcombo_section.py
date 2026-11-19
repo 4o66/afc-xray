@@ -64,7 +64,7 @@ def lathe_y(poly, n=96):
 PT_OUT_SEAT = float(os.environ.get("PT_OUT_SEAT", "274.3"))   # shoulder past the outlet fitting (tools/hub_paths.py)
 V, F = lathe_y([(1.0, PT_OUT_SEAT), (1.97, PT_OUT_SEAT), (1.97, 320.0), (1.0, 320.0)]); parts.append(("PTFE_TOOLHEAD", V, F))
 # view: SIDE a looks from +X (keep X <= AX), SIDE b from -X (keep X >= AX); screen right along the outlet path, up = Z
-if SIDE == "a": parts = [(n, np.c_[V[:, 1], AX - V[:, 0], V[:, 2]], F) for n, V, F in parts]
+if SIDE == "a": parts = [(n, np.c_[V[:, 1], AX - V[:, 0] + (100.0 if MODE == "bear" else 0.0), V[:, 2]], F) for n, V, F in parts]   # sensor layer uncut
 else: parts = [(n, np.c_[-V[:, 1], V[:, 0] - AX, V[:, 2]], F) for n, V, F in parts]
 CAPOVR = {"PTFE tube, inferred (cut face pink)": "#f4a3c4"}
 src = open(D + "tools/section.py").read()

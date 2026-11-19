@@ -27,6 +27,9 @@ def classify(n):
     return "Other", "#9a9a9a"
 def group(n):
     if n.endswith("/Slide") or "ECAS Bowden Collet/" in n or n == "PTFE_IN": return "slide"
+    # each switch's hinge lever and button move when the slide's trigger presses them: own layers
+    m = re.search(r"D2F-L_(Right|Left)_Angled v1/D2F_(Hinge|Button)", n)
+    if m: return ("lev" if m.group(2) == "Hinge" else "btn") + m.group(1)[0]
     return None
 def wanted(n):
     g = group(n)
