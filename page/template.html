@@ -514,7 +514,8 @@ function drawBuffer(dt){ if (!BUF) return; const j = BUF.j, d = bufDX(SIM.t), of
   else if (HUBP && tip < lanePath().sw + 30) fx2 = fx;     // the end is back at the hub: the TurtleNeck is empty
   if (fx2 > fx){ bctx.fillStyle = "#2fae4f"; bctx.fillRect(fx, fy, fx2 - fx, fw); bctx.fillStyle = hatch; bctx.fillRect(fx, fy, fx2 - fx, fw);
     bctx.strokeStyle = "rgba(20,24,28,.85)"; bctx.lineWidth = 1.4; bctx.strokeRect(fx, fy, fx2 - fx, fw);
-    const ph = ((lanePos(SIM.t) % 2) + 2) % 2; bctx.save(); bctx.strokeStyle = "rgba(10,12,16,.38)"; bctx.lineWidth = 2;
+    const flow = bufKind() === "tn" ? -1 : 1;   // filament runs right to left through the TurtleNeck, left to right through the combo
+    const ph = (((flow * lanePos(SIM.t)) % 2) + 2) % 2; bctx.save(); bctx.strokeStyle = "rgba(10,12,16,.38)"; bctx.lineWidth = 2;
     for (let xm = j.xmin - 2 + ph; (xm - j.xmin) * PX < cvb.width; xm += 2){ const x = (xm - j.xmin) * PX; if (x < fx || x > fx2) continue; bctx.beginPath(); bctx.moveTo(x - 3, fy + fw); bctx.lineTo(x + 3, fy); bctx.stroke(); }
     bctx.restore(); }
   if (BUF.bear && HUBP){ const ey = axisEndY(tip), f = bearLift(ey, j.bear.y_mm + off, j.bear.lift, "bearB", dt) / j.bear.lift; bctx.drawImage(BUF.bear, j.bear.x + off * PX + f * j.bear.dx, j.bear.y + f * j.bear.dy); }
