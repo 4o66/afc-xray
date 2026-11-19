@@ -41,7 +41,8 @@ def group(n): return "slide" if re.search(MOVING, n) else None
 BEAR = r"bearing|Omron D2HW-C201H( \(1\))?00[12]$"   # the hub sensor: bearing and the switch actuator above it, lifted together by the filament (MODE=bear)
 def wanted(n):
     g = group(n)
-    if MODE == "static" or MODE == "full": return True
+    if MODE == "static": return True
+    if MODE == "full": return not re.search(BEAR, n)   # the bearing is drawn whole on its own layer: keep it out of the masking reference
     if MODE == "bear": return bool(re.search(BEAR, n))
     if re.search(BEAR, n): return False
     if MODE == "base": return g is None

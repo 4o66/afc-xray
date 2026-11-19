@@ -40,7 +40,10 @@ SPRING = r"compression spring"                          # drawn by the page, com
 BEAR = r"bearing|Omron D2HW-C201H( \(1\))?00[12]$"   # the hub sensor: bearing and the switch actuator above it, lifted together by the filament (MODE=bear)
 def wanted(n):
     g = group(n)
-    if MODE in ("static", "full"): return not (VIEW == "top" and (re.search(HW, n) or re.search(SPRING, n)))
+    if MODE == "static": return True
+    # "full" is the occlusion reference for masking the moving layers: leave out the parts drawn whole on their own layers
+    # (the sensor bearing; in the top view the barrel stacks), or they would punch their rest-position outline into them
+    if MODE == "full": return not (re.search(BEAR, n) or (VIEW == "top" and (re.search(HW, n) or re.search(SPRING, n))))
     if MODE == "bear": return bool(re.search(BEAR, n))
     if re.search(BEAR, n): return False          # drawn whole, in its own layer
     if MODE == "hwfix": return g is None and bool(re.search(HW, n))
