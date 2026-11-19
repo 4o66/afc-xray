@@ -336,14 +336,13 @@ function changeSteps(){
 // TOOL_UNLOAD disables the buffer (lane multiplier back to 1.0) and syncs the lane, so lane and extruder move together and
 // the buffer holds still; once the end leaves the extruder gears nothing holds the filament, and the combo's return
 // springs pull its outlet block closed (the TurtleNeck has no spring and stays put)
-const TN_TUBE = 200;   // hub outlet to the TurtleNeck's inlet, mm (build dependent, assumed)
 const BUF_FREE_TXT = () => bufKind() === "bt" ? " With the filament free, the combo's return springs pull its outlet block closed against the hub." : P.band ? " With the filament free, the rubber band pulls the TurtleNeck closed." : "";
 // the toolhead unload depends on the extruder body's sensors (AFC.py unload_sequence)
 const WAIT_END = {k:"wait", dur:20, anim:3500};
 // after the toolhead unload: the lane back to the hub switch, then clear of it (AFC.py unload_sequence)
 function unloadHubSteps(){ const back = AFCV.bowden - (100 - (BALLS[0].z - BLADE_Z));
   return [
-  {t:"Lane back to the hub", h:"Park position", n:() => `AFC unsyncs the lane and pulls it back by homing until the hub switch opens: up to afc_unload_bowden_length (the shipped ${AFCV.bowden} mm; here about ${back.toFixed(0)} mm) at the long speed, 150 mm/s, with the respooler rewinding. Shown sped up; see the hub below the buffer.`, segs:[laneMv(-back, AFCV.long, {anim: 4000, ev: true})]},
+  {t:"Lane back to the hub", h:"Park position", n:() => `AFC unsyncs the lane and pulls it back by homing until the hub switch opens: up to afc_unload_bowden_length (${BOWDEN_NOTE()}) at the long speed, 150 mm/s, with the respooler rewinding. See the hub below the buffer.`, segs:[laneMv(-back, AFCV.long, {ev: true})]},
   {t:"Hub cleared, hotend waits", h:"Park position", n:() => "Then hub_clear_move_dis, 65 mm, at 50 mm/s with spool assist. The end now waits in the lane's inlet tube, out of the hub, so the hub is empty for the next lane (Toolhead load tab starts here). The cut-off piece sits in the hotend meanwhile. Shown: 20 s from the end of the unload, sped up, as the piece reheats in place.", segs:[laneMv(-AFCV.hubClear, AFCV.short), {k:"wait", dur: Math.max(1, 20 - back / AFCV.long - AFCV.hubClear / AFCV.short), anim: 3000}]}]; }
 function unloadSteps(){
   if (P.body === "dual") return [
@@ -527,7 +526,7 @@ function drawBuffer(dt){ if (!BUF) return; const j = BUF.j, d = bufDX(SIM.t), of
   let tnEnd = null;
   if (P.buf !== "bt" && HUBP && tip < 1e8){
     // the TurtleNeck sits on the hub-to-toolhead bowden; filament runs right to left through it (in at the frame's collet
-    // on the right, out at the slide's on the left). The hub-to-TurtleNeck tube is build dependent: 200 mm assumed.
+    // on the right, out at the slide's on the left). The hub-to-TurtleNeck tube is 100 mm for the animation (TN_TUBE).
     const lp = lanePath(), past = tip - lp.sw - ((HUBP[hubKey()].outlet_end - lp.swY) + TN_TUBE), xr = j.xmin + cvb.width / PX;
     tnEnd = xr - past;                                           // CAD X of the filament end in this view
     if (past <= 0) fx2 = fx; else fx = Math.max(fx, bx(tnEnd)); }
@@ -583,7 +582,16 @@ function draw(dt){
 // ---- operations (tabs) ----
 // AFC v1.2.0-5 shipped settings used by the load, jam and spool timelines (config/AFC.cfg, templates/AFC_Hardware-AFC.cfg,
 // templates/AFC_Turtle_1.cfg, config/AFC_Macro_Vars.cfg). Code defaults differ for some; the narration says which.
-const AFCV = {long: 150, short: 50, bowden: 1725, hubClear: 65, toolStn: 72, toolLoad: 25, poop: 72.111, poopSpd: 6.5, distHub: [155, 80, 90, 145], extClear: 50, maxMoves: 40};
+const AFCV = {long: 150, short: 50, bowdenShipped: 1725, hubClear: 65, toolStn: 72, toolLoad: 25, poop: 72.111, poopSpd: 6.5, distHub: [155, 80, 90, 145], extClear: 50, maxMoves: 40};
+// For a clear animation the bowden is short: 100 mm from the hub to the TurtleNeck and 100 mm on to the toolhead (the
+// neck's own 70 mm between its fittings in between), or 100 mm from the v1.1 hub/buffer combo to the toolhead, plus the
+// hub from its switch to its outlet and 60 mm from the toolhead's inlet to its top switch. Real builds are longer
+// (the shipped AFC_Hardware.cfg has afc_bowden_length 1725).
+const TN_TUBE = 100, TN_BODY = 70, HEAD_TUBE = 100, HEAD_IN = 60;
+function bowdenLen(){ if (!HUBP) return AFCV.bowdenShipped; const lp = lanePath(), out = HUBP[hubKey()].outlet_end - lp.swY;
+  return Math.round(out + (bufKind() === "bt" ? 0 : TN_TUBE + TN_BODY) + HEAD_TUBE + HEAD_IN); }
+Object.defineProperty(AFCV, "bowden", {get: bowdenLen});
+const BOWDEN_NOTE = () => `${AFCV.bowden} mm here, shortened so the animation stays readable; the shipped AFC_Hardware.cfg has ${AFCV.bowdenShipped}`;
 let OP = "change";
 const hubKey = () => ({bt: "combo", tn: "loadonly", v10: "v10"})[P.buf];
 const OPS = {
@@ -620,11 +628,11 @@ function loadSteps(){
   const b = BODIES[P.body], ram = b.buffer, st = [], end = BALLS[0].z - BALLS[1].z, nStep = Math.ceil(end / 10);
   st.push({t: "Start: lane at the hub, old piece in the hotend", h: "Toolchange position", n: () => "The hub is empty: the new lane's end waits in its inlet tube, 65 mm short of the hub switch (hub_clear_move_dis), where AFC parks every lane. The previous lane's cut-off piece is still in the hotend, outlined in purple. TOOL_LOAD checks that the lane's load sensor is triggered and the hub switch is clear, and that the hotend is at temperature (it is, mid-toolchange).", segs: [pause(0, {anim: 900})]});
   st.push({t: "Lane to the hub switch", h: "Toolchange position", n: () => "The lane motor alone homes to the hub switch: up to 75 + 50 mm at the short speed (50 mm/s in the shipped AFC.cfg; 25 in the code). It stops when the switch closes, about 65 mm on. The extruder does not turn.", segs: [laneMv(AFCV.hubClear, AFCV.short)]});
-  if (!ram) st.push({t: "Bowden: lane to the top switch", h: "Toolchange position", n: () => `One homing move of the lane motor to tool_start: up to afc_bowden_length + 50 mm (${AFCV.bowden + 50} mm with the shipped ${AFCV.bowden}) at the long speed, 150 mm/s, with spool assist. It is one move, not split up, and it stops when the top switch closes. The lane pushes the filament through the tube; the extruder still does not turn. Shown sped up.`, segs: [laneMv(AFCV.bowden, AFCV.long, {anim: 4500, ev: true})]});
+  if (!ram) st.push({t: "Bowden: lane to the top switch", h: "Toolchange position", n: () => `One homing move of the lane motor to tool_start: up to afc_bowden_length + 50 mm (${BOWDEN_NOTE()}) at the long speed, 150 mm/s, with spool assist. It is one move, not split up, and it stops when the top switch closes. The lane pushes the filament through the tube; the extruder still does not turn.`, segs: [laneMv(AFCV.bowden, AFCV.long, {ev: true})]});
   else {
     const need = BB().travel - BB().trig - bufStart();
-    st.push({t: "Bowden: fixed move, then home on the buffer", h: "Toolchange position", n: () => `With no toolhead switch (tool_start: buffer), the bowden move is split: afc_bowden_length − 20 mm (${AFCV.bowden - 20} mm) as a fixed move at 150 mm/s, then a homing move of up to 20 + 50 mm at 50 mm/s that ends on the buffer's advance switch. The end reaches the extruder gears, which are not turning, and stops there (the ${RAM_GAP} mm gap is an estimate). The lane keeps pushing, so the buffer is rammed open by ${need.toFixed(1)} mm until the advance switch closes. Shown sped up.`,
-      segs: [laneMv(AFCV.bowden - 20, AFCV.long, {anim: 4000}), laneMv(RAM_GAP, AFCV.short), laneHeld(need, AFCV.short, {ev: true})]}); }
+    st.push({t: "Bowden: fixed move, then home on the buffer", h: "Toolchange position", n: () => `With no toolhead switch (tool_start: buffer), the bowden move is split: afc_bowden_length − 20 mm (afc_bowden_length: ${BOWDEN_NOTE()}) as a fixed move at 150 mm/s, then a homing move of up to 20 + 50 mm at 50 mm/s that ends on the buffer's advance switch. The end reaches the extruder gears, which are not turning, and stops there (the ${RAM_GAP} mm gap is an estimate). The lane keeps pushing, so the buffer is rammed open by ${need.toFixed(1)} mm until the advance switch closes.`,
+      segs: [laneMv(AFCV.bowden - 20, AFCV.long), laneMv(RAM_GAP, AFCV.short), laneHeld(need, AFCV.short, {ev: true})]}); }
   if (P.body === "dual") st.push({t: "Synced: 10 mm steps to the bottom switch", h: "Toolchange position", n: () => `The lane motor is synced to the extruder. AFC moves the extruder (the lane follows) 10 mm at a time at tool_load_speed (25 mm/s), checking tool_end between moves. These are fixed steps, not a homing move: the bottom switch is ${end.toFixed(1)} mm below the top one, so it closes during step ${nStep} and the end finishes ${(nStep * 10 - end).toFixed(1)} mm past it.`,
     segs: Array.from({length: nStep}, () => [mv(10, AFCV.toolLoad), pause(0.05)]).flat()});
   st.push({t: "tool_stn: on to the nozzle", h: "Toolchange position", n: () => { const from = P.body === "dual" ? "where the steps stopped" : ram ? "where the end stopped at the gears" : "the top switch"; const zEnd = (P.body === "dual" ? BALLS[0].z - nStep * 10 : ram ? GEAR_Z + 2 : BALLS[0].z) - AFCV.toolStn;
@@ -738,7 +746,7 @@ function laneSteps(){
   st.push({t: "The gears take it to the load sensor", h: `Lane ${P.lane}`, n: () => `Now the lane extruder drives the filament (${LANEP[P.lext].ratio_motor_to_drive.toFixed(1)}:1 from the motor). ${(e.load_s - e.nip_s).toFixed(1)} mm past the nip it reaches the load sensor: it pushes the bearing aside into the D2HW switch, and the homing move stops.`, segs: [laneMv(e.load_s - e.nip_s, AFCV.short, {ev: true})]});
   st.push({t: "On toward the hub: dist_hub", h: `Lane ${P.lane}`, n: () => `load_to_hub is on (the default), so the lane moves on dist_hub as one fixed move. Calibration sets dist_hub to the distance from the load sensor to the hub switch minus hub_clear_move_dis: here ${dh.toFixed(0)} mm from the CAD, with the ${hubTube()} mm extruder-to-hub tube of lane ${P.lane} (the shipped AFC_Turtle_1.cfg has ${tpl} for lane ${P.lane}). The end stops 65 mm short of the hub switch. The lane is now LOADED.`, segs: [laneMv(dh, dm, {anim: 3500})]});
   st.push({t: "At a toolchange: home to the hub switch", h: `Lane ${P.lane}`, n: () => "When a toolchange calls this lane, TOOL_LOAD first homes it to the hub switch (up to 125 mm at 50 mm/s), through its hub channel to the switch (see the hub view).", segs: [laneMv(AFCV.hubClear, AFCV.short, {ev: true})]});
-  st.push({t: "Bowden move toward the toolhead", h: `Lane ${P.lane}`, n: () => `Then the long move to the toolhead (afc_bowden_length, ${AFCV.bowden} mm at 150 mm/s; see the Toolhead load tab). Shown: the first 60 mm.`, segs: [laneMv(60, AFCV.long)]});
+  st.push({t: "Bowden move toward the toolhead", h: `Lane ${P.lane}`, n: () => `Then the long move to the toolhead (afc_bowden_length: ${BOWDEN_NOTE()}; at 150 mm/s; see the Toolhead load tab). Shown: the first 60 mm.`, segs: [laneMv(60, AFCV.long)]});
   st.push({t: "Unload: back past the hub switch", h: `Lane ${P.lane}`, n: () => "After a toolchange unload, the lane is pulled back by homing until the hub switch opens, then hub_clear_move_dis, 65 mm, at 50 mm/s with spool assist: the parking spot the next load starts from.", segs: [laneMv(-60, AFCV.long, {ev: true}), laneMv(-AFCV.hubClear, AFCV.short)]});
   st.push({t: "Eject (LANE_UNLOAD)", h: `Lane ${P.lane}`, n: () => `LANE_UNLOAD reverses the load: a homing move back until the load sensor opens (up to dist_hub, ${dh.toFixed(0)} mm, at ${dm} mm/s, the respooler rewinding), then extruder_clear_dis, 50 mm, at 50 mm/s, which takes the end back out of the gears into the tube. Refused while printing or if this lane is in the toolhead.`, segs: [laneMv(-dh, dm, {ev: true}), laneMv(-AFCV.extClear, AFCV.short)]});
   st.push({t: "Pull the spool end out", h: `Lane ${P.lane}`, n: () => "The end is still in the prep rollers; pull it out by hand. Prep releases and the lane reads empty.", segs: [handMv(-(e.load_s - AFCV.extClear - LANE_S0), 60), pause(0.5)]});

@@ -31,6 +31,10 @@ One tab each. The hardware choices at the top of the page apply to all of them.
   of the hub switch, through the hub at the next toolchange, back after an unload, LANE_UNLOAD, and out. The prep
   trigger swings, the gears turn, the load sensor's bearing moves, and the hub view follows the same filament.
 
+For clarity the animations use a short bowden: 100 mm from the hub to the TurtleNeck and 100 mm on to the toolhead,
+or 100 mm from the hub/buffer combo to the toolhead (343 mm and 143 mm in all). The narration says so and gives the
+shipped `afc_bowden_length` (1725 mm) alongside.
+
 ## Hardware choices
 
 - **Extruder body:** FilamATrix Clockwork 2 with two switches, one switch (top only) or none; or FilamATrix 2.5 (no
