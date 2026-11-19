@@ -3,3 +3,4 @@ __pycache__/
 .DS_Store
 *.step
 *.STEP
+cad/bthub10_raw.*

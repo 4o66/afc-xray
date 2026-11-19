@@ -13,8 +13,9 @@ F25 = BODY.startswith("f25")
 # the FilamATrix 2.5 bodies also replace the CW2 main body, motor plate, guidler A and shuttle with Voron's CW2.5 parts
 _NOSW = [r"FilamentSensor", r"M2x10 STS v"]
 BODY_SKIP = {"dual": [], "single": [r"FilamentSensor/", r"M2x10 STS v1$", r"M2x10 STS v002$"], "none": _NOSW,
-             "f25_ecas": _NOSW + [r"CW2_Printed/(Motor_Plate|Guilder_A|Shuttle)$"],
-             "f25_collet": _NOSW + [r"CW2_Printed/(Motor_Plate|Guilder_A|Shuttle)$", r"ECAS Bowden Collet001/"]}[BODY]
+             # CW2.5 has no anti-squish screw: the CW2 guidler's M3x6 FHCS and its insert go with the CW2 guidler
+             "f25_ecas": _NOSW + [r"CW2_Printed/(Motor_Plate|Guilder_A|Shuttle)$", r"CW2_hardware/M3x6 FHCS002$", r"CW2_hardware/M3 Threaded Insert008$"],
+             "f25_collet": _NOSW + [r"CW2_Printed/(Motor_Plate|Guilder_A|Shuttle)$", r"CW2_hardware/M3x6 FHCS002$", r"CW2_hardware/M3 Threaded Insert008$", r"ECAS Bowden Collet001/"]}[BODY]
 MODE = os.environ.get("MODE", "static")   # static | base | full | arm | slide | spring  (animation layers)
 def group(n):
     if n.endswith("Cutting_Arm v1 (1)"): return "arm"
