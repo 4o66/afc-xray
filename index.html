@@ -19,7 +19,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px
 @media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}}
 figure{margin:0;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px}
 canvas{display:block}
-#cv{height:min(calc(100vh - 118px),1500px);min-height:420px;width:auto;max-width:100%;aspect-ratio:1148/2212}
+#cv{height:min(calc(100vh - 156px),1500px);min-height:420px;width:auto;max-width:100%;aspect-ratio:1148/2212}
 @media (max-width:900px){#cv{width:100%;height:auto;min-height:0}}
 .cap{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font:500 12px var(--mono);color:#5d6470;flex-wrap:wrap}
 .figs{display:grid;gap:16px;min-width:0;align-content:start}
@@ -35,6 +35,14 @@ figure.buf figcaption{font-size:12.5px;color:#5d6470;margin-top:8px}
 .below .notes{grid-column:1/-1}
 @media (max-width:900px){.below{grid-template-columns:minmax(0,1fr)}}
 .hw{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;padding:8px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--rule);max-width:1640px;margin:0 auto}
+.tabs button{font:500 13.5px var(--sans);padding:7px 14px;border:1px solid var(--rule);border-bottom:0;border-radius:4px 4px 0 0;background:var(--chip);color:var(--muted);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--bg);color:var(--fg);border-color:var(--fg);border-bottom:1px solid var(--bg);font-weight:600}
+figure.hub canvas{width:min(44vw,calc((100vh - 200px) / 1.16));height:auto;max-width:100%}
+figure.hub canvas+canvas{margin-top:6px;border-top:1px dashed var(--rule)}
+figure.hub figcaption{font-size:12.5px;color:#5d6470;margin-top:6px;max-width:min(44vw,calc((100vh - 200px) / 1.16))}
+.scale i.w14{width:140px}
+@media (max-width:900px){figure.hub canvas{width:100%}figure.hub figcaption{max-width:none}}
 .hw-t{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .hw .f{display:flex;gap:6px;align-items:center;font-size:13px;min-width:0}
 .hw label{color:var(--muted)} .hw .chk label{color:var(--fg)} .hw .dim{color:var(--muted)}
@@ -109,22 +117,34 @@ dialog#help .x{float:right}
 <div class="f"><label for="k-body">Extruder body</label><select id="k-body"><option value="dual" selected>FilamATrix CW2, dual switch</option><option value="single">FilamATrix CW2, single switch</option><option value="none">FilamATrix CW2, no switch</option><option value="f25_ecas">FilamATrix 2.5, no switch (ECAS04)</option><option value="f25_collet">FilamATrix 2.5, no switch (collet)</option></select></div>
 <div class="f"><label for="k-hot">Hotend</label><select id="k-hot"><option value="rapido_v2_uhf" selected>Phaetus Rapido V2 UHF</option><option value="rapido_uhf">Phaetus Rapido UHF</option><option value="rapido_v2_hf">Phaetus Rapido V2 HF</option><option value="rapido_hf">Phaetus Rapido HF</option><option value="dragon_hf">Phaetus Dragon HF</option><option value="dragon_uhf">Phaetus Dragon UHF</option><option value="dragon_uhf_mini">Phaetus Dragon UHF Mini</option><option value="revo">E3D Revo Voron</option><option value="bambu">Bambu Lab hotend</option></select></div>
 <div class="f"><label for="k-blade">Blade</label><select id="k-blade"><option value="ldo" selected>LDO full-length</option><option value="olfa">Olfa KB4-F</option></select></div>
-<div class="f"><label for="k-buf">Buffer</label><select id="k-buf"><option value="tn" selected>TurtleNeck</option><option value="bt">BoxTurtle v1.1 hub/buffer combo</option></select></div>
+<div class="f"><label for="k-buf">Hub and buffer</label><select id="k-buf"><option value="tn" selected>BoxTurtle v1.1 hub (load only) + TurtleNeck</option><option value="bt">BoxTurtle v1.1 hub/buffer combo</option></select></div>
 <div class="f chk"><input type="checkbox" id="k-band"><label for="k-band">TurtleNeck rubber band <span class="dim">(community mod)</span></label></div>
 <p class="hint hw-note" id="hot-est" hidden>This hotend is one solid in the CAD, so its heat zones (block top, heat break, liner seat) are estimated from its outline.</p>
 </header>
+<nav class="tabs" role="tablist" aria-label="Operation">
+<button type="button" role="tab" id="t-change" data-op="change" aria-selected="true">Toolchange unload</button>
+<button type="button" role="tab" id="t-load" data-op="load" aria-selected="false">Toolhead load</button>
+<button type="button" role="tab" id="t-jam" data-op="jam" aria-selected="false">Jam detection</button>
+<button type="button" role="tab" id="t-lane" data-op="lane" aria-selected="false">Spool load and eject</button>
+</nav>
 <div class="wrap">
 <div class="figs">
-<figure>
+<figure id="fig-th">
 <canvas id="cv" width="1148" height="2212" role="img" aria-label="Animated front-on section of the toolhead showing the filament, its temperature and the moving parts through each step of the toolchange unload"></canvas>
 <div class="cap"><div class="scale"><i></i><span>10 mm</span></div><span id="clock">t = 0.00 s</span></div>
+</figure>
+<figure id="fig-hub" class="hub" hidden>
+<canvas id="cvh" width="1400" height="784" role="img" aria-label="Top section of the BoxTurtle hub through its filament channels, with the lane's filament moving"></canvas>
+<canvas id="cvs" width="1400" height="812" role="img" aria-label="Side section of the BoxTurtle hub through its outlet"></canvas>
+<div class="cap"><div class="scale"><i class="w14"></i><span>10 mm</span></div><span id="clock2">t = 0.00 s</span></div>
+<figcaption id="hub-cap"></figcaption>
 </figure>
 </div>
 <div class="side">
 <div>
-<p class="eyebrow">Section A–A · AFC toolchange unload</p>
-<h1>Where the hot plastic goes during a toolchange</h1>
-<p class="lede">AFC v1.2.0-5 with its shipped default settings, on a Stealthburner with <span id="lede-body">a FilamATrix Clockwork 2 (dual switch)</span> and <span id="lede-hot">a Phaetus Rapido V2 UHF</span>. Extruder moves follow AFC's code exactly; temperatures come from a simple heat model (see the notes).</p>
+<p class="eyebrow" id="eyebrow">Section A–A · AFC toolchange unload</p>
+<h1 id="h1">Where the hot plastic goes during a toolchange</h1>
+<p class="lede" id="lede"></p>
 </div>
 <div class="duo">
 <div class="panel" aria-live="polite">
@@ -132,15 +152,16 @@ dialog#help .x{float:right}
 <h2 id="title"></h2>
 <p class="narr" id="narr"></p>
 <dl class="readout">
-<dt>Extruder</dt><dd id="r-e"></dd>
-<dt>Total</dt><dd id="r-t"></dd>
-<dt>Toolhead</dt><dd id="r-h"></dd>
+<dt>Moves</dt><dd id="r-e"></dd>
+<dt id="r-tl">Total</dt><dd id="r-t"></dd>
+<dt>Where</dt><dd id="r-h"></dd>
+<dt id="r-cl" hidden>Clog check</dt><dd id="r-c" hidden></dd>
 </dl>
-<div class="metrics">
+<div class="metrics" id="metrics">
 <div class="metric"><div class="k"><span class="ln" style="--c:#f08a24"></span><span id="l-soft">Softened</span></div><div class="v" id="m-soft"></div><div class="s" id="m-soft2"></div></div>
 <div class="metric"><div class="k"><span class="ln" style="--c:#c4122e"></span><span id="l-liq">Liquid</span></div><div class="v" id="m-liq"></div><div class="s" id="m-liq2"></div></div>
 </div>
-<div class="chips"><span class="chip" id="c-start"><b></b>Top switch (tool_start)</span><span class="chip" id="c-end"><b></b>Bottom switch (tool_end)</span><span class="chip" id="c-trl" hidden><b></b>Buffer trailing</span><span class="chip" id="c-adv" hidden><b></b>Buffer advance</span></div>
+<div class="chips"><span class="chip" id="c-start"><b></b>Top switch (tool_start)</span><span class="chip" id="c-end"><b></b>Bottom switch (tool_end)</span><span class="chip" id="c-trl"><b></b>Buffer trailing</span><span class="chip" id="c-adv"><b></b>Buffer advance</span><span class="chip" id="c-prep" hidden><b></b>Prep sensor</span><span class="chip" id="c-load" hidden><b></b>Load sensor</span><span class="chip" id="c-hub" hidden><b></b>Hub switch</span></div>
 <div class="progress"><div class="dots" id="dots"></div><div class="bar"><span id="bar"></span></div></div>
 <div class="ctrl">
 <button id="b-prev" type="button" aria-label="Previous step">◀ Back</button>
@@ -150,7 +171,7 @@ dialog#help .x{float:right}
 <label for="x-mag"><input type="checkbox" id="x-mag"> Magnify guidler swing ×6</label>
 </div>
 </div>
-<figure class="buf">
+<figure class="buf" id="fig-buf">
 <canvas id="cvb" width="1120" height="532" role="img" aria-label="Section of the TurtleNeck buffer through its filament path, with the slide moving as the lane moves"></canvas>
 <figcaption id="buf-cap">Buffer: TurtleNeck, cut through the filament path and seen from the lid side. The red slide carries the left collet and its tube; the right tube is fixed in the frame and slides inside the slide's bore. PTFE positions are inferred from the CAD bores. Collapsed (slide right) closes the trailing switch; expanded (slide left) closes advance.</figcaption>
 </figure>
@@ -160,13 +181,16 @@ dialog#help .x{float:right}
 <div class="below">
 <div class="tune">
 <h3>Settings</h3>
-<div class="row"><label for="k-mat">Material</label><select id="k-mat"><option value="PLA">PLA</option><option value="ABS">ABS</option><option value="PETG">PETG</option><option value="ASA" selected>ASA</option></select><output id="o-mat" for="k-mat"></output></div>
-<div class="row"><label for="k-start">Starting values</label><select id="k-start"><option value="afc" selected>AFC defaults</option><option value="at">Armored Turtle table, this hotend</option></select><output id="o-start" for="k-start"></output></div>
-<div class="row"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="20"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
-<div class="row"><label for="k-push">pushback_length</label><div class="rng"><input type="range" id="k-push" min="0" max="25" step="0.5" value="15"><span class="def" style="left:calc(60.000% + -1.60px)" title="AFC default: 15 mm"></span></div><output id="o-push" for="k-push"></output></div>
-<div class="row"><label for="k-cmd">cut_move_dist</label><div class="rng"><input type="range" id="k-cmd" min="4" max="13" step="0.5" value="8.5"><span class="def" style="left:calc(50.000% + 0.00px)" title="AFC default: 8.5 mm"></span></div><output id="o-cmd" for="k-cmd"></output></div>
-<div class="row"><label for="k-slr">Slicer toolchange retract</label><div class="rng"><input type="range" id="k-slr" min="0" max="5" step="0.1" value="1.5"></div><output id="o-slr" for="k-slr"></output></div>
-<div class="row"><label for="k-tau">Heat time constant</label><div class="rng"><input type="range" id="k-tau" min="0.5" max="8" step="0.5" value="3"></div><output id="o-tau" for="k-tau"></output></div>
+<div class="row" data-ops="change load jam"><label for="k-mat">Material</label><select id="k-mat"><option value="PLA">PLA</option><option value="ABS">ABS</option><option value="PETG">PETG</option><option value="ASA" selected>ASA</option></select><output id="o-mat" for="k-mat"></output></div>
+<div class="row" data-ops="change load"><label for="k-start">Starting values</label><select id="k-start"><option value="afc" selected>AFC defaults</option><option value="at">Armored Turtle table, this hotend</option></select><output id="o-start" for="k-start"></output></div>
+<div class="row" data-ops="change load"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="20"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
+<div class="row" data-ops="change load"><label for="k-push">pushback_length</label><div class="rng"><input type="range" id="k-push" min="0" max="25" step="0.5" value="15"><span class="def" style="left:calc(60.000% + -1.60px)" title="AFC default: 15 mm"></span></div><output id="o-push" for="k-push"></output></div>
+<div class="row" data-ops="change load"><label for="k-cmd">cut_move_dist</label><div class="rng"><input type="range" id="k-cmd" min="4" max="13" step="0.5" value="8.5"><span class="def" style="left:calc(50.000% + 0.00px)" title="AFC default: 8.5 mm"></span></div><output id="o-cmd" for="k-cmd"></output></div>
+<div class="row" data-ops="change load"><label for="k-slr">Slicer toolchange retract</label><div class="rng"><input type="range" id="k-slr" min="0" max="5" step="0.1" value="1.5"></div><output id="o-slr" for="k-slr"></output></div>
+<div class="row" data-ops="jam"><label for="k-jam">Where it jams</label><select id="k-jam"><option value="nozzle" selected>Nozzle clog</option><option value="spool">Spool tangle</option></select><output></output></div>
+<div class="row" data-ops="jam"><label for="k-sens">filament_error_sensitivity</label><div class="rng"><input type="range" id="k-sens" min="0" max="10" step="1" value="0"><span class="def" style="left:calc(0% + 6px)" title="AFC default: 0 (off)"></span></div><output id="o-sens" for="k-sens"></output></div>
+<div class="row" data-ops="lane"><label for="k-lane">Lane</label><select id="k-lane"><option value="1" selected>Lane 1</option><option value="2">Lane 2</option><option value="3">Lane 3</option><option value="4">Lane 4</option></select><output></output></div>
+<div class="row" data-ops="change load jam"><label for="k-tau">Heat time constant</label><div class="rng"><input type="range" id="k-tau" min="0.5" max="8" step="0.5" value="3"></div><output id="o-tau" for="k-tau"></output></div>
 <p class="hint"><span class="defkey" aria-hidden="true"></span>Red arrows mark AFC's shipped defaults (v1.2.0-5), which the sliders start at. Changing a slider reruns the sequence from the start. The slicer retract (example 1.5 mm) and AFC's 2 mm quick pull are fixed. <button type="button" class="linkbtn" id="b-help">Where do I find these settings?</button></p>
 <div class="ctrl"><button id="b-reset" type="button">Reset to AFC defaults</button></div>
 </div>
@@ -178,6 +202,7 @@ dialog#help .x{float:right}
 <div class="i"><span class="ln" style="--c:#7a8796"></span>Liner seat, Z <span id="lg-seat">39.5</span> (bottom of the PTFE liner)</div>
 <div class="i"><span class="ln" style="--c:#f08a24"></span><span class="ln" style="--c:#c4122e"></span>Highest softened and liquid material so far in this run</div>
 <div class="i"><span class="sw" style="--c:#f4a3c4"></span>PTFE (bowden stub, hotend liner), cut faces</div>
+<div class="i"><span class="ln" style="--c:#8a3fd0;border-top-style:solid;border-top-width:3px"></span>Outline of the previous lane's cut-off piece (Toolhead load)</div>
 </div>
 <div class="notes">
 <p><strong>Heat model (estimates, not measured):</strong> wall temperature at the print temperature in the block, falling to 90 °C across the exposed heat break between the heater block and the heatsink (from each hotend's parts), 90 to 55 °C up the heat break inside the heatsink, 50 °C in the heatsink above it and 40 °C above the heatsink. Each 0.25 mm of filament moves toward its local wall temperature with the time constant set above (3 s is a rough figure for 1.75 mm filament in a close bore). The start state is steady printing at 2.5 mm/s of filament.</p>
@@ -264,9 +289,9 @@ function Tw(z){ if (z <= BLOCK_TOP) return TP; if (z <= SINK_BOT) return TP + (9
 function tcolor(T){ const st = [[40,[47,174,79]],[Math.max(45, TG - 40),[47,174,79]],[TG,[242,194,48]],[(TG + TL) / 2,[240,138,36]],[TL,[217,58,43]],[TP,[163,18,42]]];
   if (T <= st[0][0]) return st[0][1]; for (let i = 1; i < st.length; i++) if (T <= st[i][0]){ const [a, ca] = st[i-1], [b, cb] = st[i], u = (T - a)/(b - a); return ca.map((v, j) => Math.round(v + (cb[j] - v)*u)); } return st[st.length-1][1]; }
 // ---- the sequence ----
-const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA", body: "dual", hot: "rapido_v2_uhf", blade: "ldo", slr: 1.5, band: false, buf: "tn"};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
+const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA", body: "dual", hot: "rapido_v2_uhf", blade: "ldo", slr: 1.5, band: false, buf: "tn", sens: 0, jam: "nozzle", lane: 1};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
 let P = Object.assign({}, FACTORY);
-function buildSteps(){
+function changeSteps(){
   const R = P.ret, Q = P.push;
   return [
   {t:"Printing", h:"On the part", n:() => "Steady printing. Filament heats as it travels down: soft from the heat break down, liquid in the block. " + (BODIES[P.body].buffer ? "There are no toolhead switches; the buffer is the sensor." : P.body === "single" ? "The ball of the one switch is pushed out by the filament." : "Both switch balls are pushed out by the filament.") + " The hob teeth pinch it toward the drive gear.", segs:[{k:"wait", dur:0, anim:900}]},
@@ -295,7 +320,7 @@ function unloadSteps(){
   {t:"Unload: top switch clears", h:"Park position", n:() => "At 36.2 mm the end passes the ball and tool_start opens: the filament has left the only toolhead sensor.", segs:[{k:"e", E:-12.81, v:25}]},
   {t:"Unload ends, hotend waits", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. AFC checks tool_start; it is open, so it moves on. " + END_TXT, segs:[{k:"e", E:-63.8, v:25}, WAIT_END]}];
   return [
-  {t:"Buffer: lane pulls back until trailing", h:"Park position", n:() => bufMoves() === 0 ? "No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane and checks the buffer's trailing switch, which is already closed: the rubber band holds the TurtleNeck collapsed. So AFC skips the lane pull-back entirely and goes straight to the unload." : `No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane from the extruder and pulls the lane back ${SHORT_MOVE} mm at a time at ${SHORT_SPEED} mm/s, with a 0.5 s pause, until the buffer's trailing switch closes (up to tool_max_unload_attempts, 4). The extruder holds the filament, so nothing moves in the toolhead: the buffer collapses instead. Starting from mid-travel that takes ${bufMoves()} moves.`, segs:[{k:"wait", dur:Math.max(0.3, bufMoves() * (SHORT_MOVE / SHORT_SPEED + 0.5)), buffer:true}]},
+  {t:"Buffer: lane pulls back until trailing", h:"Park position", n:() => bufMoves() === 0 ? "No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane and checks the buffer's trailing switch, which is already closed: the rubber band holds the TurtleNeck collapsed. So AFC skips the lane pull-back entirely and goes straight to the unload." : `No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane from the extruder and pulls the lane back ${SHORT_MOVE} mm at a time at ${SHORT_SPEED} mm/s, with a 0.5 s pause, until the buffer's trailing switch closes (up to tool_max_unload_attempts, 4). The extruder holds the filament, so nothing moves in the toolhead: the buffer collapses instead. Starting from mid-travel that takes ${bufMoves()} moves.`, segs: bufMoves() === 0 ? [{k:"wait", dur:0.3}] : Array.from({length: bufMoves()}, () => [laneHeld(-SHORT_MOVE, SHORT_SPEED), {k:"wait", dur:0.5}]).flat()},
   {t:"Unload: 100 mm, no sensor check", h:"Park position", n:() => "AFC syncs the lane again and runs the 100 mm unload at 25 mm/s (tool_stn_unload) with spool assist. At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm. With the buffer as the sensor, AFC does not check the toolhead afterwards; the 100 mm move is the whole unload.", segs:[{k:"e", E:-36.2, v:25}]},
   {t:"Unload ends, hotend waits", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. " + END_TXT, segs:[{k:"e", E:-63.8, v:25}, WAIT_END]}];
 }
@@ -308,38 +333,49 @@ const BUFS = {tn: {travel: 30, trig: 2.5, sign: -1, name: "TurtleNeck", cap: "Bu
   bt: {travel: 10, trig: 2.0, sign: 1, name: "BoxTurtle v1.1 hub/buffer combo", cap: "Buffer: BoxTurtle v1.1 hub/buffer combo, cut through the outlet filament path. The hub (left) is fixed in the frame and takes filament from the lane extruders; the outlet block (right) feeds the toolhead and slides up to 10 mm on two binding barrels, which run in bushings in the hub and are pulled back by springs. The PTFE wear tube and its retainer ring stay in the hub. Collapsed (against the hub) puts the trigger under the trailing switch; expanded, under advance. Switch trigger points are estimated; the springs are drawn static."}};
 const BB = () => BUFS[P.buf];
 const BUF_TRAVEL_OF = () => BB().travel, BUF_TRIG_OF = () => BB().trig;
-// buffer start: mid-travel while printing, or held collapsed (trailing already closed) by the rubber band
-const bufStart = () => (P.band && P.buf === "tn") ? 1.5 : BB().travel / 2;     // mm from collapsed
+// buffer start (mm from collapsed): mid-travel while printing, held collapsed by the rubber band, or collapsed after a
+// buffer-sensed unload (where the Toolhead load tab starts)
+const bufStart = () => (P.band && P.buf === "tn") ? 1.5 : (OP === "load" && BODIES[P.body].buffer) ? 0 : BB().travel / 2;
 const bufMoves = () => { const s0 = bufStart(); return s0 <= BUF_TRIG_OF() ? 0 : Math.ceil((s0 - BUF_TRIG_OF()) / SHORT_MOVE); };
-function bufDX(t){ const sg = SEGS.find(g => g.buffer); let d = bufStart(); if (!sg || t <= sg.t0) return d;   // mm from collapsed
-  const per = SHORT_MOVE / SHORT_SPEED + 0.5, tt = Math.min(t, sg.t1) - sg.t0;
-  for (let k = 0; k < bufMoves(); k++){ const f = Math.max(0, Math.min(1, (tt - k * per) / (SHORT_MOVE / SHORT_SPEED))); d = Math.max(0, d - SHORT_MOVE * f); }
-  return d; }
+// motion segments: E = filament at the toolhead (+ toward the nozzle), X = extruder motor, L = lane motor. The buffer takes up
+// the difference between what the lane feeds and what moves on into the toolhead, between its end stops.
+const mv = (E, v, o) => Object.assign({k: "e", E, X: E, L: E, v}, o || {});               // extruder with the lane synced
+const laneMv = (L, v, o) => Object.assign({k: "e", E: L, X: 0, L, v}, o || {});          // lane motor alone, filament free
+const laneHeld = (L, v, o) => Object.assign({k: "e", E: 0, X: 0, L, v}, o || {});        // lane alone, filament held at the extruder
+const pause = (dur, o) => Object.assign({k: "wait", dur}, o || {});
 let STEPS = [], SEGS = [], T_END = 0;
 function layout(){
-  STEPS = buildSteps(); SEGS = []; let t = 0, E = 0;
-  STEPS.forEach((st, i) => { st.t0 = t; st.E0 = E; st.segs.forEach(sg => {
-    sg.real = sg.k === "e" ? Math.abs(sg.E) / sg.v : sg.dur;
-    sg.anim = sg.anim != null ? sg.anim : sg.k === "e" ? Math.max(sg.real * 1000, Math.min(4000, 1300 + Math.abs(sg.E) * 60)) : sg.k === "wait" ? Math.min(sg.real * 1000, 1200) : Math.max(sg.real * 1000, 2600);
-    sg.t0 = t; sg.E0 = E; t += sg.real; if (sg.k === "e") E += sg.E; if (sg.k === "cutrip") E += -1; sg.t1 = t; sg.E1 = E; sg.step = i; SEGS.push(sg); });
-    st.t1 = t; st.E1 = E; st.anim = st.segs.reduce((a, s) => a + s.anim, 0); });
+  STEPS = OPS[OP].steps(); SEGS = []; let t = 0, F = 0, X = 0, L = 0, B = bufStart(); const BT = BUF_TRAVEL_OF();
+  STEPS.forEach((st, i) => { st.t0 = t; st.F0 = F; st.X0 = X; st.segs.forEach(sg => {
+    if (sg.k === "cutrip"){ sg.E = sg.X = sg.L = -1; }
+    if (sg.k === "e"){ if (sg.X == null) sg.X = sg.E; if (sg.L == null) sg.L = sg.E; }
+    const mag = sg.k === "e" ? Math.max(Math.abs(sg.E), Math.abs(sg.X), Math.abs(sg.L)) : 0;
+    sg.real = sg.k === "e" ? (sg.dur != null ? sg.dur : mag / sg.v) : sg.dur;
+    sg.anim = sg.anim != null ? sg.anim : sg.k === "e" ? Math.max(Math.min(sg.real * 1000, 6000), Math.min(4000, 1300 + mag * 60)) : sg.k === "wait" ? Math.min(sg.real * 1000, 1200) : Math.max(sg.real * 1000, 2600);
+    sg.t0 = t; sg.F0 = F; sg.X0 = X; sg.L0 = L; sg.B0 = B; t += sg.real;
+    if (sg.k === "e" || sg.k === "cutrip"){ F += sg.E; X += sg.X; L += sg.L; B = Math.max(0, Math.min(BT, B + sg.L - sg.E)); }
+    sg.t1 = t; sg.F1 = F; sg.X1 = X; sg.L1 = L; sg.B1 = B; sg.step = i; SEGS.push(sg); });
+    st.t1 = t; st.F1 = F; st.X1 = X; st.anim = st.segs.reduce((a, s) => a + s.anim, 0); });
   T_END = t;
 }
-// lane displacement (mm, + = filament moves up) and arm fraction as functions of sim time
-function laneUp(t){ for (const sg of SEGS){ if (t <= sg.t1 || sg === SEGS[SEGS.length-1]){ const f = sg.real > 0 ? Math.max(0, Math.min(1, (t - sg.t0) / sg.real)) : 1;
-  if (sg.k === "e") return -(sg.E0 + (sg.E1 - sg.E0) * f); if (sg.k === "cutrip"){ const tt = t - sg.t0; const r = Math.max(0, Math.min(1, (tt - ripStart()) / T_RIP)); return -(sg.E0 - r); } return -sg.E0; } } return -SEGS[SEGS.length-1].E1; }
+function segAt(t){ for (const sg of SEGS) if (t <= sg.t1) return sg; return SEGS[SEGS.length - 1]; }
+function fracOf(sg, t){ if (sg.k === "cutrip") return Math.max(0, Math.min(1, (t - sg.t0 - ripStart()) / T_RIP)); return sg.real > 0 ? Math.max(0, Math.min(1, (t - sg.t0) / sg.real)) : 1; }
+const along = (t, a, b) => { const sg = segAt(t), f = fracOf(sg, t); return sg[a] + (sg[b] - sg[a]) * f; };
+const laneUp = t => -along(t, "F0", "F1"), extPos = t => along(t, "X0", "X1"), lanePos = t => along(t, "L0", "L1");
+function bufDX(t){ if (!SEGS.length) return bufStart(); const sg = segAt(t), f = fracOf(sg, t);
+  return Math.max(0, Math.min(BUF_TRAVEL_OF(), sg.B0 + f * ((sg.L1 - sg.L0) - (sg.F1 - sg.F0)))); }
 function armAng(t){ for (const sg of SEGS){ if (t < sg.t0 || t > sg.t1) continue; if (sg.k === "cut" || sg.k === "cutrip") return armFromPush(headS(t - sg.t0, sg.k === "cutrip") - PIN_PARK_DIST); } return 0; }
 const smooth = a => a*a*(3 - 2*a);
 // ---- simulation state: pieces of filament as chains of nodes (z, T), z along the path ----
 const SIM = {};
-function simReset(){
+function initPrinting(){
   const N = Math.round((300 - TIP_Z) / DS) + 1, z = new Float64Array(N), T = new Float64Array(N);
   for (let i = 0; i < N; i++) z[i] = TIP_Z + i * DS;
   // steady printing: material moves down at v, relaxing toward the wall temperature
   const v = 2.5; let Tc = Tw(300); for (let i = N - 1; i >= 0; i--){ const dt = DS / v; Tc += (Tw(z[i]) - Tc) * (1 - Math.exp(-dt / P.tau)); T[i] = Tc; }
-  SIM.pieces = [{z: Array.from(z), T: Array.from(T), lane: true}]; SIM.t = 0; SIM.up = 0; SIM.cut = false;
-  SIM.peakSoft = -99; SIM.peakLiq = -99; measure();
+  return [{z: Array.from(z), T: Array.from(T), lane: true}];
 }
+function simReset(){ SIM.pieces = OPS[OP].init(); SIM.t = 0; SIM.up = 0; SIM.cut = false; SIM.peakSoft = -99; SIM.peakLiq = -99; measure(); }
 function moveChain(p, d, anchorTip){
   // d > 0 up. Solid nodes move d; liquid nodes below the lowest solid run stretch or compress.
   const n = p.z.length; let f = 0; while (f < n && p.T[f] >= TL) f++;
@@ -353,12 +389,14 @@ function simStep(t1){
   while (SIM.t < t1 - 1e-9){
     const dt = Math.min(H, t1 - SIM.t), tn = SIM.t + dt;
     // cut when the blade passes the filament
-    if (!SIM.cut && BLADE_TIP0 + slideDx(armAng(tn)) >= cx(BLADE_Z) + W0 / 2) cutAt(BLADE_Z);   // only a blade that gets all the way through severs it
+    if (OP === "change" && !SIM.cut && BLADE_TIP0 + slideDx(armAng(tn)) >= cx(BLADE_Z) + W0 / 2) cutAt(BLADE_Z);   // only a blade that gets all the way through severs it
     const up = laneUp(tn), d = up - SIM.up; SIM.up = up;
     if (d !== 0){
       const lane = SIM.pieces.find(p => p.lane), rem = SIM.pieces.find(p => !p.lane);
-      moveChain(lane, d, !rem);
-      if (rem && d < 0){ const gap = lane.z[0] - rem.z[rem.z.length - 1]; if (gap < 0){ moveChain(rem, gap, true); } }
+      // a liquid end stretches on a pull; on a push it compresses back (toolchange), or flows out (loading, purging)
+      const anchor = d > 0 || OP === "change";
+      if (lane) moveChain(lane, d, !rem && anchor);
+      if (lane && rem && d < 0){ const gap = lane.z[0] - rem.z[rem.z.length - 1]; if (gap < 0){ moveChain(rem, gap, anchor); } }
     }
     const k = 1 - Math.exp(-dt / P.tau);
     for (const p of SIM.pieces) for (let i = 0; i < p.z.length; i++) p.T[i] += (Tw(p.z[i]) - p.T[i]) * k;
@@ -393,7 +431,7 @@ function drawPiece(p){
       ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fill(); } }
   if (L.length < 2) return;
   ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]); for (const q of L) ctx.lineTo(q[0], q[1]); for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]); ctx.closePath();
-  ctx.fillStyle = hatch; ctx.fill(); ctx.lineWidth = 1.4; ctx.strokeStyle = "rgba(20,24,28,0.85)"; ctx.stroke();
+  ctx.fillStyle = hatch; ctx.fill(); ctx.lineWidth = p.old ? 3 : 1.4; ctx.strokeStyle = p.old ? "#8a3fd0" : "rgba(20,24,28,0.85)"; ctx.stroke();
 }
 // cutter return spring, BOM part: 0.5 mm wire, 4 mm OD, 25 mm free, 14 coils. Its arm end sits in a pocket tilted 18 deg up
 // (floor at X -28.5 Z 54.76, turning with the arm); its other end in the level printhead pocket (floor X -15.5 Z 55.65).
@@ -440,7 +478,9 @@ const view = {guid: 0, balls: [0, 0]};
 function bufferTrailing(){ return bufDX(SIM.t) <= BUF_TRIG_OF(); }
 function bufferAdvance(){ return bufDX(SIM.t) >= BUF_TRAVEL_OF() - BUF_TRIG_OF(); }
 function draw(dt){
-  const a = armAng(SIM.t), mag = document.getElementById("x-mag").checked ? 6 : 1, gearA = SIM.up / HOB_R;
+  chipsUI(); document.getElementById("clock").textContent = document.getElementById("clock2").textContent = `t = ${SIM.t.toFixed(2)} s (real time)`;
+  if (OP === "lane"){ drawHub(); return; }
+  const a = armAng(SIM.t), mag = document.getElementById("x-mag").checked ? 6 : 1, gearA = -extPos(SIM.t) / HOB_R;
   view.guid += ((present(GEAR_Z) ? 0 : GUID_EMPTY * mag) - view.guid) * Math.min(1, dt * 7);
   ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(imgs.base, 0, 0);
   sprite("dgear", () => rotAbout(DRIVE_C, gearA));
@@ -464,10 +504,178 @@ function draw(dt){
   document.getElementById("m-soft2").textContent = `${rel(SIM.soft)}; peak ${rel(SIM.peakSoft)}`;
   document.getElementById("m-liq").textContent = SIM.liq < -50 ? "none" : `Z ${SIM.liq.toFixed(1)}`;
   document.getElementById("m-liq2").textContent = `${rel(SIM.liq)}; peak ${rel(SIM.peakLiq)}`;
-  if (BODIES[P.body].buffer){ document.getElementById("c-trl").classList.toggle("on", bufferTrailing()); document.getElementById("c-adv").classList.toggle("on", bufferAdvance()); }
   drawBuffer();
-  document.getElementById("clock").textContent = `t = ${SIM.t.toFixed(2)} s (real time)`;
 }
+// ---- operations (tabs) ----
+// AFC v1.2.0-5 shipped settings used by the load, jam and spool timelines (config/AFC.cfg, templates/AFC_Hardware-AFC.cfg,
+// templates/AFC_Turtle_1.cfg, config/AFC_Macro_Vars.cfg). Code defaults differ for some; the narration says which.
+const AFCV = {long: 150, short: 50, bowden: 1725, hubClear: 65, toolStn: 72, toolLoad: 25, poop: 72.111, poopSpd: 6.5, distHub: [155, 80, 90, 145], extClear: 50, maxMoves: 40};
+let OP = "change";
+const hubKey = () => P.buf === "bt" ? "combo" : "loadonly";
+const OPS = {
+  change: {eyebrow: "Section A–A · AFC toolchange unload", h1: "Where the hot plastic goes during a toolchange",
+    lede: () => `AFC v1.2.0-5 with its shipped default settings, on a Stealthburner with ${BODIES[P.body].lede} and a ${HD().label}. Extruder moves follow AFC's code exactly; temperatures come from a simple heat model (see the notes).`,
+    steps: () => changeSteps(), init: initPrinting, totalLbl: "Total", total: st => `${fmt(st.F1)} of filament since printing stopped`},
+  load: {eyebrow: "Section A–A · AFC toolhead load", h1: "How a lane is loaded into the toolhead",
+    lede: () => `AFC v1.2.0-5 TOOL_LOAD (the second half of a toolchange) with its shipped settings, on a Stealthburner with ${BODIES[P.body].lede} and a ${HD().label}. It starts where the Toolchange tab ends: the new lane parked 65 mm short of the hub switch, and the previous lane's cut-off piece, outlined in purple, still in the hotend.`,
+    steps: () => loadSteps(), init: initLoad, totalLbl: "Total", total: st => `${fmt(st.F1)} of filament fed toward the nozzle`},
+  jam: {eyebrow: "Section A–A · AFC jam detection", h1: "How AFC notices a jam",
+    lede: () => `AFC v1.2.0-5's buffer fault check (AFC_buffer.py), on a Stealthburner with ${BODIES[P.body].lede}, a ${HD().label} and the ${BB().name}. While printing, the lane motor is synced to the extruder, and the buffer takes up the difference between what the lane feeds and what the extruder pulls.`,
+    steps: () => jamSteps(), init: initPrinting, totalLbl: "Extruder", total: st => `${fmt(st.X1)} commanded from the start of this timeline`},
+  lane: {eyebrow: "Hub section · BoxTurtle lane", h1: "Loading and ejecting a spool",
+    lede: () => `AFC v1.2.0-5 with its shipped settings, on a BoxTurtle with the ${hubKey() === "combo" ? "v1.1 hub/buffer combo" : "v1.1 load-only hub"}. Top: the hub cut through its filament channels, with the switches above the cut drawn see-through. Bottom: cut through the outlet.`,
+    steps: () => laneSteps(), init: () => [], totalLbl: "Lane", total: st => `filament end ${laneTipText(st.t1)}`}};
+// ---- toolhead load (AFC.py TOOL_LOAD / load_sequence) ----
+const loadTarget = () => BODIES[P.body].buffer ? GEAR_Z + 2 : BALLS[0].z;      // where the bowden move stops the end
+const RAM_GAP = 8;                                                                  // estimate: end above the gears after the fixed part
+function initLoad(){
+  const rem = changeEndRemnant(), z0 = loadTarget() + AFCV.hubClear + AFCV.bowden + (BODIES[P.body].buffer ? RAM_GAP - 20 : 0);
+  const n = Math.round(340 / DS), z = [], T = []; for (let i = 0; i <= n; i++){ z.push(z0 + i * DS); T.push(40); }
+  return rem.concat([{z, T, lane: true}]);
+}
+let REM_CACHE = null;
+function changeEndRemnant(){   // the cut-off piece as the toolchange unload leaves it, with the current settings
+  const key = JSON.stringify([P.ret, P.push, P.cmd, P.slr, P.tau, P.mat, P.body, P.hot, P.band, P.buf]);
+  if (!REM_CACHE || REM_CACHE.key !== key){
+    const keep = [OP, STEPS, SEGS, T_END]; OP = "change"; layout(); simReset(); simStep(T_END);
+    REM_CACHE = {key, pieces: SIM.pieces.filter(p => !p.lane).map(p => ({z: p.z.slice(), T: p.T.slice(), lane: false, old: true}))};
+    [OP, STEPS, SEGS, T_END] = keep; }
+  return REM_CACHE.pieces.map(p => ({z: p.z.slice(), T: p.T.slice(), lane: false, old: true}));
+}
+function loadSteps(){
+  const b = BODIES[P.body], ram = b.buffer, st = [], end = BALLS[0].z - BALLS[1].z, nStep = Math.ceil(end / 10);
+  st.push({t: "Start: lane at the hub, old piece in the hotend", h: "Toolchange position", n: () => "The new lane's filament sits 65 mm short of the hub switch, where the last unload left it (hub_clear_move_dis). The previous lane's cut-off piece is still in the hotend, outlined in purple. TOOL_LOAD checks that the lane's load sensor is triggered and the hub switch is clear, and that the hotend is at temperature (it is, mid-toolchange).", segs: [pause(0, {anim: 900})]});
+  st.push({t: "Lane to the hub switch", h: "Toolchange position", n: () => "The lane motor alone homes to the hub switch: up to 75 + 50 mm at the short speed (50 mm/s in the shipped AFC.cfg; 25 in the code). It stops when the switch closes, about 65 mm on. The extruder does not turn.", segs: [laneMv(AFCV.hubClear, AFCV.short)]});
+  if (!ram) st.push({t: "Bowden: lane to the top switch", h: "Toolchange position", n: () => `One homing move of the lane motor to tool_start: up to afc_bowden_length + 50 mm (${AFCV.bowden + 50} mm with the shipped ${AFCV.bowden}) at the long speed, 150 mm/s, with spool assist. It is one move, not split up, and it stops when the top switch closes. The lane pushes the filament through the tube; the extruder still does not turn. Shown sped up.`, segs: [laneMv(AFCV.bowden, AFCV.long, {anim: 4500})]});
+  else {
+    const need = BB().travel - BB().trig - bufStart();
+    st.push({t: "Bowden: fixed move, then home on the buffer", h: "Toolchange position", n: () => `With no toolhead switch (tool_start: buffer), the bowden move is split: afc_bowden_length − 20 mm (${AFCV.bowden - 20} mm) as a fixed move at 150 mm/s, then a homing move of up to 20 + 50 mm at 50 mm/s that ends on the buffer's advance switch. The end reaches the extruder gears, which are not turning, and stops there (the ${RAM_GAP} mm gap is an estimate). The lane keeps pushing, so the buffer is rammed open by ${need.toFixed(1)} mm until the advance switch closes. Shown sped up.`,
+      segs: [laneMv(AFCV.bowden - 20, AFCV.long, {anim: 4000}), laneMv(RAM_GAP, AFCV.short), laneHeld(need, AFCV.short)]}); }
+  if (P.body === "dual") st.push({t: "Synced: 10 mm steps to the bottom switch", h: "Toolchange position", n: () => `The lane motor is synced to the extruder. AFC moves the extruder (the lane follows) 10 mm at a time at tool_load_speed (25 mm/s), checking tool_end between moves. These are fixed steps, not a homing move: the bottom switch is ${end.toFixed(1)} mm below the top one, so it closes during step ${nStep} and the end finishes ${(nStep * 10 - end).toFixed(1)} mm past it.`,
+    segs: Array.from({length: nStep}, () => [mv(10, AFCV.toolLoad), pause(0.05)]).flat()});
+  st.push({t: "tool_stn: on to the nozzle", h: "Toolchange position", n: () => { const from = P.body === "dual" ? "where the steps stopped" : ram ? "where the end stopped at the gears" : "the top switch"; const zEnd = (P.body === "dual" ? BALLS[0].z - nStep * 10 : ram ? GEAR_Z + 2 : BALLS[0].z) - AFCV.toolStn;
+    return `${P.body === "dual" ? "" : "The lane is synced to the extruder. "}tool_stn: ${AFCV.toolStn} mm (the shipped default; Armored Turtle's table gives values per toolhead) at 25 mm/s, counted from ${from}. That takes the new end to ${zEnd > TIP_Z ? (zEnd - TIP_Z).toFixed(1) + " mm above" : (TIP_Z - zEnd).toFixed(1) + " mm below"} the nozzle tip. Where the new end meets the old piece, it pushes it down, and what passes the tip is extruded: the blob at load.`; },
+    segs: [mv(AFCV.toolStn, AFCV.toolLoad)]});
+  if (ram) st.push({t: "Buffer released", h: "Toolchange position", n: () => "AFC unsyncs the lane and pulls it back 10 mm at a time (0.1 s apart) until the advance switch opens, up to 4 tries; the filament stays put, held by the extruder. Then it syncs the lane again.", segs: [laneHeld(-SHORT_MOVE, SHORT_SPEED), pause(0.1)]});
+  st.push({t: "Purge (AFC_POOP)", h: "Purge location", n: () => `Fault detection stays off. The head travels to the purge location (about 1.5 s, estimated), then extrudes purge_length, ${AFCV.poop} mm, at purge_spd, ${AFCV.poopSpd} mm/s, raising the nozzle as the blob grows, then waits 2 s with the part fan on. Everything below the new end, the old piece first, comes out here.`,
+    segs: [pause(1.5), mv(AFCV.poop, AFCV.poopSpd, {anim: 5000}), pause(2)]});
+  st.push({t: "Wipe, kick, wipe; then back to the print", h: "Brush, then the print", n: () => "Shipped AFC.cfg order: the purge, a wipe on the brush, the kick, a wipe again (about 6 s, estimated). AFC then re-enables the buffer's fault detection, and the toolchange restores the print position. Shown: the hotend for 10 s, sped up.", segs: [pause(6), pause(10, {anim: 2500})]});
+  return st;
+}
+// ---- jam detection (AFC_buffer.py, "switched" buffer) ----
+const PRINT_V = 2.5;   // mm/s of filament, a mid-range print rate (about 6 mm3/s)
+const sensDist = () => P.sens > 0 ? (11 - P.sens) * 10 : 0;
+let JAM = {tc: null};
+function jamSteps(){
+  const on = P.sens > 0, nozzle = P.jam === "nozzle", T = BB().travel, g = BB().trig, b0 = bufStart(), st = [];
+  const mHi = 1.1, mLo = 0.9, hiOn = mHi * 1.5, loOn = mLo * 2 / 5;
+  st.push({t: "Printing", h: "On the part", n: () => `Steady printing at ${PRINT_V} mm/s of filament. The lane motor is synced to the extruder at multiplier_high (1.1, the code default) after the last trailing event, so it feeds a little more than the extruder takes and the buffer drifts toward advance; there AFC switches to multiplier_low (0.9), and so on. ${on ? `Fault detection is on: filament_error_sensitivity ${P.sens}, so AFC pauses after ${sensDist()} mm of extruder movement with one switch held.` : "filament_error_sensitivity is 0, AFC's code default and what the installer leaves, so fault detection is off."}`,
+    segs: [mv(PRINT_V * 4, PRINT_V, {L: PRINT_V * 4 * mHi, dur: 4})]});
+  const b1 = Math.min(T, b0 + PRINT_V * 4 * (mHi - 1));
+  if (nozzle){
+    const t1 = (T - g - b1) / (PRINT_V * mHi);
+    st.push({t: "The nozzle clogs", h: "On the part", n: () => `The filament stops at the nozzle. The extruder motor keeps stepping (its gears slip on the filament or the motor skips), and the lane, synced to it, keeps feeding at 1.1×. With nowhere to go, the extra filament opens the buffer: ${(T - g - b1).toFixed(1)} mm to the advance switch, ${t1.toFixed(1)} s. The stalled filament heats up from below.`,
+      segs: [{k: "e", E: 0, X: PRINT_V * t1, L: PRINT_V * t1 * mHi, dur: t1}]});
+    const m = on ? loOn : mLo, tStop = g / (PRINT_V * m);
+    if (on){ const lim = sensDist(), tl = lim / PRINT_V;
+      st.push({t: "Advance switch closes: counting starts", h: "On the part", n: () => `The advance switch closes. AFC sets the lane to multiplier_low × 2/5 (${loOn.toFixed(2)}×, because detection is on) and starts its clog check: from now, every 0.5 s it compares the extruder's position with where it was plus ${lim} mm. Retracts don't count down. The lane still feeds, so the buffer reaches its end stop ${tStop.toFixed(1)} s later.`,
+        segs: [{k: "e", E: 0, X: PRINT_V * tStop, L: PRINT_V * tStop * m, dur: tStop, mark: "count"}, {k: "e", E: 0, X: PRINT_V * (tl - tStop), L: PRINT_V * (tl - tStop) * m, dur: tl - tStop, anim: 4500}]});
+      st.push({t: "CLOG DETECTED: the print pauses", h: "Paused", n: () => `After ${lim} mm of extruder movement (${tl.toFixed(0)} s at this rate, plus up to 0.5 s for the next check) AFC raises "AFC filament fault detected! Take necessary action." with "CLOG DETECTED" and pauses the print. AFC's own state name for this switch is "Trailing" (its multiplier is below 1); the GUI sensor for the same switch is called "expanded". The names disagree, so check which switch is which on your buffer.`, segs: [pause(0.5), pause(5, {anim: 1800})]});
+    } else st.push({t: "Advance switch closes: nothing else happens", h: "On the part", n: () => `The advance switch closes and AFC drops the lane to multiplier_low (0.9×), so the buffer reaches its end stop ${tStop.toFixed(1)} s later, but with detection off there is no check: the print goes on with no plastic coming out, the extruder grinds and the lane presses against the stuck filament. Shown: 30 s, sped up. Set filament_error_sensitivity above 0 to see the pause.`,
+        segs: [{k: "e", E: 0, X: PRINT_V * 30, L: PRINT_V * 30 * mLo, dur: 30, anim: 6000}]});
+  } else {
+    const t1 = (b1 - g) / PRINT_V;
+    st.push({t: "The spool snags", h: "On the part", n: () => `A tangle at the spool stops the lane. The extruder keeps pulling, drawing filament out of the buffer, which closes: ${(b1 - g).toFixed(1)} mm to the trailing switch, ${t1.toFixed(1)} s. Printing is normal meanwhile.`,
+      segs: [{k: "e", E: PRINT_V * t1, X: PRINT_V * t1, L: 0, dur: t1}]});
+    const tStop = g / PRINT_V;
+    if (on){ const lim = sensDist(), tl = lim / PRINT_V;
+      st.push({t: "Trailing switch closes: counting starts", h: "On the part", n: () => `The trailing switch closes. AFC raises the lane to multiplier_high × 1.5 (${hiOn.toFixed(2)}×) and starts the check: ${lim} mm of extruder movement. The lane can't turn the snagged spool, so the buffer runs onto its end stop ${tStop.toFixed(1)} s later; then the extruder can't pull any more and grinds.`,
+        segs: [{k: "e", E: PRINT_V * tStop, X: PRINT_V * tStop, L: 0, dur: tStop, mark: "count"}, {k: "e", E: 0, X: PRINT_V * (tl - tStop), L: 0, dur: tl - tStop, anim: 4500}]});
+      st.push({t: "AFC NOT FEEDING: the print pauses", h: "Paused", n: () => `After ${lim} mm of extruder movement AFC raises "AFC filament fault detected! Take necessary action." with "AFC NOT FEEDING" and pauses. AFC calls this state "Advancing"; the GUI sensor for this switch is called "compressed".`, segs: [pause(0.5), pause(5, {anim: 1800})]});
+    } else st.push({t: "Trailing switch closes: nothing else happens", h: "On the part", n: () => "The trailing switch closes and AFC raises the lane to 1.1×, which can't free the spool. With detection off there is no check: once the buffer is empty the extruder grinds and the print goes on without plastic. Shown: 30 s, sped up.",
+        segs: [{k: "e", E: PRINT_V * tStop, X: PRINT_V * tStop, L: 0, dur: tStop}, {k: "e", E: 0, X: PRINT_V * (30 - tStop), L: 0, dur: 30 - tStop, anim: 6000}]});
+  }
+  return st;
+}
+function jamCount(t){ const sg = SEGS.find(s => s.mark === "count"); if (!sg || t < sg.t0) return null; return extPos(t) - sg.X0; }
+// ---- spool load and eject (AFC_BoxTurtle.py prep_load / prep_post_load / eject_lane; AFC.py unload_sequence) ----
+let HUBP = null, HUBA = {};
+const PREP_TO_LOAD = 30;   // estimate: depends on how far the spool's end was pushed in
+function lanePath(){ // arc-length table along the selected lane's path, in hub CAD coordinates (X, Y)
+  const h = HUBP[hubKey()], ln = h.lanes["lane" + P.lane], pts = ln.path.slice(), d = ln.dir;
+  const st = [ln.path[0][0] - d[0] * 60, ln.path[0][1] - d[1] * 60]; pts.unshift(st); pts.push([HUBP.axis_x, 340]);
+  const S = [0]; for (let i = 1; i < pts.length; i++) S.push(S[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const swY = hubKey() === "combo" ? 267.7 : 242.0; let sw = 0;
+  for (let i = 1; i < pts.length; i++) if (pts[i][0] === HUBP.axis_x && pts[i][1] >= swY && pts[i - 1][1] <= swY){ sw = S[i - 1] + (swY - pts[i - 1][1]); break; }
+  if (!sw){ const k = pts.length - 1; sw = S[k] - (340 - swY); }
+  return {pts, S, sw, swY};
+}
+const laneS0 = () => { const lp = lanePath(); return lp.sw - AFCV.hubClear - AFCV.distHub[P.lane - 1] - PREP_TO_LOAD; };   // end at the prep sensor
+const laneTip = t => laneS0() + lanePos(t);
+function laneTipText(t){ const lp = lanePath(), d = laneTip(t) - lp.sw; return Math.abs(d) < 0.5 ? "at the hub switch" : `${Math.abs(d).toFixed(0)} mm ${d < 0 ? "short of" : "past"} the hub switch`; }
+function laneSteps(){
+  const dh = AFCV.distHub[P.lane - 1], dm = dh >= 200 ? AFCV.long : AFCV.short, st = [];
+  st.push({t: "Spool end into the lane: prep sensor", h: `Lane ${P.lane}`, n: () => `The end of a new spool is pushed into lane ${P.lane} until the prep sensor triggers. AFC (prep_callback) refuses while the printer is moving. Shown below the hub: nothing yet; the end is ${(AFCV.hubClear + dh + PREP_TO_LOAD).toFixed(0)} mm back, in the lane's extruder.`, segs: [pause(0, {anim: 900})]});
+  st.push({t: "Lane homes to the load sensor", h: `Lane ${P.lane}`, n: () => `The lane motor homes to its load sensor: up to 400 + 50 mm at the short speed (50 mm/s), no spool assist. How far depends on how far the end was pushed in (${PREP_TO_LOAD} mm here, an example).`, segs: [laneMv(PREP_TO_LOAD, AFCV.short)]});
+  st.push({t: "On toward the hub: dist_hub", h: `Lane ${P.lane}`, n: () => `load_to_hub is on (the default), so the lane moves on dist_hub, ${dh} mm for lane ${P.lane} in the shipped AFC_Turtle_1.cfg, as one fixed move at ${dm} mm/s. There is no hub-switch check: calibration stores dist_hub as the distance from the load sensor to the hub switch minus hub_clear_move_dis, so the end stops 65 mm short of the switch. The lane is now LOADED.`, segs: [laneMv(dh, dm)]});
+  st.push({t: "At a toolchange: home to the hub switch", h: `Lane ${P.lane}`, n: () => "When a toolchange calls this lane, TOOL_LOAD first homes it to the hub switch (up to 125 mm at 50 mm/s). The end runs through its inlet channel, where the four channels merge, and into the switch, which closes.", segs: [laneMv(AFCV.hubClear, AFCV.short)]});
+  st.push({t: "Bowden move toward the toolhead", h: `Lane ${P.lane}`, n: () => `Then the long move to the toolhead begins (afc_bowden_length, ${AFCV.bowden} mm at 150 mm/s; see the Toolhead load tab). Shown: the first 60 mm.`, segs: [laneMv(60, AFCV.long)]});
+  st.push({t: "Unload: back past the hub switch", h: `Lane ${P.lane}`, n: () => "After a toolchange unload (Toolchange tab), the lane is unsynced and pulled back by homing until the hub switch opens (up to afc_unload_bowden_length at 150 mm/s), then hub_clear_move_dis, 65 mm, at 50 mm/s with spool assist. That is the 65 mm parking spot the next load starts from.", segs: [laneMv(-60, AFCV.long), laneMv(-AFCV.hubClear, AFCV.short)]});
+  st.push({t: "Eject (LANE_UNLOAD)", h: `Lane ${P.lane}`, n: () => `LANE_UNLOAD reverses the load: a homing move of up to dist_hub (${dh} mm) back until the load sensor opens, at ${dm} mm/s with the respooler rewinding; then extruder_clear_dis, 50 mm, at 50 mm/s. The end is left 50 mm behind the load sensor, still in the prep sensor; pull the spool's end out to clear it. Refused while printing or if this lane is in the toolhead.`, segs: [laneMv(-dh, dm), laneMv(-AFCV.extClear, AFCV.short), pause(0.5)]});
+  return st;
+}
+async function loadHub(){ if (!HUBP) HUBP = await (await fetch("assets/hub_paths.json")).json();
+  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+  const nw = {}; for (const view of ["top", "side"]){ const dir = `assets/hub_${hubKey()}_${view}/`, j = await (await fetch(dir + "sprites.json")).json(), o = {j, base: await ld(dir + "base.webp")};
+    for (const k of ["slide", "over", "overslide"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
+    nw[view] = o; }
+  HUBA = nw;
+  const c = document.getElementById("hub-cap"); c.textContent = (hubKey() === "combo" ? "BoxTurtle v1.1 hub/buffer combo. Top: the four lane inlets (lane 1 at the top) curve together into the PTFE wear tube; the outlet block on the right slides on its barrels (buffer). The buffer switches, their trigger and the hub switch sit above the cut and are drawn see-through. Bottom: the outlet, cut through its axis." : "BoxTurtle v1.1 load-only hub, used with a separate buffer such as the TurtleNeck. Top: the four lane inlets (lane 1 at the top) curve together and pass under the hub switch's bearing; the switch sits above the cut and is drawn see-through. The body is Armored Turtle's printable STL, since the STEP release models it without its channels. Bottom: the outlet, cut through its axis.") + " Channel centerlines are traced from the CAD; PTFE in the inlets and outlet is inferred."; }
+const cvh = document.getElementById("cvh"), hctx = cvh.getContext("2d"), cvs = document.getElementById("cvs"), sctx = cvs.getContext("2d");
+function drawHub(){
+  if (!HUBA.top || !HUBP) return; const lp = lanePath(), tip = laneTip(SIM.t), off = BB().sign * bufDX(SIM.t) * PX, h = HUBP[hubKey()];
+  // filament: the polyline up to the end
+  const upto = []; for (let i = 0; i < lp.pts.length; i++){ if (lp.S[i] <= tip) upto.push(lp.pts[i]); else { const f = (tip - lp.S[i - 1]) / (lp.S[i] - lp.S[i - 1]); if (i > 0 && f > 0) upto.push([lp.pts[i - 1][0] + (lp.pts[i][0] - lp.pts[i - 1][0]) * f, lp.pts[i - 1][1] + (lp.pts[i][1] - lp.pts[i - 1][1]) * f]); break; } }
+  const fil = (g, pts, map) => { if (pts.length < 2) return; g.save(); g.lineCap = "butt"; g.lineJoin = "round"; g.beginPath(); pts.forEach((p, i) => { const [x, y] = map(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.strokeStyle = "rgba(20,24,28,.85)"; g.lineWidth = 1.75 * PX + 3; g.stroke(); g.strokeStyle = "#2fae4f"; g.lineWidth = 1.75 * PX - 1; g.stroke(); g.restore(); };
+  const T = HUBA.top, S = HUBA.side;
+  hctx.clearRect(0, 0, cvh.width, cvh.height); hctx.drawImage(T.base, 0, 0); if (T.slide) hctx.drawImage(T.slide, T.j.slide.x + off, T.j.slide.y);
+  fil(hctx, upto, p => [(p[1] - 192) * PX, (p[0] - 122) * PX]);
+  hctx.save(); hctx.globalAlpha = 0.45; if (T.over) hctx.drawImage(T.over, T.j.over.x, T.j.over.y); if (T.overslide) hctx.drawImage(T.overslide, T.j.overslide.x + off, T.j.overslide.y); hctx.restore();
+  // hub switch position marker
+  hctx.save(); hctx.setLineDash([8, 6]); hctx.strokeStyle = "#2a7fd4"; hctx.lineWidth = 2.5; const sx = (lp.swY - 192) * PX; hctx.beginPath(); hctx.moveTo(sx, (HUBP.axis_x - 6 - 122) * PX); hctx.lineTo(sx, (HUBP.axis_x + 6 - 122) * PX); hctx.stroke(); hctx.restore();
+  const lab = (g, txt, H) => { g.save(); g.font = "500 26px IBM Plex Mono, monospace"; g.fillStyle = "#1c1e22"; g.fillText(txt, 16, H - 18); g.restore(); };
+  lab(hctx, `Top · lane ${P.lane} end: ${laneTipText(SIM.t)}`, cvh.height);
+  sctx.clearRect(0, 0, cvs.width, cvs.height); sctx.drawImage(S.base, 0, 0); if (S.slide) sctx.drawImage(S.slide, S.j.slide.x + off, S.j.slide.y);
+  const onAxis = upto.filter(p => p[0] === HUBP.axis_x || Math.abs(p[0] - HUBP.axis_x) < 1e-6); const last = upto[upto.length - 1];
+  if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6){ const y0 = onAxis[0][1], y1 = last[1], zy = (48 - h.az) * PX;
+    fil(sctx, [[0, y0], [0, y1]], p => [(p[1] - 192) * PX, zy]); }
+  sctx.save(); sctx.setLineDash([8, 6]); sctx.strokeStyle = "#2a7fd4"; sctx.lineWidth = 2.5; sctx.beginPath(); sctx.moveTo(sx, (48 - h.az - 7) * PX); sctx.lineTo(sx, (48 - h.az + 7) * PX); sctx.stroke(); sctx.restore();
+  lab(sctx, "Side · blue dashes: hub switch trigger point (estimated)", cvs.height);
+  const sb = document.querySelector("#fig-hub .scale i"); sb.style.width = (cvh.clientWidth * 140 / 1400) + "px";
+}
+function chipsUI(){
+  const lane = OP === "lane", b = BODIES[P.body];
+  document.getElementById("c-start").hidden = lane || !b.balls.includes(0); document.getElementById("c-end").hidden = lane || !b.balls.includes(1);
+  ["c-prep", "c-load", "c-hub"].forEach(id => document.getElementById(id).hidden = !lane);
+  document.getElementById("c-trl").classList.toggle("on", bufferTrailing()); document.getElementById("c-adv").classList.toggle("on", bufferAdvance());
+  if (lane && HUBP){ const tip = laneTip(SIM.t), lp = lanePath(), sLoad = lp.sw - AFCV.hubClear - AFCV.distHub[P.lane - 1];
+    document.getElementById("c-prep").classList.toggle("on", tip >= laneS0() - 0.5); document.getElementById("c-load").classList.toggle("on", tip >= sLoad - 0.5); document.getElementById("c-hub").classList.toggle("on", tip >= lp.sw - 0.5); }
+  const cnt = OP === "jam" ? jamCount(SIM.t) : null; document.getElementById("r-cl").hidden = document.getElementById("r-c").hidden = OP !== "jam";
+  if (OP === "jam") document.getElementById("r-c").textContent = P.sens === 0 ? "off (filament_error_sensitivity 0)" : cnt == null ? `armed: pauses after ${sensDist()} mm with a switch held` : `${Math.min(cnt, sensDist()).toFixed(1)} of ${sensDist()} mm`;
+}
+function opUI(){
+  const o = OPS[OP], lane = OP === "lane";
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.op === OP ? "true" : "false"));
+  document.getElementById("eyebrow").textContent = o.eyebrow; document.getElementById("h1").textContent = o.h1; document.getElementById("lede").textContent = o.lede();
+  document.getElementById("fig-th").hidden = lane; document.getElementById("fig-hub").hidden = !lane; document.getElementById("fig-buf").hidden = lane;
+  document.getElementById("metrics").hidden = lane; document.getElementById("r-tl").textContent = o.totalLbl;
+  document.querySelectorAll(".tune .row[data-ops]").forEach(r => r.hidden = !r.dataset.ops.split(" ").includes(OP));
+  document.querySelector('label[for="x-mag"]').hidden = lane;
+}
+async function setOp(op){ if (!OPS[op]) op = "change"; OP = op; try { history.replaceState(null, "", "#" + op); } catch (e) {}
+  if (op === "lane") await loadHub(); opUI(); rerun(); }
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setOp(b.dataset.op)));
 // ---- playback ----
 let idx = 0, phase = "anim", t0 = 0, playing = true, last = 0;
 const readMs = () => +document.getElementById("s-read").value * 1000;
@@ -475,13 +683,17 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const dots = document.getElementById("dots");
 const fmt = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(Math.abs(v) < 0.1 && v !== 0 ? 3 : 2).replace(/\.?0+$/, "") + " mm";
 function buildDots(){ dots.innerHTML = ""; STEPS.forEach((st, i) => { const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", `Step ${i+1}: ${st.t}`); b.onclick = () => go(i); dots.appendChild(b); }); }
-function eText(st){ const es = st.segs.filter(s => s.k === "e" && s.E !== 0); const rip = st.segs.some(s => s.k === "cutrip");
-  const parts = es.map(s => `${fmt(s.E)} at ${s.v} mm/s`); if (rip) parts.push("−1 mm at 3 mm/s (rip)"); return parts.length ? parts.join(", ") : "no move"; }
+function eText(st){ const parts = []; const at = s => s.v ? ` at ${s.v} mm/s` : ` over ${s.real.toFixed(1)} s`;
+  st.segs.forEach(s => { if (s.k !== "e") return;
+    if (s.X && Math.abs(s.L - s.X) < 1e-9) parts.push(`${fmt(s.X)}${at(s)}`);
+    else { if (s.X) parts.push(`extruder ${fmt(s.X)}${at(s)}`); if (s.L) parts.push(`lane ${fmt(s.L)}${s.X ? "" : at(s)}`); } });
+  if (st.segs.some(s => s.k === "cutrip")) parts.push("−1 mm at 3 mm/s (rip)");
+  return parts.length ? (parts.length > 4 ? `${parts.length} moves: ` + parts.slice(0, 2).join(", ") + ", …" : parts.join(", ")) : "no move"; }
 function text(i){ const st = STEPS[i];
   document.getElementById("stepno").textContent = `Step ${i+1} of ${STEPS.length}`;
   document.getElementById("title").textContent = st.t; document.getElementById("narr").textContent = st.n();
   document.getElementById("r-e").textContent = eText(st);
-  document.getElementById("r-t").textContent = `${fmt(st.E1)} since printing stopped`;
+  document.getElementById("r-t").textContent = OPS[OP].total(st);
   document.getElementById("r-h").textContent = st.h;
   [...dots.children].forEach((d, j) => { d.className = j < i ? "done" : j === i ? "cur" : ""; d.setAttribute("aria-current", j === i ? "step" : "false"); }); }
 function speedText(sg){ if (!sg || sg.real <= 0) return ""; const r = sg.anim / 1000 / sg.real;
@@ -490,6 +702,7 @@ function go(i){ idx = Math.max(0, Math.min(STEPS.length - 1, i)); phase = reduce
   seek(reduce ? STEPS[idx].t1 : STEPS[idx].t0); }
 function curSeg(el){ const st = STEPS[idx]; let acc = 0; for (const sg of st.segs){ if (el <= acc + sg.anim) return [sg, sg.anim > 0 ? (el - acc) / sg.anim : 1]; acc += sg.anim; } return [st.segs[st.segs.length-1], 1]; }
 function frame(now){
+  if (!STEPS[idx]){ idx = Math.max(0, Math.min(idx, STEPS.length - 1)); if (!STEPS[idx]){ requestAnimationFrame(frame); return; } }
   const dt = last ? Math.min(0.1, (now - last)/1000) : 0.016; last = now;
   const st = STEPS[idx]; let el = now - t0;
   if (!playing){ el = Math.min(el, phase === "anim" ? st.anim : readMs()); t0 = now - el; }
@@ -507,18 +720,17 @@ document.getElementById("b-next").onclick = () => go(idx + 1);
 document.getElementById("b-prev").onclick = () => go(idx - 1);
 document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("select,input")) return;
   if (e.key === "ArrowRight") go(idx + 1); else if (e.key === "ArrowLeft") go(idx - 1); else if (e.key === " "){ e.preventDefault(); document.getElementById("b-play").click(); } });
-function syncOut(){ document.getElementById("o-slr").textContent = P.slr + " mm"; document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-cmd").textContent = P.cmd + " mm"; document.getElementById("o-tau").textContent = P.tau + " s";  const m = MATS[P.mat]; document.getElementById("o-mat").textContent = `${m.tp} °C`;
+function syncOut(){ document.getElementById("o-slr").textContent = P.slr + " mm"; document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-cmd").textContent = P.cmd + " mm"; document.getElementById("o-tau").textContent = P.tau + " s"; document.getElementById("o-sens").textContent = P.sens === 0 ? "0 (off)" : `${P.sens}: ${sensDist()} mm`;  const m = MATS[P.mat]; document.getElementById("o-mat").textContent = `${m.tp} °C`;
   document.getElementById("l-soft").textContent = `Softened, >${m.tg} °C`; document.getElementById("l-liq").textContent = `Liquid, >${m.tl} °C`;
   document.getElementById("tticks").innerHTML = `<span>40</span><span>${m.tg} (Tg)</span><span>${m.tl} (liquid)</span><span>${m.tp} °C</span>`; }
 function bodyUI(){ const b = BODIES[P.body];
   document.getElementById("c-start").hidden = !b.balls.includes(0); document.getElementById("c-end").hidden = !b.balls.includes(1);
-  document.getElementById("c-trl").hidden = document.getElementById("c-adv").hidden = !BODIES[P.body].buffer;
-  document.getElementById("lede-body").textContent = BODIES[P.body].lede; document.getElementById("lede-hot").textContent = "a " + HD().label;
+  document.getElementById("lede").textContent = OPS[OP].lede();
   document.getElementById("hot-est").hidden = !HD().est; document.getElementById("lg-hb").textContent = HD().hbTop; document.getElementById("lg-seat").textContent = HD().seat; }
-function rerun(){ setMat(P.mat); setHot(); bodyUI(); layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
+function rerun(){ setMat(P.mat); setHot(); bodyUI(); opUI(); layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
 [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-slr","slr"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("change", e => { P[k] = +e.target.value; rerun(); }));
 [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-slr","slr"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("input", e => { P[k] = +e.target.value; syncOut(); }));
-document.getElementById("b-reset").onclick = () => { const keep = {body: P.body, hot: P.hot, blade: P.blade, band: P.band, buf: P.buf}; P = Object.assign({}, FACTORY, keep); document.getElementById("k-mat").value = P.mat; document.getElementById("k-start").value = "afc"; [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-slr","slr"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); applyStart(); rerun(); };
+document.getElementById("b-reset").onclick = () => { const keep = {body: P.body, hot: P.hot, blade: P.blade, band: P.band, buf: P.buf, lane: P.lane, jam: P.jam}; P = Object.assign({}, FACTORY, keep); document.getElementById("k-mat").value = P.mat; document.getElementById("k-start").value = "afc"; [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-slr","slr"],["k-tau","tau"],["k-sens","sens"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); applyStart(); rerun(); };
 const help = document.getElementById("help");
 document.getElementById("b-help").onclick = () => help.showModal();
 document.getElementById("b-help-x").onclick = () => help.close();
@@ -529,14 +741,18 @@ document.getElementById("k-body").addEventListener("change", e => { P.body = e.t
 document.getElementById("k-hot").addEventListener("change", e => { P.hot = e.target.value; applyStart(); reloadVariant(); });
 document.getElementById("k-blade").addEventListener("change", e => { P.blade = e.target.value; });
 document.getElementById("k-band").addEventListener("change", e => { P.band = e.target.checked; rerun(); });
-document.getElementById("k-buf").addEventListener("change", async e => { P.buf = e.target.value; document.getElementById("k-band").disabled = P.buf !== "tn"; await loadBuffer(); rerun(); });
+document.getElementById("k-buf").addEventListener("change", async e => { P.buf = e.target.value; document.getElementById("k-band").disabled = P.buf !== "tn"; await loadBuffer(); if (OP === "lane") await loadHub(); rerun(); });
+document.getElementById("k-jam").addEventListener("change", e => { P.jam = e.target.value; rerun(); });
+document.getElementById("k-lane").addEventListener("change", e => { P.lane = +e.target.value; rerun(); });
+document.getElementById("k-sens").addEventListener("input", e => { P.sens = +e.target.value; syncOut(); });
+document.getElementById("k-sens").addEventListener("change", e => { P.sens = +e.target.value; rerun(); });
 document.getElementById("k-start").addEventListener("change", () => { applyStart(); rerun(); });
 function applyStart(){ const sel = document.getElementById("k-start"), at = HD().at; sel.options[1].disabled = !at;
   if (sel.value === "at" && !at) sel.value = "afc";
   if (sel.value === "at"){ P.ret = at[0]; P.push = at[1]; } else { P.ret = FACTORY.ret; P.push = FACTORY.push; }
   document.getElementById("k-ret").value = P.ret; document.getElementById("k-push").value = P.push;
   document.getElementById("o-start").textContent = at ? `AT: ${at[0]} / ${at[1]}` : "none listed"; }
-async function start(){ applyStart(); await Promise.all([loadBody(), loadBuffer()]); setHot(); bodyUI(); setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
+async function start(){ applyStart(); const h = (location.hash || "").slice(1); if (OPS[h]) OP = h; await Promise.all([loadBody(), loadBuffer(), OP === "lane" ? loadHub() : null]); setHot(); bodyUI(); opUI(); setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
 start();
 </script>
 </body>

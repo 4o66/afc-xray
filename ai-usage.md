@@ -50,6 +50,15 @@ directed by the repository owner:
   and trigger slide; the PTFE wear tube, its retainer ring and the bushings stay in the hub. The 10 mm travel is the
   owner's figure and matches the trigger moving from one switch to the other in the CAD. The trigger points (2 mm from
   each stop) are an estimate. Both end positions were composited and checked as still images.
+- **Load, jam and spool timelines:** every move was traced in AFC v1.2.0-5's source (`TOOL_LOAD` and `load_sequence`,
+  `AFC_buffer.py`'s fault check and multipliers, `prep_load`, `prep_post_load`, `eject_lane`, `unload_sequence`) by a
+  separate AI agent, with file and line references, and its report was checked against the source where the page
+  depends on it. Shipped template values are used where they differ from code defaults, and the page says which. Every
+  tab was run headless for every body and buffer, and played in a browser.
+- **Hubs:** the load-only hub's body in the STEP release has no filament channels, so Armored Turtle's printable STL is
+  used instead (same size; it is turned 180° to match and placed by its bounding box). The channel centerlines are traced
+  from a cross-section of each hub body; PTFE in the inlets and outlet is inferred. Which parts move, the 10 mm travel and
+  the choice of hubs came from the owner.
 - **Rendering:** every layer was composited at rest and compared with the full render. Visual problems the owner
   reported were fixed and checked again, among them a rotating part that should not rotate, holes in a layer, and the
   spring's shape.
@@ -63,4 +72,5 @@ directed by the repository owner:
 - Melt behavior is a simple volume-keeping stretch rule.
 - Head travel times are estimates.
 - Some vendor geometry was identified by shape, not by name.
-- The page shows one printer's configuration.
+- The jam timeline uses a steady 2.5 mm/s print rate; the spool timeline's prep-to-load distance and the no-switch load's
+  gap at the gears are examples, marked as such on the page.

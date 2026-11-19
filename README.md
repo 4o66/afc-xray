@@ -36,11 +36,18 @@ too much?** It came out of chasing repeated jams at the top of the heat break.
 - A hotend choice: Phaetus Rapido HF, V2 HF, UHF and V2 UHF; Phaetus Dragon HF, UHF and UHF Mini; E3D Revo Voron;
   Bambu Lab. Each has its own printhead, liner and heat zones.
 - A blade choice: LDO full-length or Olfa KB4-F.
-- A buffer panel, with a choice of buffer:
-  - TurtleNeck: the slide moves with the lane, with an optional rubber band (a community mod that holds it collapsed, so
-    the no-switch unload skips the lane pull-back);
-  - BoxTurtle v1.1 hub/buffer combo: the hub is fixed and the outlet block slides up to 10 mm on two spring-loaded
-    binding barrels. Its switch trigger points are estimated.
+- Four operations, one tab each, all on the same section drawings and heat model:
+  - **Toolchange unload:** from the last printed line to the filament leaving the toolhead, with the cut.
+  - **Toolhead load:** TOOL_LOAD from the lane parked at the hub to the purge, starting where the unload ends, so the
+    new filament meets the previous lane's cut-off piece (outlined) in the hotend.
+  - **Jam detection:** the buffer's clog check for a nozzle clog or a spool tangle, with `filament_error_sensitivity`
+    (AFC's default, 0, turns it off).
+  - **Spool load and eject:** a new spool from the prep sensor to its parking spot short of the hub switch, through the hub
+    at the next toolchange, back, and LANE_UNLOAD, on top and side sections of the hub.
+- A hardware bar: extruder body, hotend, blade, and the hub and buffer: the BoxTurtle v1.1 load-only hub with a
+  TurtleNeck (optional rubber band, a community mod that holds it collapsed, so the no-switch unload skips the lane
+  pull-back), or the v1.1 hub/buffer combo, whose outlet block slides up to 10 mm on two spring-loaded binding barrels.
+  The combo's switch trigger points are estimated.
 - Starting values: AFC's defaults, or Armored Turtle's table values for the chosen hotend where it lists them.
 - A slider for the slicer's toolchange retract.
 - A material preset (PLA, ABS, PETG, ASA). It sets the print temperature, glass transition and liquid threshold
@@ -89,10 +96,12 @@ most sensitive.
 | `index.html` | The page. GitHub Pages serves it. |
 | `assets/<body>__<hotend>/` | The render layers for each extruder body and hotend, which the page loads on demand. |
 | `assets/buffer_tn/`, `assets/buffer_bt/` | The TurtleNeck and BoxTurtle hub/buffer combo layers. |
+| `assets/hub_<hub>_<view>/`, `assets/hub_paths.json` | Top and side sections of both BoxTurtle v1.1 hubs, and the traced filament paths. |
 | `page/template.html` | The page source: layout, narration, heat model and animation. |
 | `tools/export_*.py` | Mesh the source STEP files with FreeCAD: toolhead, bodies and cover, hotends, Voron board, BoxTurtle combo. |
 | `tools/hotends.json` | Per-hotend geometry: nozzle tip, heat zones, liner seat and length, Armored Turtle starting values. |
 | `tools/buffer_section.py`, `tools/btcombo_section.py`, `tools/buffer_assets.py` | Render the TurtleNeck and the BoxTurtle hub/buffer combo; cut the combo's page assets. |
+| `tools/hub_section.py`, `tools/hub_paths.py`, `tools/hub_assets.py`, `tools/import_hub_stl.py` | Hub sections (top and side), channel tracing, hub page assets, and the load-only hub's body from Armored Turtle's STL. |
 | `build_all.sh` | Renders every body variant and assembles the page. |
 | `tools/section.py` | Render the section and the moving layers. A NumPy z-buffer renderer that draws cut faces hatched. |
 | `tools/path_data.py`, `tools/sprites.py`, `tools/build_page.py` | Filament path data, sprite cutting, and page assembly. |

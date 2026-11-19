@@ -15,4 +15,5 @@ for b in $BODIES; do
 done
 for m in base full slide; do SIDE=a MODE=$m $PY tools/btcombo_section.py >/dev/null; done
 $PY tools/buffer_assets.py bt
+$PY tools/hub_paths.py && $PY tools/hub_assets.py
 $PY tools/path_data.py && $PY tools/build_page.py
