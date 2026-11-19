@@ -46,6 +46,10 @@ directed by the repository owner:
 - **Buffer:** the TurtleNeck PTFE layout is inferred from the CAD bores. The fixed tube end is chosen so it stays inside
   the slide over the full 30 mm travel. The switch trigger points (2.5 mm before each stop, 25 mm apart) are from the
   TurtleNeck README.
+- **BoxTurtle hub/buffer combo:** which parts move came from the owner: the hub is fixed; the outlet block, its barrels
+  and trigger slide; the PTFE wear tube, its retainer ring and the bushings stay in the hub. The 10 mm travel is the
+  owner's figure and matches the trigger moving from one switch to the other in the CAD. The trigger points (2 mm from
+  each stop) are an estimate. Both end positions were composited and checked as still images.
 - **Rendering:** every layer was composited at rest and compared with the full render. Visual problems the owner
   reported were fixed and checked again, among them a rotating part that should not rotate, holes in a layer, and the
   spring's shape.

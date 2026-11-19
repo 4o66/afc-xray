@@ -36,8 +36,11 @@ too much?** It came out of chasing repeated jams at the top of the heat break.
 - A hotend choice: Phaetus Rapido HF, V2 HF, UHF and V2 UHF; Phaetus Dragon HF, UHF and UHF Mini; E3D Revo Voron;
   Bambu Lab. Each has its own printhead, liner and heat zones.
 - A blade choice: LDO full-length or Olfa KB4-F.
-- A buffer panel: a TurtleNeck section whose slide moves with the lane, with an optional rubber band (a community mod
-  that holds it collapsed, so the no-switch unload skips the lane pull-back).
+- A buffer panel, with a choice of buffer:
+  - TurtleNeck: the slide moves with the lane, with an optional rubber band (a community mod that holds it collapsed, so
+    the no-switch unload skips the lane pull-back);
+  - BoxTurtle v1.1 hub/buffer combo: the hub is fixed and the outlet block slides up to 10 mm on two spring-loaded
+    binding barrels. Its switch trigger points are estimated.
 - Starting values: AFC's defaults, or Armored Turtle's table values for the chosen hotend where it lists them.
 - A slider for the slicer's toolchange retract.
 - A material preset (PLA, ABS, PETG, ASA). It sets the print temperature, glass transition and liquid threshold
@@ -85,11 +88,11 @@ most sensitive.
 |---|---|
 | `index.html` | The page. GitHub Pages serves it. |
 | `assets/<body>__<hotend>/` | The render layers for each extruder body and hotend, which the page loads on demand. |
-| `assets/buffer_tn/` | The TurtleNeck buffer layers. |
+| `assets/buffer_tn/`, `assets/buffer_bt/` | The TurtleNeck and BoxTurtle hub/buffer combo layers. |
 | `page/template.html` | The page source: layout, narration, heat model and animation. |
 | `tools/export_*.py` | Mesh the source STEP files with FreeCAD: toolhead, bodies and cover, hotends, Voron board, BoxTurtle combo. |
 | `tools/hotends.json` | Per-hotend geometry: nozzle tip, heat zones, liner seat and length, Armored Turtle starting values. |
-| `tools/buffer_section.py`, `tools/btcombo_section.py` | Render the TurtleNeck and the BoxTurtle hub/buffer combo. |
+| `tools/buffer_section.py`, `tools/btcombo_section.py`, `tools/buffer_assets.py` | Render the TurtleNeck and the BoxTurtle hub/buffer combo; cut the combo's page assets. |
 | `build_all.sh` | Renders every body variant and assembles the page. |
 | `tools/section.py` | Render the section and the moving layers. A NumPy z-buffer renderer that draws cut faces hatched. |
 | `tools/path_data.py`, `tools/sprites.py`, `tools/build_page.py` | Filament path data, sprite cutting, and page assembly. |

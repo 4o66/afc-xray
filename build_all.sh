@@ -13,4 +13,6 @@ for b in $BODIES; do
     rm -f build/${b}__${h}/depth_*.npy
   done
 done
+for m in base full slide; do SIDE=a MODE=$m $PY tools/btcombo_section.py >/dev/null; done
+$PY tools/buffer_assets.py bt
 $PY tools/path_data.py && $PY tools/build_page.py

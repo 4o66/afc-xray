@@ -9,6 +9,9 @@ OUT = D + "build/buffer_bt/"; os.makedirs(OUT, exist_ok=True)
 AX, AZ = 150.1, 18.2
 Y0 = 0.0; PXMM = 14; SS = 2; S = PXMM * SS; SUF = ""
 def hexc(h): return np.array([int(h[i:i+2], 16) for i in (1, 3, 5)], float)
+HILITE = os.environ.get("HILITE", "")   # A: outlet block slides | B: hub slides (for the question page)
+_HL = {"A": r"load_sense|Omron|bearing|ECAS Bowden Collet \(1\)/|bowden_retainer|buffer_trigger|bushing|M3x6 SHCS002|M3 Threaded Insert \(2\)001|M3x10 SHCS|PTFE_TOOLHEAD",
+       "B": r"\[a\]_hub/SOLID|buffer_tag|ECAS Bowden Collet \(1\) \(1\)|D2F|M2x10 STS"}.get(HILITE)
 RULES = [
  (r"wires|Logo", None, None),
  (r"\[a\]_(buffer_trigger|hub/SOLID|bowden_retainer/SOLID|buffer_tag|cover)", "Printed, accent (red)", "#b8142c"),
@@ -24,10 +27,15 @@ RULES = [
  (r"SHCS|STS", "Screws", "#7c828b"),
 ]
 def classify(n):
+    if _HL and not re.search(r"wires|Logo", n) and re.search(_HL, n): return "Moves in this reading", "#2a7fd4"
     for rx, lab, col in RULES:
         if re.search(rx, n): return lab, col
     return "Other", "#9a9a9a"
-MOVING = r"buffer_trigger|bowden_retainer|bushing|M3x6 SHCS002|M3 Threaded Insert \(2\)001|M3x10 SHCS|PTFE_OUT_MOVE"
+# hub (left) is fixed in the frame, filament arrives from the lane extruders; the outlet block (right, to the toolhead)
+# slides up to 10 mm (repo owner), carrying the load-sensor block, bearing, switch, outlet collet, trigger, and the two binding
+# barrels screwed into it; the barrels slide in bushings in the hub, and their springs pull the block back. The PTFE wear
+# tube and its retainer ring (bowden_retainer) and the screw clamping it stay with the hub (repo owner).
+MOVING = r"load_sense|Omron|bearing|ECAS Bowden Collet \(1\)/|buffer_trigger|binding barrel|M3x6 SHCS(001)?$|M3x10 SHCS|PTFE_TOOLHEAD"
 def group(n): return "slide" if re.search(MOVING, n) else None
 def wanted(n):
     g = group(n)
@@ -58,5 +66,5 @@ CAPOVR = {"PTFE tube, inferred (cut face pink)": "#f4a3c4"}
 src = open(D + "tools/section.py").read()
 tail = src[src.index("tris, cols, pid = [], [], []"):].replace("CAPOVR = {", "_unused = {", 1)
 bounds = "xmin, xmax = 192.0, 292.0; zmin, zmax = -10.0, 48.0" if SIDE == "a" else "xmin, xmax = -292.0, -192.0; zmin, zmax = -10.0, 48.0"
-tail = re.sub(r"xmin, xmax = [^\n]*", bounds, tail, count=1).replace('OUT + "section.png"', f'OUT + "section_{SIDE}.png"')
+tail = re.sub(r"xmin, xmax = [^\n]*", bounds, tail, count=1).replace('OUT + "section.png"', f'OUT + "section_{SIDE}{HILITE}.png"')
 exec(tail)
