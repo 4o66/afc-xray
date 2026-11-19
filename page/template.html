@@ -391,7 +391,7 @@ function layout(){
     const mag = sg.k === "e" ? Math.max(Math.abs(sg.E), Math.abs(sg.X), Math.abs(sg.L)) : 0;
     sg.real = sg.k === "e" ? (sg.dur != null ? sg.dur : mag / sg.v) : sg.dur;
     sg.anim = sg.anim != null ? sg.anim : sg.k === "e" ? Math.max(Math.min(sg.real * 1000, 6000), Math.min(4000, 1300 + mag * 60)) : sg.k === "wait" ? Math.min(sg.real * 1000, 1200) : Math.max(sg.real * 1000, 2600);
-    if (sg.ev && sg.k === "e" && sg.anim / 1000 < sg.real * 0.95){   // speed ramp: fast, decelerating, then real time to the event
+    if (sg.k === "e" && sg.real > 0.3 && sg.anim / 1000 < sg.real * 0.95){   // every sped-up move: fast, decelerating, then real time into its end (the event)
       const k = sg.real / (sg.anim / 1000), W = Math.min(sg.real * 0.25, 1.0), R = Math.min(sg.real - W, (k - 1) * 0.35), ar = 2 * R / (k + 1), af = Math.max(0, sg.real - W - R) / k;
       sg.ramp = {k, W, R, ar, af}; sg.anim = (af + ar + W) * 1000; }
     sg.t0 = t; sg.F0 = F; sg.X0 = X; sg.L0 = L; sg.B0 = B; t += sg.real;
