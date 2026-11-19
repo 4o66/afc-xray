@@ -77,6 +77,34 @@ def trace(M, p, d):
             v = np.array(pts[-1]) - np.array(pts[-4]); d = 0.7 * d + 0.3 * v / (np.linalg.norm(v) or 1); d /= np.linalg.norm(d)
         p = q
     return pts, seat, mi
+def channel_points(T, az, r=1.2):
+    """The hub's channels are swept cylinders (r about 1.2 mm, from the 2.3-2.5 mm bores): every wall face sits one radius
+    from its channel's centre line along its normal, so stepping each face inward by r lands on the centre lines. Keep
+    those in the plane of the channels, and drop strays with few neighbours."""
+    c = T.mean(1); n = np.cross(T[:, 1] - T[:, 0], T[:, 2] - T[:, 0]); a = np.linalg.norm(n, axis=1); ok = a > 1e-9; n = n / np.maximum(a, 1e-12)[:, None]
+    q = c + n * r; m = ok & (np.abs(q[:, 2] - az) < 0.3) & (np.abs(c[:, 2] - az) < 1.5) & (q[:, 1] > 200) & (q[:, 1] < 250)
+    Q = q[m][:, :2]
+    from scipy.spatial import cKDTree
+    t = cKDTree(Q); cnt = np.array([len(x) for x in t.query_ball_point(Q, 0.3)]); return Q[cnt >= 4]
+def follow_channel(Q, p, d, ax_x):
+    """walk from p along d through the channel centre-line points: each step takes the mean of the points 0.15-1.0 mm
+    ahead within 0.35 mm of the line, so the walk keeps to its own channel where the channels run together"""
+    from scipy.spatial import cKDTree
+    t = cKDTree(Q); p = np.array(p, float); d = np.array(d, float) / np.linalg.norm(d); out = [p.copy()]
+    for _ in range(600):
+        idx = t.query_ball_point(p + d * 0.6, 0.9); C = Q[idx] if idx else np.zeros((0, 2))
+        if len(C):
+            rel = C - p; al = rel @ d; lat = np.abs(rel @ np.array([-d[1], d[0]])); C = C[(al > 0.15) & (al < 1.0) & (lat < 0.35)]
+        if len(C) < 2:
+            if abs(p[0] - ax_x) < 0.3: break
+            p = p + d * 0.25; out.append(p.copy()); continue
+        nxt = C.mean(0); step = nxt - p; L = np.linalg.norm(step)
+        if L < 1e-6: break
+        d = 0.75 * d + 0.25 * step / L; d /= np.linalg.norm(d); p = p + d * 0.25; out.append(p.copy())
+        if abs(p[0] - ax_x) < 0.12: break                   # on the outlet axis: from here the filament runs straight down it
+    P = np.array(out)
+    for _ in range(6): P[1:-1] = (P[:-2] + 2 * P[1:-1] + P[2:]) / 4
+    P[-1, 0] = ax_x; return P
 def widths(M, p, a, maxw=7.0):
     n = np.array([-a[1], a[0]]); e = []
     for sg in (-1, 1):
@@ -116,11 +144,11 @@ def collet_fit(src_, key):
     a2 = a[:2] / np.linalg.norm(a[:2]); return c, a2
 COLLET_KEYS = {"combo": ("btcombo", {"lane1": "ECAS Bowden Collet (1) (1)003/", "lane2": "ECAS Bowden Collet (1) (1)/", "lane3": "ECAS Bowden Collet (1) (1)001/", "lane4": "ECAS Bowden Collet (1) (1)002/", "out": "ECAS Bowden Collet (1)/"}),
                "v10": ("bthub10", {"lane1": "ECAS Bowden Collet (4)/", "lane2": "ECAS Bowden Collet (3)/", "lane3": "ECAS Bowden Collet (1)004/", "lane4": "ECAS Bowden Collet (2)/", "out": "ECAS Bowden Collet008/"})}
-out = {"_note": "Filament paths in BoxTurtle CAD coordinates (mm), by tools/hub_paths.py. Lanes are numbered by X, lane1 lowest. Each fitting socket and the PTFE counterbore behind it are coaxial: their axis is fitted through the mid-points of both in a section of the hub body at the plane of the outlet axis. Every ECAS04 collet is set on that axis (turned by angle about the point about, moved to, dz), at its CAD distance from the socket floor; the load-only hub, which has no fittings in its STEP, gets the combo's inlet collets and the v1.0 hub's outlet collet. PTFE is inferred: coaxial with the fitting and inserted to the shoulder where the counterbore steps down to the filament channel (lanes: seat; outlet: shoulder). Each lane path starts there and follows the traced channel centre to the outlet axis (X 150.1).", "axis_x": AX}
+out = {"_note": "Filament paths in BoxTurtle CAD coordinates (mm), by tools/hub_paths.py. Lanes are numbered by X, lane1 lowest. Each fitting socket and the PTFE counterbore behind it are coaxial: their axis is fitted through the mid-points of both in a section of the hub body at the plane of the outlet axis. Every ECAS04 collet is set on that axis (turned by angle about the point about, moved to, dz), at its CAD distance from the socket floor; the load-only hub, which has no fittings in its STEP, gets the combo's inlet collets and the v1.0 hub's outlet collet. PTFE is inferred: coaxial with the fitting and inserted to the shoulder where the counterbore steps down to the filament channel (lanes: seat; outlet: shoulder). Each lane path starts there and follows its own channel: the channels are swept cylinders, so each wall face stepped inward by the bore radius lands on its channel centre line, and the path walks those points to the outlet axis (X 150.1).", "axis_x": AX}
 REF = {}
 for h, c in HUBS.items():
     d = np.load(D + f"cad/{c['src']}.npz"); N = json.load(open(D + f"cad/{c['src']}.json")); i = N.index(c["body"])
-    T = d["p%03d_V" % i].astype(float)[d["p%03d_F" % i]]; M = solid_mask(T, c["az"]); lanes = {}
+    T = d["p%03d_V" % i].astype(float)[d["p%03d_F" % i]]; M = solid_mask(T, c["az"]); lanes = {}; CQ = channel_points(T, c["az"])
     for k in ("lane1", "lane2", "lane3", "lane4", "out"):
         if h in COLLET_KEYS:                               # start from the hub's own collet
             cc, a0 = collet_fit(COLLET_KEYS[h][0], COLLET_KEYS[h][1][k]); p0 = cc[:2]
@@ -140,6 +168,9 @@ for h, c in HUBS.items():
         if k == "out":   # the hubs are mirror-symmetric about their outlet axis: keep its fitted position, square its direction to -Y
             a = np.array([0.0, -1.0]); fl = np.array([fl[0], fl[1]]); sh = np.array([fl[0], sh[1]])
             lanes["out"] = {"shoulder": sh.round(3).tolist(), "floor": fl.round(3).tolist(), "dir": a.round(4).tolist()}; continue
+        Pc = follow_channel(CQ, sh, a, AX)
+        lanes[k] = {"path": [sh.round(2).tolist()] + Pc[1:].round(3).tolist() + [[AX, round(float(Pc[-1][1] + 4.0), 2)]], "seat": sh.round(3).tolist(), "floor": fl.round(3).tolist(), "dir": a.round(4).tolist()}
+        continue
         pts, seat, mi = trace(M, sh - a * 0.5, a)
         si = int(np.argmin([np.hypot(q[0] - seat[0], q[1] - seat[1]) for q in pts])) if seat else 0
         if k == "lane2" and mi is not None and "lane1" in lanes:
