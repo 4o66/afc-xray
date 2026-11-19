@@ -30,6 +30,12 @@ figure.buf figcaption{font-size:12.5px;color:#5d6470;margin-top:8px}
 .scale{display:flex;align-items:center;gap:8px;flex:1 1 120px}
 .scale i{display:block;height:6px;width:24%;background:repeating-linear-gradient(90deg,#1c1e22 0 10%,#fff 10% 20%);border:1px solid #1c1e22}
 .side{display:grid;gap:12px;min-width:0;align-content:start}
+.mid{display:flex;flex-direction:column;gap:12px;min-width:0;max-height:calc(100vh - 235px)}
+.mid .panel{flex:none}
+.mid .tune{flex:1 1 auto;min-height:140px;overflow:auto;gap:6px}
+.mid .tune .row{grid-template-columns:minmax(0,9.5em) minmax(0,1fr) 5.5em;font-size:13px}
+.mid .narr{min-height:6.2em}
+@media (max-width:900px){.mid{max-height:none}.mid .tune{overflow:visible}}
 .duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
 @media (max-width:1300px){.duo{grid-template-columns:minmax(0,1fr)}}
 .below{max-width:1640px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:start}
@@ -141,11 +147,11 @@ dialog#help .x{float:right}
 </div>
 <div class="side">
 <div>
-<p class="eyebrow" id="eyebrow">Section A–A · AFC toolchange unload</p>
 <h1 id="h1">Where the hot plastic goes during a toolchange</h1>
 <p class="lede" id="lede"></p>
 </div>
 <div class="duo">
+<div class="mid">
 <div class="panel" aria-live="polite">
 <div class="stepno"><span id="stepno"></span><span class="speed" id="speed"></span></div>
 <h2 id="title"></h2>
@@ -171,20 +177,6 @@ dialog#help .x{float:right}
 <label for="k-see" class="see">Hub switches <input type="range" id="k-see" min="0" max="100" step="5" value="100"> <output id="o-see" for="k-see"></output></label>
 </div>
 </div>
-<div class="figr">
-<figure class="buf" id="fig-buf">
-<canvas id="cvb" width="1120" height="532" role="img" aria-label="Section of the TurtleNeck buffer through its filament path, with the slide moving as the lane moves"></canvas>
-<figcaption><details><summary>About this drawing</summary><span id="buf-cap">Buffer: TurtleNeck, cut through the filament path and seen from the lid side. The red slide carries the left collet and its tube; the right tube is fixed in the frame and slides inside the slide's bore. PTFE positions are inferred from the CAD bores. Collapsed (slide right) closes the trailing switch; expanded (slide left) closes advance.</span></details></figcaption>
-</figure>
-<figure class="buf" id="fig-hubm">
-<canvas id="cvm" width="1400" height="784" role="img" aria-label="Top section of the BoxTurtle hub, showing where the lane's filament end is"></canvas>
-<figcaption>Hub, top section through its channels (more on the Spool tab). Blue dashes: the hub switch.</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</div>
-<div class="below">
 <div class="tune">
 <h3>Settings</h3>
 <div class="row" data-ops="change load jam"><label for="k-mat">Material</label><select id="k-mat"><option value="PLA">PLA</option><option value="ABS">ABS</option><option value="PETG">PETG</option><option value="ASA" selected>ASA</option></select><output id="o-mat" for="k-mat"></output></div>
@@ -200,6 +192,22 @@ dialog#help .x{float:right}
 <p class="hint"><span class="defkey" aria-hidden="true"></span>Red arrows mark AFC's shipped defaults (v1.2.0-5), which the sliders start at. Changing a slider reruns the sequence from the start. The slicer retract (example 1.5 mm) and AFC's 2 mm quick pull are fixed. <button type="button" class="linkbtn" id="b-help">Where do I find these settings?</button></p>
 <div class="ctrl"><button id="b-reset" type="button">Reset to AFC defaults</button></div>
 </div>
+</div>
+<div class="figr">
+<figure class="buf" id="fig-buf">
+<canvas id="cvb" width="1120" height="532" role="img" aria-label="Section of the TurtleNeck buffer through its filament path, with the slide moving as the lane moves"></canvas>
+<figcaption><details><summary>About this drawing</summary><span id="buf-cap">Buffer: TurtleNeck, cut through the filament path and seen from the lid side. The red slide carries the left collet and its tube; the right tube is fixed in the frame and slides inside the slide's bore. PTFE positions are inferred from the CAD bores. Collapsed (slide right) closes the trailing switch; expanded (slide left) closes advance.</span></details></figcaption>
+</figure>
+<figure class="buf" id="fig-hubm">
+<canvas id="cvm" width="1400" height="784" role="img" aria-label="Top section of the BoxTurtle hub, showing where the lane's filament end is"></canvas>
+<figcaption>Hub, top section through its channels (more on the Spool tab). Blue dashes: the hub switch.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div class="below">
+
 <div class="key">
 <h3>Filament temperature</h3>
 <div class="tbar" role="img" aria-label="Color scale from 40 °C green through the glass transition in yellow to print temperature in red"></div>
@@ -788,7 +796,7 @@ function chipsUI(){
 function opUI(){
   const o = OPS[OP], lane = OP === "lane";
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.op === OP ? "true" : "false"));
-  document.getElementById("eyebrow").textContent = o.eyebrow; document.getElementById("h1").textContent = o.h1; document.getElementById("lede").textContent = o.lede();
+  document.getElementById("h1").textContent = o.h1; document.getElementById("lede").textContent = o.lede();
   document.getElementById("fig-th").hidden = lane; document.getElementById("fig-hub").hidden = !lane; document.getElementById("fig-buf").hidden = lane; document.getElementById("fig-hubm").hidden = lane;
   document.getElementById("metrics").hidden = lane; document.getElementById("r-tl").textContent = o.totalLbl;
   document.querySelectorAll(".tune .row[data-ops]").forEach(r => r.hidden = !r.dataset.ops.split(" ").includes(OP));
