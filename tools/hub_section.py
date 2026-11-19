@@ -34,6 +34,9 @@ def classify(n):
 MOVING = r"load_sense|Omron|bearing|ECAS Bowden Collet \(1\)/|buffer_trigger|binding barrel|M3x6 SHCS(001)?$|M3x10 SHCS|PTFE_TOOLHEAD" if HUB == "combo" else r"(?!x)x"
 # above the top view's cut plane and worth showing: buffer switches and trigger (combo), the hub switch (both)
 OVER = r"D2F|buffer_trigger|Omron"
+# the combo's buffer switches (trailing: D2F-L v1, advance: D2F-L v002): lever and button each on their own layer in the
+# top view, where the lever swings in the drawing's plane (MODE=levT/levA/btnT/btnA)
+SW = {"levT": r"D2F-L v1/.*D2F_Hinge", "levA": r"D2F-L v002/.*D2F_Hinge", "btnT": r"D2F-L v1/.*D2F_Button", "btnA": r"D2F-L v002/.*D2F_Button"}
 def group(n): return "slide" if re.search(MOVING, n) else None
 HW = r"binding barrel|printed_washer|M3x6 SHCS(001)?$"   # barrel stacks: drawn whole in the top view (MODE=hwfix/hwslide)
 SPRING = r"compression spring"                          # drawn by the page, compressed to the block's position
@@ -51,7 +54,8 @@ def wanted(n):
     if VIEW == "top" and (re.search(HW, n) or re.search(SPRING, n)): return False
     if MODE == "base": return g is None
     if MODE == "slide": return g == "slide"
-    if MODE == "over": return g is None and re.search(OVER, n) and not re.search(BEAR, n)
+    if MODE in SW: return HUB == "combo" and bool(re.search(SW[MODE], n))
+    if MODE == "over": return g is None and re.search(OVER, n) and not re.search(BEAR, n) and not (HUB == "combo" and any(re.search(r, n) for r in SW.values()))
     if MODE == "overslide": return g == "slide" and re.search(OVER, n) and not re.search(BEAR, n)
 src = {"combo": "btcombo", "loadonly": "bthub_loadonly", "v10": "bthub10"}[HUB]
 d = np.load(D + f"cad/{src}.npz"); N = json.load(open(D + f"cad/{src}.json")); parts = []
@@ -99,7 +103,7 @@ if VIEW == "side":   # from +X: screen right = +Y, up = Z, depth = AX - X (keep 
     _l = 100.0 if MODE == "bear" else 0.0
     parts = [(n, np.c_[V[:, 1], AX - V[:, 0] + _l, V[:, 2]], F) for n, V, F in parts]; bounds = "xmin, xmax = 192.0, 292.0; zmin, zmax = -10.0, 48.0"
 else:                # from +Z: screen right = +Y, up = -X, depth = AZ - Z (keep Z <= AZ); "over" layers are uncut
-    lift = 100.0 if MODE.startswith("over") or MODE.startswith("hw") or MODE == "bear" else 0.0
+    lift = 100.0 if MODE.startswith("over") or MODE.startswith("hw") or MODE == "bear" or MODE in SW else 0.0
     parts = [(n, np.c_[V[:, 1], AZ + lift - V[:, 2], -V[:, 0]], F) for n, V, F in parts]; bounds = "xmin, xmax = 192.0, 292.0; zmin, zmax = -178.0, -122.0"
 CAPOVR = {"PTFE tube, inferred (cut face pink)": "#f4a3c4"}
 src_r = open(D + "tools/section.py").read()

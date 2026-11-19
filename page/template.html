@@ -760,7 +760,7 @@ function laneSteps(){
 async function loadHub(){ if (!HUBP) HUBP = await (await fetch(av("assets/hub_paths.json"))).json();
   const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
   const nw = {}; for (const view of ["top", "side"]){ const dir = `assets/hub_${hubKey()}_${view}/`, j = await (await fetch(av(dir + "sprites.json"))).json(), o = {j, base: await ld(dir + "base.webp")};
-    for (const k of ["slide", "over", "overslide", "bear", "hwfix", "hwslide"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
+    for (const k of ["slide", "over", "overslide", "bear", "hwfix", "hwslide", "levT", "levA", "btnT", "btnA"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
     nw[view] = o; }
   HUBA = nw;
   const c = document.getElementById("hub-cap"); c.textContent = (hubKey() === "v10" ? "BoxTurtle v1.0 hub, used with a separate buffer such as the TurtleNeck. Top: the four lane inlets (lane 1 at the top) with their ECAS04 collets curve together and pass under the hub switch's bearing; the switch sits above the cut and is drawn see-through. Bottom: the outlet, cut through its axis." : hubKey() === "combo" ? "BoxTurtle v1.1 hub/buffer combo. Top: the four lane inlets (lane 1 at the top) curve together into the PTFE wear tube; the outlet block on the right slides on its barrels (buffer). The buffer switches, their trigger and the hub switch sit above the cut and are drawn see-through. Bottom: the outlet, cut through its axis." : "BoxTurtle v1.1 load-only hub, used with a separate buffer such as the TurtleNeck. Top: the four lane inlets (lane 1 at the top) curve together and pass under the hub switch's bearing; the switch sits above the cut and is drawn see-through. The body is Armored Turtle's printable STL, since the STEP release models it without its channels. Bottom: the outlet, cut through its axis.") + " Channel centerlines are traced from the CAD; PTFE in the inlets and outlet is inferred."; }
@@ -847,7 +847,13 @@ function drawHubTop(g, cvx, tip){
   if (hubKey() === "combo") BARRELS.forEach(xc => drawBarrelSpring(g, xc, BARREL_HEAD + off / PX, BARREL_WASHER));
   hubFil(g, hubUpto(lp, tip), p => [(p[1] - 192) * PX, (p[0] - 122) * PX], tip > 1e8 ? ((-lanePos(SIM.t)) % 2 + 2) % 2 : 1);
   if (T.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, f = bearLift(axisEndY(tip), T.j.bear.y_mm + offmm, T.j.bear.lift, cvx === cvh ? "bearT" : "bearTm", 0.016) / T.j.bear.lift; g.drawImage(T.bear, T.j.bear.x + offmm * PX + f * T.j.bear.dx, T.j.bear.y + f * T.j.bear.dy); }
-  g.save(); g.globalAlpha = P.see / 100; if (T.over) g.drawImage(T.over, T.j.over.x, T.j.over.y); if (T.overslide) g.drawImage(T.overslide, T.j.overslide.x + off, T.j.overslide.y); g.restore();
+  g.save(); g.globalAlpha = P.see / 100; if (T.over) g.drawImage(T.over, T.j.over.x, T.j.over.y); if (T.overslide) g.drawImage(T.overslide, T.j.overslide.x + off, T.j.overslide.y);
+  // the combo's buffer switches: each lever swings about its hinge and its button pushes in as the trigger reaches it
+  if (T.levT){ const d = bufDX(SIM.t), pr = {T: Math.max(0, Math.min(1, (BUF_TRIG_OF() + 0.8 - d) / 0.8)), A: Math.max(0, Math.min(1, (d - (BUF_TRAVEL_OF() - BUF_TRIG_OF() - 0.8)) / 0.8))};
+    for (const sd of ["T", "A"]){ const b = T.j["btn" + sd], l = T.j["lev" + sd];
+      if (b && T["btn" + sd]) g.drawImage(T["btn" + sd], b.x, b.y + pr[sd] * b.dy);
+      if (l && T["lev" + sd]){ g.save(); g.translate(l.cx, l.cy); g.rotate(l.press_deg * pr[sd] * Math.PI / 180); g.translate(-l.cx, -l.cy); g.drawImage(T["lev" + sd], l.x, l.y); g.restore(); } } }
+  g.restore();
   g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; const sx = (lp.swY - 192) * PX; g.beginPath(); g.moveTo(sx, (HUBP.axis_x - 6 - 122) * PX); g.lineTo(sx, (HUBP.axis_x + 6 - 122) * PX); g.stroke(); g.restore();
   hubLabel(g, `Top · lane ${P.lane} end: ${hubTipText(tip)}`, cvx.height); }
 // side section of the hub (the sensor bearing and the switch actuator lift with the filament) into any canvas
