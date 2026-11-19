@@ -187,11 +187,8 @@ for h, c in HUBS.items():
             P[1:-1] = (P[:-2] + 2 * P[1:-1] + P[2:]) / 4
         P[-1, 0] = AX; pts = P.round(2).tolist(); pts.append([AX, round(float(P[-1, 1] + 4.0), 2)])
         lanes[k] = {"path": pts, "seat": sh.round(3).tolist(), "floor": fl.round(3).tolist(), "dir": a.round(4).tolist()}
-    # the hubs are mirror-symmetric about the outlet axis: lanes 3 and 4 are lanes 2 and 1 mirrored, which keeps the
-    # traced sweeps identical on both sides
-    mir = lambda q: [round(2 * AX - q[0], 3), q[1]]
-    for src_k, dst_k in (("lane1", "lane4"), ("lane2", "lane3")):
-        L1 = lanes[src_k]; lanes[dst_k] = {"path": [mir(q) for q in L1["path"]], "seat": mir(L1["seat"]), "floor": mir(L1["floor"]), "dir": [-L1["dir"][0], L1["dir"][1]]}
+    # every lane is fitted on its own: mirroring lanes 1-2 onto 3-4 about X 150.1 put the load-only hub's lanes 3-4
+    # about 0.7 mm off their sockets, since that hub's own centre line is about X 150.45
     Image.fromarray((~M * 255).astype(np.uint8)).save(D + f"build/hub_{h}_mask.png")
     out[h] = {"az": c["az"], "lanes": {k: v for k, v in lanes.items() if k != "out"}, "outlet": lanes["out"], "outlet_end": c["outlet_end"]}
     print(h, {k: (v.get("seat", v.get("shoulder")), v["dir"]) for k, v in lanes.items()})
