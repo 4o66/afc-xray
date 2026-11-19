@@ -57,8 +57,9 @@ directed by the repository owner:
   tab was run headless for every body and buffer, and played in a browser.
 - **Hubs:** the load-only hub's body in the STEP release has no filament channels, so Armored Turtle's printable STL is
   used instead (same size; it is turned 180° to match and placed by its bounding box). The channel centerlines are traced
-  from a cross-section of each hub body; PTFE in the inlets and outlet is inferred. Which parts move, the 10 mm travel and
-  the choice of hubs came from the owner.
+  from a cross-section of each hub body; PTFE in the inlets and outlet is inferred. Which parts move, the 10 mm travel,
+  the choice of hubs and the hub sensor bearing being lifted by the filament came from the owner; the lift (2.38 mm on the
+  combo, 2.48 mm on the load-only hub) is measured from the CAD.
 - **Rendering:** every layer was composited at rest and compared with the full render. Visual problems the owner
   reported were fixed and checked again, among them a rotating part that should not rotate, holes in a layer, and the
   spring's shape.

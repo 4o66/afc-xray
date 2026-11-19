@@ -12,5 +12,10 @@ ys, xs = np.where(im[..., 3] > 0); x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.m
 Image.fromarray(im[y0:y1, x0:x1].astype(np.uint8), "RGBA").save(A + "sprite_slide.png")
 Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", quality=90, method=6)
 W, H = Image.open(B + "layer_base.png").size
-json.dump({"slide": dict(x=int(x0), y=int(y0), w=int(x1 - x0), h=int(y1 - y0)), "W": W, "H": H, **META}, open(A + "sprites.json", "w"))
+j = {"slide": dict(x=int(x0), y=int(y0), w=int(x1 - x0), h=int(y1 - y0)), "W": W, "H": H, **META}
+if os.path.exists(B + "layer_bear.png"):   # hub sensor bearing (combo): lift = filament top - bearing bottom, from the CAD
+    im = np.array(Image.open(B + "layer_bear.png")).astype(float); zb = np.load(B + "depth_bear.npy"); im[..., 3] *= binary_dilation((zb <= full + 0.05) & np.isfinite(zb), iterations=1)
+    ys, xs = np.where(im[..., 3] > 0); bx0, bx1, by0, by1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+    Image.fromarray(im[by0:by1, bx0:bx1].astype(np.uint8), "RGBA").save(A + "sprite_bear.png"); j["bear"] = dict(x=int(bx0), y=int(by0), w=int(bx1 - bx0), h=int(by1 - by0), lift=2.38, y_mm=267.57)
+json.dump(j, open(A + "sprites.json", "w"))
 print("assets", K, W, H)

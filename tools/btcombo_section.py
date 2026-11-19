@@ -37,9 +37,12 @@ def classify(n):
 # tube and its retainer ring (bowden_retainer) and the screw clamping it stay with the hub (repo owner).
 MOVING = r"load_sense|Omron|bearing|ECAS Bowden Collet \(1\)/|buffer_trigger|binding barrel|M3x6 SHCS(001)?$|M3x10 SHCS|PTFE_TOOLHEAD"
 def group(n): return "slide" if re.search(MOVING, n) else None
+BEAR = r"bearing"   # the hub sensor's bearing: its own layer, lifted by the filament on the page (MODE=bear)
 def wanted(n):
     g = group(n)
     if MODE == "static" or MODE == "full": return True
+    if MODE == "bear": return bool(re.search(BEAR, n))
+    if re.search(BEAR, n): return False
     if MODE == "base": return g is None
     return g == MODE
 d = np.load(D + "cad/btcombo.npz"); N = json.load(open(D + "cad/btcombo.json")); parts = []

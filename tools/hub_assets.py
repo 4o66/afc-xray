@@ -17,7 +17,7 @@ def crop(im, mask=None):
 import shutil; shutil.copy(D + "tools/hub_paths.json", D + "assets/hub_paths.json")   # the page reads the filament paths from here
 for hub in ("combo", "loadonly"):
     for view in ("top", "side"):
-        modes = ["base"] + (["full", "slide"] if hub == "combo" else []) + (["over"] + (["overslide"] if hub == "combo" else []) if view == "top" else [])
+        modes = ["base"] + (["full", "slide"] if hub == "combo" else ["full"] if view == "side" else []) + (["over"] + (["overslide"] if hub == "combo" else []) if view == "top" else ["bear"])
         for m in modes: run({"HUB": hub, "VIEW": view, "MODE": m})
         B = D + f"build/hub_{hub}_{view}/"; A = D + f"assets/hub_{hub}_{view}/"; os.makedirs(A, exist_ok=True)
         Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", quality=90, method=6)
@@ -25,6 +25,10 @@ for hub in ("combo", "loadonly"):
         if "slide" in modes:
             full = np.load(B + "depth_full.npy"); z = np.load(B + "depth_slide.npy"); vis = (z <= full + 0.05) & np.isfinite(z)
             im, j["slide"] = crop(Image.open(B + "layer_slide.png"), binary_dilation(vis, iterations=1)); im.save(A + "sprite_slide.png")
+        if "bear" in modes:   # hub sensor bearing: lift = filament top - bearing bottom, from the CAD
+            full = np.load(B + "depth_full.npy"); zb = np.load(B + "depth_bear.npy")
+            im, j["bear"] = crop(Image.open(B + "layer_bear.png"), binary_dilation((zb <= full + 0.05) & np.isfinite(zb), iterations=1)); im.save(A + "sprite_bear.png")
+            j["bear"].update({"lift": 2.38, "y_mm": 267.57} if hub == "combo" else {"lift": 2.48, "y_mm": 242.3})
         for m in ("over", "overslide"):
             if m in modes:
                 im, box = crop(Image.open(B + f"layer_{m}.png"))

@@ -35,9 +35,12 @@ MOVING = r"load_sense|Omron|bearing|ECAS Bowden Collet \(1\)/|buffer_trigger|bin
 # above the top view's cut plane and worth showing: buffer switches and trigger (combo), the hub switch (both)
 OVER = r"D2F|buffer_trigger|Omron"
 def group(n): return "slide" if re.search(MOVING, n) else None
+BEAR = r"bearing"   # the hub sensor's bearing: its own layer in the side view, lifted by the filament on the page (MODE=bear)
 def wanted(n):
     g = group(n)
     if MODE in ("static", "full"): return True
+    if MODE == "bear": return bool(re.search(BEAR, n))
+    if VIEW == "side" and re.search(BEAR, n): return False
     if MODE == "base": return g is None
     if MODE == "slide": return g == "slide"
     if MODE == "over": return g is None and re.search(OVER, n)
