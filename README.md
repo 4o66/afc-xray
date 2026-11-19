@@ -26,9 +26,10 @@ One tab each. The hardware choices at the top of the page apply to all of them.
   (or a nozzle clog): the printed line fails, the extruder keeps turning, and the buffer opens to its advance switch.
   Part II: a tangled spool: the feed stops, extrusion pulls the buffer closed. With `filament_error_sensitivity` above 0
   the check counts extruder travel and pauses with CLOG DETECTED or AFC NOT FEEDING. AFC's default, 0, turns it off.
-- **Spool load and eject:** a new spool from the prep sensor, to the load sensor, on `dist_hub` to its parking spot
-  short of the hub switch; through the hub at the next toolchange; back after an unload; and LANE_UNLOAD. (Being moved
-  from the hub to the lane's own respooler and extruder; see the issues.)
+- **Spool load and eject:** on sections of the lane's respooler and lane extruder: the spool's end pushed in through
+  the feeder and the prep rollers to the gears, the lane homing to the load sensor, `dist_hub` to its parking spot short
+  of the hub switch, through the hub at the next toolchange, back after an unload, LANE_UNLOAD, and out. The prep
+  trigger swings, the gears turn, the load sensor's bearing moves, and the hub view follows the same filament.
 
 ## Hardware choices
 
@@ -38,6 +39,8 @@ One tab each. The hardware choices at the top of the page apply to all of them.
 - **Hotend:** Phaetus Rapido HF, V2 HF, UHF and V2 UHF; Phaetus Dragon HF, UHF and UHF Mini; E3D Revo Voron; Bambu Lab.
   Each has its own printhead, liner and heat zones.
 - **Blade:** LDO full-length or Olfa KB4-F.
+- **Lane:** BoxTurtle v1.1 with the Apex lane extruder (LDO Orbiter gears), the Smol-D2HW (BMG gears) or the Smol V2
+  (ProtoXtruder gears), or BoxTurtle v1.0 (Smol-D2HW, BMG gears); the respooler follows the version.
 - **Hub and buffer:** BoxTurtle v1.0 hub or v1.1 load-only hub, each with a TurtleNeck (optionally with a rubber band,
   a community mod that pulls it closed once the filament is free; while printing, the filament is held at both ends and
   the buffer's switch feedback keeps it mid-travel either way); or the v1.1 hub/buffer combo, whose outlet block slides up to 10 mm on two

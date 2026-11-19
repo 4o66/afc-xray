@@ -1,0 +1,358 @@
+{
+ "v11_Lane2": [
+  [
+   "feeder mouth (top of [a]_feeder_x005)",
+   [
+    105,
+    31.4,
+    160.39
+   ]
+  ],
+  [
+   "feeder bore r2.1 bottom / 4x3 bowden top",
+   [
+    105,
+    31.4,
+    155.39
+   ]
+  ],
+  [
+   "4x3 bowden bottom end, inside trigger_depressor bore r2.05",
+   [
+    105,
+    31.4,
+    105.39
+   ]
+  ],
+  [
+   "prep roller nip: MR63 Bearing002 (moving, on depressor) vs MR63 Bearing003 (fixed); gap 0.25 at Y31.09-31.34",
+   [
+    105,
+    31.2,
+    90.2
+   ]
+  ],
+  [
+   "spooler ECAS collet seal-retainer top (tube end)",
+   [
+    105,
+    30.8,
+    62.29
+   ]
+  ],
+  [
+   "spooler ECAS collet plunger head (exits downward)",
+   [
+    105,
+    30.8,
+    53.79
+   ]
+  ],
+  [
+   "INFERRED tube (no tube in v1.1 CAD), Bezier",
+   [
+    105.07,
+    31.86,
+    46.76
+   ]
+  ],
+  [
+   "INFERRED tube (no tube in v1.1 CAD), Bezier",
+   [
+    105.29,
+    34.84,
+    40.66
+   ]
+  ],
+  [
+   "INFERRED tube (no tube in v1.1 CAD), Bezier",
+   [
+    105.66,
+    39.39,
+    35.49
+   ]
+  ],
+  [
+   "INFERRED tube (no tube in v1.1 CAD), Bezier",
+   [
+    106.18,
+    45.2,
+    31.25
+   ]
+  ],
+  [
+   "INFERRED tube (no tube in v1.1 CAD), Bezier",
+   [
+    106.87,
+    51.93,
+    27.95
+   ]
+  ],
+  [
+   "INFERRED tube (no tube in v1.1 CAD), Bezier",
+   [
+    107.73,
+    59.25,
+    25.59
+   ]
+  ],
+  [
+   "INFERRED tube (no tube in v1.1 CAD), Bezier",
+   [
+    108.76,
+    66.84,
+    24.17
+   ]
+  ],
+  [
+   "extruder inlet ECAS plunger head",
+   [
+    109.97,
+    74.37,
+    23.7
+   ]
+  ],
+  [
+   "inlet collet seal-retainer inner end (tube stop)",
+   [
+    111.82,
+    84.87,
+    23.7
+   ]
+  ],
+  [
+   "gear nip (drive Orbiter above, idler below)",
+   [
+    113.79,
+    96.03,
+    23.7
+   ]
+  ],
+  [
+   "load sensor: MR63ZZ bearing (2) contact point",
+   [
+    118.09,
+    120.42,
+    23.7
+   ]
+  ],
+  [
+   "outlet collet seal-retainer inner end",
+   [
+    119.35,
+    127.59,
+    23.7
+   ]
+  ],
+  [
+   "outlet ECAS plunger head -> hub",
+   [
+    121.21,
+    138.07,
+    23.7
+   ]
+  ]
+ ],
+ "v10_Lane002": [
+  [
+   "feeder mouth",
+   [
+    105.1,
+    208.6,
+    160.39
+   ]
+  ],
+  [
+   "4x3 bowden top",
+   [
+    105.1,
+    208.6,
+    155.39
+   ]
+  ],
+  [
+   "4x3 bowden bottom, inside Depressor002 bore r2.15 (Z113.7-135.3) / trigger_x006 bore r2.05 (Z101.2-112.9)",
+   [
+    105.1,
+    208.6,
+    105.39
+   ]
+  ],
+  [
+   "prep roller nip: MR63 Bearing004 (moving, on trigger_x006, Y211.9) vs Bearing005 (fixed, Y205.7); gap 0.2 at Y208.7-208.9",
+   [
+    105.1,
+    208.8,
+    90.2
+   ]
+  ],
+  [
+   "spooler ECAS collet seal-retainer top",
+   [
+    105.1,
+    209.2,
+    62.29
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    105.1,
+    209.2,
+    53.79
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    104.3,
+    209.6,
+    48.3
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    104.3,
+    206.6,
+    42.3
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    104.3,
+    202.4,
+    36.3
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    104.5,
+    199.8,
+    33.3
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    104.9,
+    193.0,
+    30.3
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    105.0,
+    185.7,
+    27.5
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    105.2,
+    170.7,
+    26.6
+   ]
+  ],
+  [
+   "Spooler Bowden Tubes002 centerline (mesh centroids)",
+   [
+    105.5,
+    166.56,
+    26.3
+   ]
+  ],
+  [
+   "inlet collet seal-retainer inner end (tube stop)",
+   [
+    105.5,
+    158.6,
+    26.3
+   ]
+  ],
+  [
+   "gear nip (BMG drive above Z30.6, idler below Z21.9)",
+   [
+    105.5,
+    142.0,
+    26.3
+   ]
+  ],
+  [
+   "load sensor: MR63ZZ bearing002 contact",
+   [
+    105.5,
+    124.6,
+    26.3
+   ]
+  ],
+  [
+   "outlet collet seal-retainer inner end",
+   [
+    105.5,
+    110.6,
+    26.3
+   ]
+  ],
+  [
+   "outlet ECAS plunger head",
+   [
+    105.5,
+    102.18,
+    26.3
+   ]
+  ],
+  [
+   "Hub Bowden Tubes002 centerline",
+   [
+    106.3,
+    99.9,
+    25.0
+   ]
+  ],
+  [
+   "hub tube",
+   [
+    110.3,
+    84.9,
+    24.4
+   ]
+  ],
+  [
+   "hub tube",
+   [
+    120.2,
+    69.9,
+    23.2
+   ]
+  ],
+  [
+   "hub tube",
+   [
+    130.2,
+    57.9,
+    21.9
+   ]
+  ],
+  [
+   "hub tube",
+   [
+    140.1,
+    42.9,
+    21.0
+   ]
+  ],
+  [
+   "hub tube end toward hub",
+   [
+    144.5,
+    25.0,
+    20.2
+   ]
+  ]
+ ]
+}
