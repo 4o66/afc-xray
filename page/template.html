@@ -480,7 +480,7 @@ function drawPiece(p){
   for (let i = 0; i < L.length; i++){ if ((i + (p.sh || 0)) % 8) continue;
     ctx.strokeStyle = "rgba(10,12,16,.45)"; ctx.beginPath(); ctx.moveTo(L[i][0], L[i][1] + 3); ctx.lineTo(R[i][0], R[i][1] - 3); ctx.stroke();
     ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.moveTo(L[i][0], L[i][1] + 6); ctx.lineTo(R[i][0], R[i][1]); ctx.stroke(); }
-  ctx.restore(); ctx.lineWidth = p.old ? 3 : 1.4; ctx.strokeStyle = p.old ? "#8a3fd0" : "rgba(20,24,28,0.85)"; ctx.stroke();
+  ctx.restore(); ctx.lineWidth = p.old ? 3 : FIL_EDGE_W; ctx.strokeStyle = p.old ? "#8a3fd0" : FIL_EDGE; ctx.stroke();
 }
 // cutter return spring, BOM part: 0.5 mm wire, 4 mm OD, 25 mm free, 14 coils. Its arm end sits in a pocket tilted 18 deg up
 // (floor at X -28.5 Z 54.76, turning with the arm); its other end in the level printhead pocket (floor X -15.5 Z 55.65).
@@ -533,13 +533,11 @@ function drawBuffer(dt){ if (!BUF) return; const j = BUF.j, d = bufDX(SIM.t), of
     const lp = lanePath(), past = tip - lp.sw - ((HUBP[hubKey()].outlet_end - lp.swY) + TN_TUBE), xr = j.xmin + cvb.width / PX;
     tnEnd = xr - past;                                           // CAD X of the filament end in this view
     if (past <= 0) fx2 = fx; else fx = Math.max(fx, bx(tnEnd)); }
-  if (fx2 > fx){ bctx.fillStyle = "#2fae4f"; bctx.fillRect(fx, fy, fx2 - fx, fw); bctx.fillStyle = hatch; bctx.fillRect(fx, fy, fx2 - fx, fw);
-    bctx.strokeStyle = "rgba(20,24,28,.85)"; bctx.lineWidth = 1.4; bctx.strokeRect(fx, fy, fx2 - fx, fw);
+  if (fx2 > fx){
     const flow = bufKind() === "tn" ? -1 : 1;   // filament runs right to left through the TurtleNeck, left to right through the combo
     const ph = tnEnd != null ? (((tnEnd - (j.xmin - 2)) % 2) + 2) % 2 : (((flow * lanePos(SIM.t)) % 2) + 2) % 2;   // ticks fixed to the material
-    bctx.save(); bctx.lineWidth = 2;
-    for (let xm = j.xmin - 2 + ph; (xm - j.xmin) * PX < cvb.width; xm += 2){ const x = (xm - j.xmin) * PX; if (x < fx || x > fx2) continue; bctx.strokeStyle = "rgba(10,12,16,.45)"; bctx.beginPath(); bctx.moveTo(x - 3, fy + fw); bctx.lineTo(x + 3, fy); bctx.stroke(); bctx.strokeStyle = "rgba(255,255,255,.4)"; bctx.beginPath(); bctx.moveTo(x, fy + fw); bctx.lineTo(x + 6, fy); bctx.stroke(); }
-    bctx.restore(); }
+    const xL = j.xmin + fx / PX, xR = j.xmin + fx2 / PX, yc = j.axisY;   // drawn right to left so the ticks count from the left end
+    hubFil(bctx, [[xR, yc], [xL, yc]], p => [bx(p[0]), by(p[1])], ((((j.xmin - 2 + ph) - xL) % 2) + 2) % 2); }
   if (BUF.bear && HUBP){ const ey = axisEndY(tip), f = bearLift(ey, j.bear.y_mm + off, j.bear.lift, "bearB", dt) / j.bear.lift; bctx.drawImage(BUF.bear, j.bear.x + off * PX + f * j.bear.dx, j.bear.y + f * j.bear.dy); }
   if (P.band && bufKind() === "tn"){ bctx.save(); bctx.strokeStyle = "rgba(226,170,40,.9)"; bctx.lineWidth = 5; [6.2, -6.2].forEach(o => { bctx.beginPath(); bctx.moveTo(bx(14.5 + off), by(j.axisY + o)); bctx.lineTo(bx(82.5), by(j.axisY + o)); bctx.stroke(); }); bctx.restore(); }
   const st = d <= BUF_TRIG_OF() ? "trailing" : d >= BUF_TRAVEL_OF() - BUF_TRIG_OF() ? "advance" : "between switches";
@@ -802,7 +800,7 @@ function drawLaneView(g, cvx, v, tip, motor, dt){
   g.save(); g.globalAlpha = LANE_SEE; if (v.over) g.drawImage(v.over, j.over.x, j.over.y);
   for (const [e, im] of (v.spin || [])) if (e.see) rot(im, e, e.canvas_deg_per_mm * motor);
   if (v.overmove) rot(v.overmove, j.overmove, j.overmove.angle_deg_with_filament * view.lprep); g.restore();
-  const pts = lanePathView(v, tip, v.trig ? {cx: j.trig.cx, cy: j.trig.cy, deg: j.trig.angle_deg_with_filament * view.lprep} : null); if (pts.length > 1) hubFil(g, pts, p => p, tip > j.s_mm[j.s_mm.length - 1] ? (((motor % 2) + 2) % 2) : 1); }
+  const pts = lanePathView(v, tip, v.trig ? {cx: j.trig.cx, cy: j.trig.cy, deg: j.trig.angle_deg_with_filament * view.lprep} : null); if (pts.length > 1) hubFil(g, pts.map(q => [q[0] / PX, q[1] / PX]), p => [p[0] * PX, p[1] * PX], tip > j.s_mm[j.s_mm.length - 1] ? (((motor % 2) + 2) % 2) : 1); }
 const cvsp = document.getElementById("cvsp"), spctx = cvsp.getContext("2d"), cve = document.getElementById("cve"), ectx = cve.getContext("2d");
 function drawLane(dt){ if (!LANEA.spool || !LANEP) return; const tip = laneTip(SIM.t), motor = lanePos(SIM.t);
   drawLaneView(spctx, cvsp, LANEA.spool, tip, motor, dt); drawLaneView(ectx, cve, LANEA.ext, tip, motor, dt);
@@ -821,12 +819,15 @@ function hubTipS(t){ const lp = lanePath();
 function hubTipText(tip){ const lp = lanePath(), d = tip - lp.sw; if (tip > 1e8) return "through the hub"; return Math.abs(d) < 0.5 ? "at the hub switch" : `${Math.abs(d) > 500 ? "far" : Math.abs(d).toFixed(0) + " mm"} ${d < 0 ? "short of" : "past"} the hub switch`; }
 function pathPt(pts, d){ for (let i = pts.length - 1; i > 0; i--){ const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= L){ const f = d / (L || 1); return [pts[i][0] + (pts[i - 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i - 1][1] - pts[i][1]) * f, pts[i - 1][0] - pts[i][0], pts[i - 1][1] - pts[i][1]]; } d -= L; } return null; }
 function filTicks(g, pts, map, phase){ g.save(); g.lineWidth = 2;
-  for (let d = phase; d < 400; d += 2){ const q = pathPt(pts, d); if (!q) break; const [x, y] = map(q), [x2, y2] = map([q[0] + q[2], q[1] + q[3]]), l = Math.hypot(x2 - x, y2 - y) || 1, nx = -(y2 - y) / l, ny = (x2 - x) / l, h = 0.8 * PX;
+  for (let d = phase; d < 400; d += FIL_PITCH){ const q = pathPt(pts, d); if (!q) break; const [x, y] = map(q), [x2, y2] = map([q[0] + q[2], q[1] + q[3]]), l = Math.hypot(x2 - x, y2 - y) || 1, nx = -(y2 - y) / l, ny = (x2 - x) / l, h = 0.875 * PX;
     for (const [col, o] of [["rgba(10,12,16,.45)", 0], ["rgba(255,255,255,.4)", 3]]){ const ox = (x2 - x) / l * o, oy = (y2 - y) / l * o; g.strokeStyle = col;
       g.beginPath(); g.moveTo(x - nx * h + (x2 - x) / l * 3 + ox, y - ny * h + (y2 - y) / l * 3 + oy); g.lineTo(x + nx * h - (x2 - x) / l * 3 + ox, y + ny * h - (y2 - y) / l * 3 + oy); g.stroke(); } }
   g.restore(); }
+// One filament style for every view (the toolhead's drawPiece uses the same constants, with a temperature fill).
+// pts are in mm; map takes mm to canvas pixels (PX per mm on every canvas). Ticks every FIL_PITCH mm, fixed to the material.
+const FIL_GREEN = "#2fae4f", FIL_EDGE = "rgba(20,24,28,.85)", FIL_EDGE_W = 1.4, FIL_PITCH = 2;
 function hubFil(g, pts, map, phase){ if (pts.length < 2) return; g.save(); g.lineCap = "butt"; g.lineJoin = "round"; g.beginPath(); pts.forEach((p, i) => { const [x, y] = map(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
-  g.strokeStyle = "rgba(20,24,28,.85)"; g.lineWidth = 1.75 * PX + 3; g.stroke(); g.strokeStyle = "#2fae4f"; g.lineWidth = 1.75 * PX - 1; g.stroke();
+  g.strokeStyle = FIL_EDGE; g.lineWidth = 1.75 * PX + 2 * FIL_EDGE_W; g.stroke(); g.strokeStyle = FIL_GREEN; g.lineWidth = 1.75 * PX; g.stroke();
   g.strokeStyle = hatch; g.stroke(); g.restore(); filTicks(g, pts, map, phase == null ? 1 : phase); }
 function hubUpto(lp, tip){ const upto = []; for (let i = 0; i < lp.pts.length; i++){ if (lp.S[i] <= tip) upto.push(lp.pts[i]); else { if (i > 0){ const f = (tip - lp.S[i - 1]) / (lp.S[i] - lp.S[i - 1]); if (f > 0) upto.push([lp.pts[i - 1][0] + (lp.pts[i][0] - lp.pts[i - 1][0]) * f, lp.pts[i - 1][1] + (lp.pts[i][1] - lp.pts[i - 1][1]) * f]); } break; } } return upto; }
 function hubLabel(g, txt, H){ g.save(); g.font = "500 26px IBM Plex Mono, monospace"; g.fillStyle = "#1c1e22"; g.fillText(txt, 16, H - 18); g.restore(); }
