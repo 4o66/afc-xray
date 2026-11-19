@@ -4,7 +4,8 @@
 # build/lane_<VER>_<VIEW>/geom.json without rendering.
 # VER: v11 (Lane2, Apex extruder) | v11bmg (Smol-D2HW with the BMG gear kit on Lane2) | v11proto (Smol V2 with the
 #      ProtoXtruder gearpack on Lane2) | v10 (v1.0 Lane002, Smol-D2HW with the BMG gear kit)
-# MODE: static | base | full | dgear | igear | trig | bear | over | overmove | geom
+# MODE: static | base | full | dgear | igear | trig | bear | over | overmove | geom, and in the ext view one pair per turning
+#       drive-train group (SPIN below): spin_<name> (cut, as the base shows it) and spin_<name>_see (as the over layer shows it)
 # Usage: VER=v11 VIEW=ext MODE=base python tools/lane_section.py. AGPL-3.0 (see LICENSE).
 import numpy as np, json, re, os
 from PIL import Image
@@ -31,7 +32,7 @@ RULES = [
  (r"Drive_Gear|Idler_Orbiter|Idler_Shaft|BMG|SOLID027|T10|Spur Gear 50t|Gearpack|Shaft|shaft|20x3mm Pin", "Gears, shafts (metal)", "#a7adb5"),
  (r"Tire", "Tires", "#4a4d55"),
  (r"\[c\]_", "Printed, clear", "#cfd6dc"),
- (r"\[a\]_", "Printed, accent", "#b8142c"),
+ (r"\[a\]_|[Gg]uidler|[Gg]uilder|Roller0|spooler_cover|wheel_hub|wheel_endcap|Feed-Trigger_Retainer.*SOLID|Lightbox|LED_Retainer|microswitch|bearing_spacer", "Printed, accent", "#b8142c"),   # accent per the [a]_ STL names
  (r".", "Printed, primary", "#3a3d44"),
 ]
 def classify(n):
@@ -65,6 +66,9 @@ def P_(key, all_=False):
     assert m, key
     return m if all_ else m[0]
 def bbc(V): return (V.min(0) + V.max(0)) / 2
+# the 50 mm feeder tube is inserted down to the shoulder of the prep trigger's bore, Z 101.2 (repo owner); the CAD has it
+# 4.2 mm short of it. It stays inside the feeder's bore at the top.
+parts = [(n, V + [0, 0, 101.2 - V[:, 2].min()] if re.search(r"4x3 Bowden 50mm00[12]$", n) else V, F) for n, V, F in parts]
 
 # ---------------------------------------------------------------- measurements
 def slice2d(V, F, O, U, Vv, N):
@@ -210,7 +214,7 @@ G["ext"] = {"a": a.tolist(), "f": f.tolist(), "z_line": zl, "inlet_head": E_IN.t
             "bearing": {"c": cb.tolist(), "contact": LOAD.tolist(), "dir": ldir.tolist(), "lift_mm": float(LIFT), "axis_dist": float(dist)}}
 # --- respooler: vertical filament from the feeder through the prep rollers into the spooler collet
 if VER == "v10":
-    feeder, bow, trig_rx = r"feeder_x006", r"4x3 Bowden 50mm002", r"motor_mount_x006/trigger_x006$"
+    feeder, bow, trig_rx = r"feeder_x006", r"4x3 Bowden 50mm002", r"motor_mount_x006/trigger_x006$|E-spooler V005/Depressor002$"
     b_mov, b_fix, scol = r"MR63 Bearing004", r"MR63 Bearing005", "ECAS Bowden Collet005/"
     axle_rx, piv_rx = r"Hardware023/M3x8 SHCS032$", r"Hardware023/M3x8 SHCS03[34]$"
 else:
@@ -243,6 +247,11 @@ G["spool"] = {"feeder_mouth": FEED.tolist(), "bowden_top": BOW_T.tolist(), "bowd
               "collet_bore_r": r_sp_bore, "pivot": PIV.tolist(), "trig_rot_rad_about_x": float(TH_TRIG), "moving_roller": cm_.tolist(), "fixed_roller": cf_.tolist(),
               "d2f_z": [float(min(V[:, 2].min() for n, V, F in parts if "D2F" in n and ("Feed-Trigger" in n or "E-Spooler" in n))),
                         float(max(V[:, 2].max() for n, V, F in parts if "D2F" in n and ("Feed-Trigger" in n or "E-Spooler" in n)))]}
+# prep switch lever: its long axis's two ends; the hinge is the end nearer the switch body, the tip the other
+_lv = P_(r"D2F_Hinge")[1]; _lc = _lv.mean(0); _, _, _vt = np.linalg.svd(_lv - _lc, full_matrices=False); _ax = _vt[0]; _t = (_lv - _lc) @ _ax
+_e1, _e2 = _lc + _ax * _t.min(), _lc + _ax * _t.max(); _bc = bbc(np.concatenate([V for n, V, F in parts if "D2F_Bottom" in n or "D2F_Top" in n]))
+_hinge, _tip = (_e1, _e2) if np.linalg.norm(_e1 - _bc) < np.linalg.norm(_e2 - _bc) else (_e2, _e1)
+G["spool"]["lever"] = {"hinge": _hinge.tolist(), "tip": _tip.tolist(), "body": _bc.tolist(), "press_mm": 2.0}
 # --- spooler-to-extruder tube and the filament path
 def ptube_v10():
     """centre line of the v1.0 CAD tube: start from the survey's guide line; at each station take the vertices in a 1.5 mm
@@ -305,20 +314,62 @@ if VIEW == "ext":
             "bmg": r"Spur Gear 50t00\d/Spur Gear 50t(006)?$|T10 SpurGear|motor_plate|LDO Stepper|MR825",
             "proto": r"Gearpack010$|Gearpack00[15]$|T10 SpurGear|motor_plate|LDO Stepper"}[FAM]
     OVERMOVE = r"(?!x)x"; OM_DEPTH = 0.0
+    # the rest of the turning drive train, one sprite group per rigid body (or per bearing set on one shaft), taken out of the
+    # base and the over layer. (regex, rate reference, multiplier): canvas rate = the reference gear's rate x multiplier.
+    # Meshing gears turn opposite ways at the tooth ratio; a ball bearing is drawn turning at its cage speed, taken as 0.4 x
+    # the part it carries. Every part here has its axis along the view normal (checked below).
+    (_d, _n), = TRAIN[-1:]
+    _m0 = -TRAIN[0][1] / TRAIN[0][0]                    # motor pinion against the gear it drives
+    SPIN = {"apex": {"gear50": (r"BMG 50t drive gear/SOLID027", "dgear", 1.0),
+                     "pinion": (r"T10 SpurGear", "dgear", _m0),
+                     "bear_drive": (r"MR85ZZ_Bearing\d+/", "dgear", 0.4)},
+            "bmg": {"gear50": (r"Spur Gear 50t00\d/Spur Gear 50t(006)?$", "dgear", 1.0),
+                    "pinion": (r"T10 SpurGear", "dgear", _m0),
+                    "bear_drive": (r"MR825 Ballbearing", "dgear", 0.4)},
+            # ProtoXtruder: T10 -> 44 T compound gear, whose 17 T pinion drives the 37 T drive gear
+            "proto": {"gear44": (r"Gearpack010$", "dgear", -_n / _d),
+                      "pinion": (r"T10 SpurGear", "dgear", -_n / _d * _m0),
+                      "bear_44": (r"Gearpack00[15]$", "dgear", -_n / _d * 0.4),
+                      "bear_drive": (r"Gearpack0(09|12)$", "dgear", 0.4),
+                      "bear_idler": (r"Gearpack0(08|11)$", "igear", 0.4)}}[FAM]
+    MOV.update({"spin_" + k: v[0] for k, v in SPIN.items()})
 else:
+    SPIN = {}
     if VER == "v10": O, U, VV = np.array([105.1, 240.0, 0]), np.array([0, -1.0, 0]), Z
     else: O, U, VV = np.array([105.0, 0, 0]), np.array([0, 1.0, 0]), Z
     bounds = (4.0, 66.0, 34.0, 164.0)
     # the feeder bowden sits in the trigger's bore: it and its feeder collar pivot with the trigger (repo owner)
     trig = trig_rx + "|" + b_mov + "|" + axle_rx + "|" + feeder + "|" + bow
-    MOV = {"trig": trig}
+    MOV = {"trig": trig, "lever": r"D2F_Hinge"}   # the prep switch's lever: pressed by the trigger arm when the lane is empty
     OVER = (r"Spur Gear \(12 teeth\)|N20 DC MOTOR|gearbox_cover|motor_mount_x007|Tire001|new_wheel_1\.012|spooler_cover|Lightbox v5.*SOLID025|D2F"
             if VER != "v10" else r"helical_gear|gear_30_spacer|gearbox_cover|motor_mount_x006/SOLID022|Wheel v011/.*(Tire004|SOLID024|Drive012)|Lightbox v007/SOLID023|D2F")
     OVERMOVE = trig_rx
     d2f = np.concatenate([V for n, V, F in parts if "D2F_Bottom" in n or "D2F_Top" in n])
     OM_DEPTH = float(np.min((d2f - O) @ np.cross(VV, U)))   # depressor leg drawn where it meets the switch: cut at the switch's near face
 NV = np.cross(VV, U)
+def _lift(n, Dp):   # how the over layer places a part: viewer-side parts uncut, the gear train over the motor plate
+    return Dp + ((50.0 if re.search(GEARTOP, n) else 100.0) if Dp.min() < 0 else 0.0)
+def _spin_geom():
+    out = []
+    for k, (rx, ref, mult) in SPIN.items():
+        ps = [(n, V) for n, V, F in parts if re.search(rx, n) and classify(n)[0]]
+        assert ps, k
+        Q = np.concatenate([np.c_[(V - O) @ U, (V - O) @ VV] for n, V in ps])
+        # rotation centre: circle fit to the outermost vertices (gear tips, outer race), started from the bounding box
+        c = (Q.min(0) + Q.max(0)) / 2
+        for _ in range(4):
+            r = np.linalg.norm(Q - c, axis=1); c, R = circfit(Q[r >= np.percentile(r, 90)])
+        ext = Q.max(0) - Q.min(0)
+        for n, V in ps:   # axis along the view normal: the part's outline is round in the view
+            q = np.c_[(V - O) @ U, (V - O) @ VV]; e = q.max(0) - q.min(0)
+            if abs(e[0] - e[1]) > 0.06 * e.max() + 0.05: print("WARNING", k, n, "not round in the view", e)
+        see = [n for n, V in ps if re.search(OVER, n)]
+        dep = [float(np.mean(_lift(n, (V - O) @ NV - 0.01))) for n, V in ps if n in see]
+        out.append({"name": k, "mode": "spin_" + k, "ref": ref, "mult": mult, "uv": [float(c[0]), float(c[1])], "r_out_mm": float(R),
+                    "parts": [n for n, V in ps], "see_parts": see, "see_depth": max(dep) if dep else None})
+    return out
 GEARTOP = r"SOLID027|T10 SpurGear|Spur Gear 50t(006)?$|Gearpack010$|Spur Gear \(12 teeth\)|helical_gear"
+G["spin"] = _spin_geom() if VIEW == "ext" else []
 def group(n):
     for g, rx in MOV.items():
         if re.search(rx, n): return g
@@ -331,6 +382,7 @@ def wanted(n):
     if MODE == "base": return g is None
     if MODE in MOV: return g == MODE
     if MODE == "over": return g is None and bool(re.search(OVER, n))
+    if MODE.startswith("spin_") and MODE.endswith("_see"): return g == MODE[:-4] and bool(re.search(OVER, n))
     if MODE == "overmove": return bool(re.search(OVERMOVE, n))
     return False
 G["view"] = {"view": VIEW, "O": O.tolist(), "U": U.tolist(), "V": VV.tolist(), "N": NV.tolist(), "xmin": bounds[0], "xmax": bounds[1],
@@ -346,14 +398,18 @@ for n, V, F in parts:
     lab, _ = classify(n)
     if lab is None or not wanted(n): continue
     R = V - O; X = R @ U; Dp = R @ NV - CUT_EPS; Up = R @ VV
-    if MODE == "over":   # viewer-side parts uncut, with the gear train drawn over the motor plate; parts behind the cut on top
-        Dp = Dp + ((50.0 if re.search(GEARTOP, n) else 100.0) if Dp.min() < 0 else 0.0)
+    if MODE == "over" or MODE.endswith("_see"):   # viewer-side parts uncut, with the gear train drawn over the motor plate; parts behind the cut on top
+        Dp = _lift(n, Dp)
     if MODE == "overmove": Dp = Dp - OM_DEPTH
     if MODE == "bear": Dp = Dp + 100.0   # the load-sensor bearing is drawn whole, not cut (repo owner)
     M = np.c_[X, Dp, Up]; T = M[F]
     keep = (T[:, :, 0].max(1) >= xmin - 1) & (T[:, :, 0].min(1) <= xmax + 1) & (T[:, :, 2].max(1) >= zmin - 1) & (T[:, :, 2].min(1) <= zmax + 1) & (T[:, :, 1].max(1) >= 0)
     if keep.any(): mapped.append((n, M, F[keep]))
 parts = mapped
+if not parts:   # nothing of this group on the drawn side of the cut (a spin group wholly on the viewer side): an empty layer
+    _W, _H = int((xmax - xmin) * S) // SS, int((zmax - zmin) * S) // SS
+    Image.new("RGBA", (_W, _H)).save(OUT + f"layer_{MODE}{SUF}.png"); np.save(OUT + f"depth_{MODE}{SUF}.npy", np.full((_H, _W), np.inf, np.float32))
+    raise SystemExit
 bstr = f"xmin, xmax = {xmin}, {xmax}; zmin, zmax = {zmin}, {zmax}"
 src_r = open(D + "tools/section.py").read()
 tail = src_r[src_r.index("tris, cols, pid = [], [], []"):].replace("CAPOVR = {", "_unused = {", 1)

@@ -770,7 +770,8 @@ let LANEP = null, LANEA = {};
 async function loadLane(){ if (!LANEP) LANEP = await (await fetch(av("assets/lane_paths.json"))).json();
   const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
   const nw = {}; for (const view of ["spool", "ext"]){ const dir = `assets/lane_${P.lext}_${view}/`, j = await (await fetch(av(dir + "sprites.json"))).json(), o = {j, base: await ld(dir + "base.webp")};
-    for (const k of ["trig", "over", "overmove", "dgear", "igear", "bear"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
+    for (const k of ["trig", "lever", "over", "overmove", "dgear", "igear", "bear"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
+    o.spin = []; for (const e of (j.spin || [])) o.spin.push([e, await ld(dir + (e.file || "sprite_" + e.name + ".png"))]);   // the rest of the drive train
     nw[view] = o; }
   LANEA = nw; }
 const LE = () => LANEP[P.lext].events;
@@ -793,10 +794,14 @@ function drawLaneView(g, cvx, v, tip, motor, dt){
   view.lprep = (view.lprep || 0) + (prep - (view.lprep || 0)) * Math.min(1, (dt || 0.016) * 10); view.lload = (view.lload || 0) + (load - (view.lload || 0)) * Math.min(1, (dt || 0.016) * 10);
   const rot = (spr, e, deg) => { g.save(); g.translate(e.cx, e.cy); g.rotate(deg * Math.PI / 180); g.translate(-e.cx, -e.cy); g.drawImage(spr, e.x, e.y); g.restore(); };
   if (v.trig) rot(v.trig, j.trig, j.trig.angle_deg_with_filament * view.lprep);
+  for (const [e, im] of (v.spin || [])) if (!e.see) rot(im, e, e.canvas_deg_per_mm * motor);
   if (v.dgear) rot(v.dgear, j.dgear, j.dgear.canvas_deg_per_mm * motor);
   if (v.igear) rot(v.igear, j.igear, j.igear.canvas_deg_per_mm * motor);
+  if (v.lever) rot(v.lever, j.lever, j.lever.press_deg * (1 - view.lprep));   // pressed by the trigger arm with the lane empty
   if (v.bear) g.drawImage(v.bear, j.bear.x + j.bear.dx_px * view.lload, j.bear.y + j.bear.dy_px * view.lload);
-  g.save(); g.globalAlpha = LANE_SEE; if (v.over) g.drawImage(v.over, j.over.x, j.over.y); if (v.overmove) rot(v.overmove, j.overmove, j.overmove.angle_deg_with_filament * view.lprep); g.restore();
+  g.save(); g.globalAlpha = LANE_SEE; if (v.over) g.drawImage(v.over, j.over.x, j.over.y);
+  for (const [e, im] of (v.spin || [])) if (e.see) rot(im, e, e.canvas_deg_per_mm * motor);
+  if (v.overmove) rot(v.overmove, j.overmove, j.overmove.angle_deg_with_filament * view.lprep); g.restore();
   const pts = lanePathView(v, tip, v.trig ? {cx: j.trig.cx, cy: j.trig.cy, deg: j.trig.angle_deg_with_filament * view.lprep} : null); if (pts.length > 1) hubFil(g, pts, p => p, tip > j.s_mm[j.s_mm.length - 1] ? (((motor % 2) + 2) % 2) : 1); }
 const cvsp = document.getElementById("cvsp"), spctx = cvsp.getContext("2d"), cve = document.getElementById("cve"), ectx = cve.getContext("2d");
 function drawLane(dt){ if (!LANEA.spool || !LANEP) return; const tip = laneTip(SIM.t), motor = lanePos(SIM.t);
