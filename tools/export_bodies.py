@@ -1,4 +1,4 @@
-# Mesh the single- and no-switch FilamATrix CW2 main bodies from the FilamATrix Stealthburner STEP (GPL-3.0).
+# Mesh the single- and no-switch FilamATrix CW2 main bodies and FilamATrix's cable cover (Cable_Cover_EBB v1) from the FilamATrix Stealthburner STEP (GPL-3.0).
 #   STEP_IN=/path/to/Stealthburner_FilamATrix.step freecadcmd tools/export_bodies.py
 # Writes cad/bodies_cw2.npz and cad/bodies_cw2.json. AGPL-3.0 (see LICENSE).
 import os, json, FreeCAD, Import, MeshPart, numpy as np
@@ -8,7 +8,7 @@ def walk(o, pp):
     p = pp + [o.Label]; ps = "/".join(p); kids = getattr(o, "Group", None)
     if kids:
         for c in kids: walk(c, p)
-    elif o.TypeId.startswith("Part::") and ("Main_Body_No_Switch" in ps or "Main_Body_One_Switch" in ps):
+    elif o.TypeId.startswith("Part::") and ("Main_Body_No_Switch" in ps or "Main_Body_One_Switch" in ps or ps.endswith("Cable_Cover_EBB v1")):
         sh = o.Shape.copy(); sh.Placement = o.getGlobalPlacement()
         m = MeshPart.meshFromShape(Shape=sh, LinearDeflection=0.03, AngularDeflection=0.35, Relative=False)
         k = "p%03d" % len(names)

@@ -36,6 +36,16 @@ directed by the repository owner:
   - the spring pockets;
   - the mounting holes used to place the board, which match to 0.02 mm.
 - **Liner length:** from the FilamATrix cutting jig list.
+- **Variants:**
+  - All 45 body and hotend combinations were rendered by the same pipeline; four were spot-checked as still images.
+  - Every hotend was simulated headless with the dual-switch and no-switch bodies.
+  - The FilamATrix 2.5 bodies were placed by a best fit against Voron's CW2.5 bodies (median 0.23 mm; the difference is
+    the cutter slot).
+  - Hotend heat zones come from part positions. Where the CAD has a hotend as one solid, they are estimated, and the page
+    says so.
+- **Buffer:** the TurtleNeck PTFE layout is inferred from the CAD bores. The fixed tube end is chosen so it stays inside
+  the slide over the full 30 mm travel. The switch trigger points (2.5 mm before each stop, 25 mm apart) are from the
+  TurtleNeck README.
 - **Rendering:** every layer was composited at rest and compared with the full render. Visual problems the owner
   reported were fixed and checked again, among them a rotating part that should not rotate, holes in a layer, and the
   spring's shape.

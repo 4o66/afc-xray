@@ -29,9 +29,17 @@ too much?** It came out of chasing repeated jams at the top of the heat break.
   - the filament-switch balls.
 - Readouts of how high softened (above 100 °C) and liquid (above 200 °C) plastic reaches, relative to the top of the
   heat break.
-- An extruder-body choice: FilamATrix CW2 dual switch, single switch (top switch only), or no switch. With no switch,
+- An extruder-body choice: FilamATrix CW2 dual switch, single switch (top switch only), or no switch; or FilamATrix 2.5
+  (no switch) with an ECAS04 or a collet. With no switch,
   AFC uses the buffer as its sensor, and the page follows that path: the lane pulls back until the buffer reads trailing,
   then the 100 mm unload runs with no toolhead check.
+- A hotend choice: Phaetus Rapido HF, V2 HF, UHF and V2 UHF; Phaetus Dragon HF, UHF and UHF Mini; E3D Revo Voron;
+  Bambu Lab. Each has its own printhead, liner and heat zones.
+- A blade choice: LDO full-length or Olfa KB4-F.
+- A buffer panel: a TurtleNeck section whose slide moves with the lane, with an optional rubber band (a community mod
+  that holds it collapsed, so the no-switch unload skips the lane pull-back).
+- Starting values: AFC's defaults, or Armored Turtle's table values for the chosen hotend where it lists them.
+- A slider for the slicer's toolchange retract.
 - A material preset (PLA, ABS, PETG, ASA). It sets the print temperature, glass transition and liquid threshold
   in the heat model, and the color scale follows it.
 - Sliders for `retract_length`, `pushback_length`, `cut_move_dist` and the heat model's time constant. They start at
@@ -76,9 +84,12 @@ most sensitive.
 | Path | What it is |
 |---|---|
 | `index.html` | The page. GitHub Pages serves it. |
-| `assets/<body>/` | The render layers for each extruder body, which the page loads on demand. |
+| `assets/<body>__<hotend>/` | The render layers for each extruder body and hotend, which the page loads on demand. |
+| `assets/buffer_tn/` | The TurtleNeck buffer layers. |
 | `page/template.html` | The page source: layout, narration, heat model and animation. |
-| `tools/export_full.py`, `tools/export_bodies.py`, `tools/export_voron.py` | Mesh the source STEP files with FreeCAD. |
+| `tools/export_*.py` | Mesh the source STEP files with FreeCAD: toolhead, bodies and cover, hotends, Voron board, BoxTurtle combo. |
+| `tools/hotends.json` | Per-hotend geometry: nozzle tip, heat zones, liner seat and length, Armored Turtle starting values. |
+| `tools/buffer_section.py`, `tools/btcombo_section.py` | Render the TurtleNeck and the BoxTurtle hub/buffer combo. |
 | `build_all.sh` | Renders every body variant and assembles the page. |
 | `tools/section.py` | Render the section and the moving layers. A NumPy z-buffer renderer that draws cut faces hatched. |
 | `tools/path_data.py`, `tools/sprites.py`, `tools/build_page.py` | Filament path data, sprite cutting, and page assembly. |
@@ -103,14 +114,16 @@ The source STEP files are not in this repository. They are:
 ## Licenses and credits
 
 - **Code** (`page/`, `tools/`, and the code in `index.html`): [AGPL-3.0](LICENSE).
-- **CAD-derived data** (`cad/`, and the rendered images embedded in `index.html`): [GPL-3.0](LICENSE-CAD). It is
-  derived from GPL-3.0 sources:
-  - [FilamATrix](https://github.com/thunderkeys/FilamATrix) by thunderkeys;
-  - Voron Design's [Stealthburner and Clockwork 2](https://github.com/VoronDesign/Voron-Stealthburner);
-  - Voron Design's [Stealthburner toolhead PCB](https://github.com/VoronDesign/Voron-Hardware).
-- **Vendor models** included in that CAD are credited to their makers: the Phaetus Rapido V2 UHF hotend, the LDO
-  stepper motor, the Omron D2F switches, and standard hardware.
-- The cable cover is the author's own design and is included under GPL-3.0.
+- **CAD-derived data** (`cad/`, `assets/`): [GPL-3.0](LICENSE-CAD). It is derived from GPL-3.0 sources:
+  - [FilamATrix](https://github.com/thunderkeys/FilamATrix) by thunderkeys. The FilamATrix 2.5 no-switch bodies
+    (ECAS04 and collet) were shared by the FilamATrix authors on the Armored Turtle Discord.
+  - Voron Design's [Stealthburner and Clockwork 2](https://github.com/VoronDesign/Voron-Stealthburner), the Clockwork 2.5
+    parts (motor plate, guidler A, latch shuttle, cable cover, collet), and the
+    [Stealthburner toolhead PCB](https://github.com/VoronDesign/Voron-Hardware).
+  - Armored Turtle's [TurtleNeck](https://github.com/ArmoredTurtle/TurtleNeck) and
+    [BoxTurtle](https://github.com/ArmoredTurtle/BoxTurtle) v1.1 (hub/buffer combo).
+- **Vendor models** included in that CAD are credited to their makers: Phaetus (Rapido, Dragon), E3D (Revo), Bambu Lab
+  (hotend), LDO (stepper motor), Omron (switches), and standard hardware.
 - The toolhead board drawn is Voron's reference Stealthburner PCB. Boards such as BTT's SB2209 mount in the same place.
 - The sequence and default values come from
   [AFC-Klipper-Add-On](https://github.com/AFCProject/AFC-Klipper-Add-On) and
