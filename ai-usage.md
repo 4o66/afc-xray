@@ -74,8 +74,8 @@ directed by the repository owner:
   prep and which is load, gear trains, section planes), and a second one built the lane renderer from that survey.
   Their geometry was checked by compositing every layer at its empty and loaded positions against the full render.
   Inferred: the v1.1 spooler-to-extruder tube (not in the v1.1 CAD; a smooth curve between the fittings) and the
-  extruder-to-hub tube lengths (171 mm outer lanes, 101 mm inner, from the BoxTurtle build guide). The prep switch's
-  polarity is unconfirmed: in the CAD its trigger rests on the switch when the lane is empty (issue #47).
+  extruder-to-hub tube lengths (171 mm outer lanes, 101 mm inner, from the BoxTurtle build guide). The prep switch is SPDT, so which state change reads as triggered is set by its wiring (NO or NC)
+  and the config, not by the mechanism (the owner, issue #47).
 - **v1.0 hub:** taken from the `BT-1.0` release's assembly and moved into the v1.1 hubs' frame by a rigid fit of the
   hardware the two share (bearing, switch body and levers, screw): residuals under 0.001 mm. Its own ECAS04 collets give
   its socket axes. They also agree with the socket position fitted for the load-only hub to 0.34 mm.
