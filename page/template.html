@@ -263,6 +263,7 @@ dialog#help .x{float:right}
 </dialog>
 <script>
 const DATA = __DATA__;
+const BUILD = "__BUILD__", av = u => u + (u.includes("?") ? "&" : "?") + "v=" + BUILD;   // cache-busting per build
 // render layers per extruder body, loaded on demand from assets/<body>/
 const LAYERS = ["base", "arm", "slide", "slide_olfa", "guid", "dgear", "igear", "socc"];
 const BODIES = {dual: {balls: [0, 1], buffer: false, lede: "a FilamATrix Clockwork 2 (dual switch)"},
@@ -272,8 +273,8 @@ const BODIES = {dual: {balls: [0, 1], buffer: false, lede: "a FilamATrix Clockwo
   f25_collet: {balls: [], buffer: true, lede: "a FilamATrix 2.5 with a bowden collet (no switch, buffer as sensor)"}};
 let imgs = {}, SPR = {}, loadedBody = null;
 async function loadBody(){ const dir = `assets/${P.body}__${P.hot}/`;
-  const j = await (await fetch(dir + "sprites.json")).json();
-  const ims = await Promise.all(LAYERS.map(k => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = dir + (k === "base" ? "base.webp" : "sprite_" + k + ".png"); })));
+  const j = await (await fetch(av(dir + "sprites.json"))).json();
+  const ims = await Promise.all(LAYERS.map(k => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(dir + (k === "base" ? "base.webp" : "sprite_" + k + ".png")); })));
   imgs = {}; LAYERS.forEach((k, i) => imgs[k] = ims[i]); SPR = j; }
 const PX = DATA.px, toX = x => (x - DATA.xmin) * PX, toY = z => (DATA.zmax - z) * PX, NP = DATA.xc.length;
 function idxz(z){ let i = Math.round((z - DATA.z0) / DATA.dz); return i < 0 ? 0 : i >= NP ? NP - 1 : i; }
@@ -506,8 +507,8 @@ function drawSpring(a){
   ctx.restore();
 }
 const cvb = document.getElementById("cvb"), bctx = cvb.getContext("2d"); let BUF = null;
-async function loadBuffer(){ const dir = `assets/buffer_${bufKind()}/`, j = await (await fetch(dir + "sprites.json")).json();
-  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+async function loadBuffer(){ const dir = `assets/buffer_${bufKind()}/`, j = await (await fetch(av(dir + "sprites.json"))).json();
+  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
   BUF = {j, base: await ld(dir + "base.webp"), slide: await ld(dir + "sprite_slide.png"), bear: j.bear ? await ld(dir + "sprite_bear.png") : null, occ: j.occ ? await ld(dir + "sprite_occ.png") : null};
   for (const m of ["levR", "levL", "btnR", "btnL"]) if (j[m]) BUF[m] = await ld(dir + `sprite_${m}.png`);
   cvb.width = j.W; cvb.height = j.H; cvb.style.aspectRatio = `${j.W}/${j.H}`; document.getElementById("buf-cap").textContent = BB().cap; }
@@ -756,9 +757,9 @@ function laneSteps(){
   st.push({t: "Pull the spool end out", h: `Lane ${P.lane}`, n: () => "The end is still in the prep rollers; pull it out by hand. Prep releases and the lane reads empty.", segs: [handMv(-(e.load_s - AFCV.extClear - LANE_S0), 60), pause(0.5)]});
   return st;
 }
-async function loadHub(){ if (!HUBP) HUBP = await (await fetch("assets/hub_paths.json")).json();
-  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
-  const nw = {}; for (const view of ["top", "side"]){ const dir = `assets/hub_${hubKey()}_${view}/`, j = await (await fetch(dir + "sprites.json")).json(), o = {j, base: await ld(dir + "base.webp")};
+async function loadHub(){ if (!HUBP) HUBP = await (await fetch(av("assets/hub_paths.json"))).json();
+  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
+  const nw = {}; for (const view of ["top", "side"]){ const dir = `assets/hub_${hubKey()}_${view}/`, j = await (await fetch(av(dir + "sprites.json"))).json(), o = {j, base: await ld(dir + "base.webp")};
     for (const k of ["slide", "over", "overslide", "bear", "hwfix", "hwslide"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
     nw[view] = o; }
   HUBA = nw;
@@ -766,9 +767,9 @@ async function loadHub(){ if (!HUBP) HUBP = await (await fetch("assets/hub_paths
 // ---- lane assemblies (spool tab): the respooler and the lane extruder, BoxTurtle v1.0 / v1.1 (tools/lane_section.py) ----
 const LEXT = {v11: "v1.1 lane, Apex extruder (LDO Orbiter gears)", v11bmg: "v1.1 lane, Smol-D2HW extruder (BMG gears)", v11proto: "v1.1 lane, Smol V2 extruder (ProtoXtruder gears)", v10: "v1.0 lane, Smol-D2HW extruder (BMG gears)"};
 let LANEP = null, LANEA = {};
-async function loadLane(){ if (!LANEP) LANEP = await (await fetch("assets/lane_paths.json")).json();
-  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
-  const nw = {}; for (const view of ["spool", "ext"]){ const dir = `assets/lane_${P.lext}_${view}/`, j = await (await fetch(dir + "sprites.json")).json(), o = {j, base: await ld(dir + "base.webp")};
+async function loadLane(){ if (!LANEP) LANEP = await (await fetch(av("assets/lane_paths.json"))).json();
+  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
+  const nw = {}; for (const view of ["spool", "ext"]){ const dir = `assets/lane_${P.lext}_${view}/`, j = await (await fetch(av(dir + "sprites.json"))).json(), o = {j, base: await ld(dir + "base.webp")};
     for (const k of ["trig", "over", "overmove", "dgear", "igear", "bear"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
     nw[view] = o; }
   LANEA = nw; }
