@@ -43,7 +43,7 @@ for hub in ("combo", "loadonly", "v10"):
         modes = ["base"] + (["full", "slide"] if hub == "combo" else ["full"] if view == "side" else []) + (["over"] + (["overslide", "hwfix", "hwslide", "levT", "levA", "btnT", "btnA"] if hub == "combo" else []) if view == "top" else []) + ["bear"]
         for m in modes: run({"HUB": hub, "VIEW": view, "MODE": m})
         B = D + f"build/hub_{hub}_{view}/"; A = D + f"assets/hub_{hub}_{view}/"; os.makedirs(A, exist_ok=True)
-        Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", quality=90, method=6)
+        Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", **({"lossless": True} if os.environ.get("MASK") == "1" else {"quality": 90, "method": 6}))
         W, H = Image.open(B + "layer_base.png").size; j = {"W": W, "H": H, "view": view, "xmin": 192.0, "zmax": 48.0 if view == "side" else -122.0}
         if "slide" in modes:
             full = np.load(B + "depth_full.npy"); z = np.load(B + "depth_slide.npy"); vis = (z <= full + 0.05) & np.isfinite(z)

@@ -55,6 +55,7 @@ figure.hub figcaption{font-size:12.5px;color:#5d6470;margin-top:6px;max-width:mi
 @media (max-width:900px){figure.hub canvas{width:100%}figure.hub figcaption{max-width:none}}
 .hw-t{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .hw .f{display:flex;gap:6px;align-items:center;font-size:13px;min-width:0}
+.hw .colors label{display:flex;gap:4px;align-items:center}.hw .colors input[type=color]{width:30px;height:22px;padding:0 1px;border:1px solid var(--rule);border-radius:3px;background:var(--paper)}.hw .colors button{font:inherit;font-size:12px;padding:2px 8px}
 .hw label{color:var(--muted)} .hw .chk label{color:var(--fg)} .hw .dim{color:var(--muted)}
 .hw select{font:500 13px var(--sans);padding:4px 8px;border:1px solid var(--rule);background:var(--chip);color:var(--fg);border-radius:4px;max-width:100%}
 .hw-note{flex-basis:100%;margin:0;font-size:12.5px;color:var(--muted)}
@@ -127,6 +128,7 @@ dialog#help .x{float:right}
 <div class="f"><label for="k-blade">Blade</label><select id="k-blade"><option value="ldo" selected>LDO full-length</option><option value="olfa">Olfa KB4-F</option></select></div>
 <div class="f"><label for="k-buf">Hub and buffer</label><select id="k-buf"><option value="v10">BoxTurtle v1.0 hub + TurtleNeck</option><option value="tn" selected>BoxTurtle v1.1 hub (load only) + TurtleNeck</option><option value="bt">BoxTurtle v1.1 hub/buffer combo</option></select></div>
 <div class="f"><label for="k-lext">Lane</label><select id="k-lext"><option value="v11" selected>v1.1, Apex (LDO Orbiter gears)</option><option value="v11bmg">v1.1, Smol-D2HW (BMG gears)</option><option value="v11proto">v1.1, Smol V2 (ProtoXtruder gears)</option><option value="v10">v1.0, Smol-D2HW (BMG gears)</option></select></div>
+<div class="f colors"><span class="lbl">Printed parts</span><label><input type="color" id="k-cp" value="#3b7843"> primary</label><label><input type="color" id="k-ca" value="#b9a46a"> accent</label><button type="button" id="k-creset" title="Armored Turtle's green and gold">Reset</button></div>
 <div class="f chk"><input type="checkbox" id="k-band"><label for="k-band">TurtleNeck rubber band <span class="dim">(community mod: closes it once the filament is free)</span></label></div>
 <p class="hint hw-note" id="hot-est" hidden>This hotend is one solid in the CAD, so its heat zones (block top, heat break, liner seat) are estimated from its outline.</p>
 </header>
@@ -265,6 +267,29 @@ dialog#help .x{float:right}
 const DATA = __DATA__;
 const BUILD = "__BUILD__", av = u => u + (u.includes("?") ? "&" : "?") + "v=" + BUILD;   // cache-busting per build
 // render layers per extruder body, loaded on demand from assets/<body>/
+// ---- printed-part colors (issue #7) ----
+// The renders are made in Armored Turtle's colors (green primary, gold accent; the AT documentation's theme colors). Every
+// image has a mask beside it, m_<file> (tools/build_masks.sh): red = printed primary, green = printed accent, blue = cut
+// face. For another color the masked pixels are recolored, keeping their shading: each pixel's brightness relative to the
+// old color (faces) or the old cut-face tint (old * 0.9 + 45, hatched or not) is applied to the new one.
+const PCOL0 = {p: "#3b7843", a: "#b9a46a"}, PCOL_KEY = "afcx-colors";
+let PCOL = {...PCOL0};
+try { const s_ = JSON.parse(localStorage.getItem(PCOL_KEY) || "null"); if (s_ && /^#[0-9a-f]{6}$/i.test(s_.p) && /^#[0-9a-f]{6}$/i.test(s_.a)) PCOL = {p: s_.p.toLowerCase(), a: s_.a.toLowerCase()}; } catch (e) {}
+const hexRGB = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const ldImg = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
+async function ld(src){ const im = await ldImg(src);
+  if (PCOL.p === PCOL0.p && PCOL.a === PCOL0.a) return im;
+  const i = src.lastIndexOf("/"); let mk; try { mk = await ldImg(src.slice(0, i + 1) + "m_" + src.slice(i + 1)); } catch (e) { return im; }
+  return recolor(im, mk); }
+function recolor(im, mk){ const W = im.naturalWidth, H = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d", {willReadFrequently: true}); g.drawImage(mk, 0, 0); const M = g.getImageData(0, 0, W, H).data;
+  g.clearRect(0, 0, W, H); g.drawImage(im, 0, 0); const id = g.getImageData(0, 0, W, H), D = id.data;
+  const tint = v => v.map(x => Math.min(255, x * 0.9 + 45)), O = [hexRGB(PCOL0.p), hexRGB(PCOL0.a)], N = [hexRGB(PCOL.p), hexRGB(PCOL.a)];
+  const OB = [O, O.map(tint)], NB = [N, N.map(tint)], OO = OB.map(r => r.map(o => o[0] * o[0] + o[1] * o[1] + o[2] * o[2]));
+  for (let q = 0; q < D.length; q += 4){ if (!D[q + 3]) continue; const wp = M[q] / 255, wa = M[q + 1] / 255, w = Math.max(wp, wa); if (w < 0.02) continue;
+    const k = wa > wp ? 1 : 0, cp = M[q + 2] > 127 ? 1 : 0, o = OB[cp][k], n = NB[cp][k], sc = (D[q] * o[0] + D[q + 1] * o[1] + D[q + 2] * o[2]) / OO[cp][k];
+    for (let ch = 0; ch < 3; ch++) D[q + ch] = D[q + ch] + w * (Math.min(255, n[ch] * sc) - D[q + ch]); }
+  g.putImageData(id, 0, 0); return c; }
 const LAYERS = ["base", "arm", "slide", "slide_olfa", "guid", "dgear", "igear", "socc"];
 const BODIES = {dual: {balls: [0, 1], buffer: false, lede: "a FilamATrix Clockwork 2 (dual switch)"},
   single: {balls: [0], buffer: false, lede: "a FilamATrix Clockwork 2 (single switch)"},
@@ -274,7 +299,7 @@ const BODIES = {dual: {balls: [0, 1], buffer: false, lede: "a FilamATrix Clockwo
 let imgs = {}, SPR = {}, loadedBody = null;
 async function loadBody(){ const dir = `assets/${P.body}__${P.hot}/`;
   const j = await (await fetch(av(dir + "sprites.json"))).json();
-  const ims = await Promise.all(LAYERS.map(k => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(dir + (k === "base" ? "base.webp" : "sprite_" + k + ".png")); })));
+  const ims = await Promise.all(LAYERS.map(k => ld(dir + (k === "base" ? "base.webp" : "sprite_" + k + ".png"))));
   imgs = {}; LAYERS.forEach((k, i) => imgs[k] = ims[i]); SPR = j; }
 const PX = DATA.px, toX = x => (x - DATA.xmin) * PX, toY = z => (DATA.zmax - z) * PX, NP = DATA.xc.length;
 function idxz(z){ let i = Math.round((z - DATA.z0) / DATA.dz); return i < 0 ? 0 : i >= NP ? NP - 1 : i; }
@@ -508,7 +533,6 @@ function drawSpring(a){
 }
 const cvb = document.getElementById("cvb"), bctx = cvb.getContext("2d"); let BUF = null;
 async function loadBuffer(){ const dir = `assets/buffer_${bufKind()}/`, j = await (await fetch(av(dir + "sprites.json"))).json();
-  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
   BUF = {j, base: await ld(dir + "base.webp"), slide: await ld(dir + "sprite_slide.png"), bear: j.bear ? await ld(dir + "sprite_bear.png") : null, occ: j.occ ? await ld(dir + "sprite_occ.png") : null};
   for (const m of ["levR", "levL", "btnR", "btnL"]) if (j[m]) BUF[m] = await ld(dir + `sprite_${m}.png`);
   cvb.width = j.W; cvb.height = j.H; cvb.style.aspectRatio = `${j.W}/${j.H}`; document.getElementById("buf-cap").textContent = BB().cap; }
@@ -756,7 +780,6 @@ function laneSteps(){
   return st;
 }
 async function loadHub(){ if (!HUBP) HUBP = await (await fetch(av("assets/hub_paths.json"))).json();
-  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
   const nw = {}; for (const view of ["top", "side"]){ const dir = `assets/hub_${hubKey()}_${view}/`, j = await (await fetch(av(dir + "sprites.json"))).json(), o = {j, base: await ld(dir + "base.webp")};
     for (const k of ["slide", "over", "overslide", "bear", "hwfix", "hwslide", "levT", "levA", "btnT", "btnA"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
     nw[view] = o; }
@@ -766,7 +789,6 @@ async function loadHub(){ if (!HUBP) HUBP = await (await fetch(av("assets/hub_pa
 const LEXT = {v11: "v1.1 lane, Apex extruder (LDO Orbiter gears)", v11bmg: "v1.1 lane, Smol-D2HW extruder (BMG gears)", v11proto: "v1.1 lane, Smol V2 extruder (ProtoXtruder gears)", v10: "v1.0 lane, Smol-D2HW extruder (BMG gears)"};
 let LANEP = null, LANEA = {};
 async function loadLane(){ if (!LANEP) LANEP = await (await fetch(av("assets/lane_paths.json"))).json();
-  const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = av(src); });
   const nw = {}; for (const view of ["spool", "ext"]){ const dir = `assets/lane_${P.lext}_${view}/`, j = await (await fetch(av(dir + "sprites.json"))).json(), o = {j, base: await ld(dir + "base.webp")};
     for (const k of ["trig", "lever", "over", "overmove", "dgear", "igear", "bear"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
     o.spin = []; for (const e of (j.spin || [])) o.spin.push([e, await ld(dir + (e.file || "sprite_" + e.name + ".png"))]);   // the rest of the drive train
@@ -985,6 +1007,15 @@ document.getElementById("k-body").addEventListener("change", e => { P.body = e.t
 document.getElementById("k-hot").addEventListener("change", e => { P.hot = e.target.value; applyStart(); reloadVariant(); });
 document.getElementById("k-blade").addEventListener("change", e => { P.blade = e.target.value; });
 document.getElementById("k-band").addEventListener("change", e => { P.band = e.target.checked; rerun(); });
+// printed-part colors: saved in this browser only; every image is reloaded and recolored from its mask
+let colorJob = 0;
+async function setColors(p, a){ PCOL = {p: p.toLowerCase(), a: a.toLowerCase()}; document.getElementById("k-cp").value = PCOL.p; document.getElementById("k-ca").value = PCOL.a;
+  try { if (PCOL.p === PCOL0.p && PCOL.a === PCOL0.a) localStorage.removeItem(PCOL_KEY); else localStorage.setItem(PCOL_KEY, JSON.stringify(PCOL)); } catch (e) {}
+  const job = ++colorJob; await new Promise(r => setTimeout(r, 120)); if (job !== colorJob) return;   // let a dragged picker settle
+  await Promise.all([loadBody(), loadBuffer(), loadHub(), loadLane()]); }
+document.getElementById("k-cp").addEventListener("input", e => setColors(e.target.value, PCOL.a));
+document.getElementById("k-ca").addEventListener("input", e => setColors(PCOL.p, e.target.value));
+document.getElementById("k-creset").addEventListener("click", () => setColors(PCOL0.p, PCOL0.a));
 document.getElementById("k-buf").addEventListener("change", async e => { P.buf = e.target.value; document.getElementById("k-band").disabled = bufKind() !== "tn"; await loadBuffer(); await loadHub(); rerun(); });
 document.getElementById("k-jam").addEventListener("change", e => { P.jam = e.target.value; rerun(); });
 document.getElementById("k-lane").addEventListener("change", e => { P.lane = +e.target.value; rerun(); });
@@ -998,6 +1029,6 @@ function applyStart(){ const sel = document.getElementById("k-start"), at = HD()
   if (sel.value === "at"){ P.ret = at[0]; P.push = at[1]; } else { P.ret = FACTORY.ret; P.push = FACTORY.push; }
   document.getElementById("k-ret").value = P.ret; document.getElementById("k-push").value = P.push;
   document.getElementById("o-start").textContent = at ? `AT: ${at[0]} / ${at[1]}` : "none listed"; }
-async function start(){ applyStart(); const h = (location.hash || "").slice(1); if (OPS[h]) OP = h; await Promise.all([loadBody(), loadBuffer(), loadHub(), loadLane()]); document.getElementById("k-lext").value = P.lext; setHot(); bodyUI(); opUI(); setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
+async function start(){ applyStart(); document.getElementById("k-cp").value = PCOL.p; document.getElementById("k-ca").value = PCOL.a; const h = (location.hash || "").slice(1); if (OPS[h]) OP = h; await Promise.all([loadBody(), loadBuffer(), loadHub(), loadLane()]); document.getElementById("k-lext").value = P.lext; setHot(); bodyUI(); opUI(); setMat(P.mat); layout(); buildDots(); simReset(); syncOut(); view.balls = BALLS.map(b => cx(b.z) + Math.min(W0, bore(b.z), gapw(b.z))/2 + BALL_R); go(0); requestAnimationFrame(frame); }
 start();
 </script>

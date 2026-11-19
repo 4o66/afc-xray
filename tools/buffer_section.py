@@ -12,8 +12,8 @@ AY, AZ = 115.9, -2.85          # filament axis (along X) in the TurtleNeck CAD
 Y0 = 0.0; PXMM = 14; SS = 2; S = PXMM * SS; SUF = ""
 def hexc(h): return np.array([int(h[i:i+2], 16) for i in (1, 3, 5)], float)
 RULES = [
- (r"/Slide$", "Printed, accent (red)", "#b8142c"),
- (r"/(lid|Frame)$", "Printed, main (black)", "#2d2e33"),
+ (r"/Slide$", "Printed, accent", "#B9A46A"),
+ (r"/(lid|Frame)$", "Printed, primary", "#3b7843"),
  (r"PTFE", "PTFE tube, inferred (cut face pink)", "#e9ece4"),
  (r"Plunger|Collet Body|Grab Ring|Seal Retainer", "ECAS04 collet", "#4b6fa8"),
  (r"D2F_Button|D2F_Hinge", "Switch levers", "#c3c9d1"),

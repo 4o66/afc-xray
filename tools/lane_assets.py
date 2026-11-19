@@ -36,7 +36,7 @@ for ver in VERS:
         G = json.load(open(B + "geom.json")); vw = G["view"]
         O, U, V = (np.array(vw[k]) for k in ("O", "U", "V")); px = vw["px"]; xmin, vmax = vw["xmin"], vw["vmax"]
         def topx(P): P = np.atleast_2d(P) - O; return np.c_[(P @ U - xmin) * px, (vmax - P @ V) * px]
-        Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", quality=90, method=6)
+        Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", **({"lossless": True} if os.environ.get("MASK") == "1" else {"quality": 90, "method": 6}))
         W, H = Image.open(B + "layer_base.png").size
         j = {"W": W, "H": H, "px": px, "view": view, "O": vw["O"], "U": vw["U"], "V": vw["V"], "xmin": xmin, "vmax": vmax,
              "u0": xmin, "v0": vmax, "map": "x_px = ((P - O).U - xmin) * px; y_px = (vmax - (P - O).V) * px  (P in CAD mm)"}

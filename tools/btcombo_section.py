@@ -14,8 +14,8 @@ _HL = {"A": r"load_sense|Omron|bearing|ECAS Bowden Collet \(1\)/|bowden_retainer
        "B": r"\[a\]_hub/SOLID|buffer_tag|ECAS Bowden Collet \(1\) \(1\)|D2F|M2x10 STS"}.get(HILITE)
 RULES = [
  (r"wires|Logo", None, None),
- (r"\[a\]_(buffer_trigger|hub/SOLID|bowden_retainer/SOLID|buffer_tag|cover)", "Printed, accent (red)", "#b8142c"),
- (r"load_sense/SOLID|mount|printed_washer", "Printed, main (black)", "#2d2e33"),
+ (r"\[a\]_(buffer_trigger|hub/SOLID|bowden_retainer/SOLID|buffer_tag|cover)", "Printed, accent", "#B9A46A"),
+ (r"load_sense/SOLID|mount|printed_washer", "Printed, primary", "#3b7843"),
  (r"PTFE|bowden_4x2", "PTFE tube, inferred (cut face pink)", "#e9ece4"),
  (r"Plunger|Collet Body|Grab Ring|Seal Retainer", "ECAS04 collets", "#4b6fa8"),
  (r"D2F_Button|D2F_Hinge", "Switch levers", "#c3c9d1"),

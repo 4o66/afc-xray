@@ -23,5 +23,5 @@ x0, x1 = int((-34.5 - xmin) * PX), int((-14.5 - xmin) * PX); y0, y1 = int((zmax 
 mk = np.zeros(zb.shape, bool); mk[y0:y1, x0:x1] = zb[y0:y1, x0:x1] < 1.45
 spr = base.copy(); spr[..., 3] = np.where(mk, 255, 0); ys, xs = np.where(mk); a, b, c, d = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
 Image.fromarray(spr[c:d, a:b]).save(A + "sprite_socc.png"); out["socc"] = dict(x=int(a), y=int(c), w=int(b - a), h=int(d - c))
-json.dump(out, open(A + "sprites.json", "w")); Image.open(C + "layer_base.png").convert("RGB").save(A + "base.webp", quality=90, method=6)
+json.dump(out, open(A + "sprites.json", "w")); Image.open(C + "layer_base.png").convert("RGB").save(A + "base.webp", **({"lossless": True} if os.environ.get("MASK") == "1" else {"quality": 90, "method": 6}))
 print("sprites", BODY, HOTEND)

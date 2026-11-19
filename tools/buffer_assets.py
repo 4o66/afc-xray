@@ -26,7 +26,7 @@ if occ.any():
     oy, ox = np.where(occ); ox0, ox1, oy0, oy1 = ox.min(), ox.max() + 1, oy.min(), oy.max() + 1
     Image.fromarray(base_rgba[oy0:oy1, ox0:ox1].astype(np.uint8), "RGBA").save(A + "sprite_occ.png")
     OCC = dict(x=int(ox0), y=int(oy0), w=int(ox1 - ox0), h=int(oy1 - oy0))
-Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", quality=90, method=6)
+Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", **({"lossless": True} if os.environ.get("MASK") == "1" else {"quality": 90, "method": 6}))
 W, H = Image.open(B + "layer_base.png").size
 j = {"slide": dict(x=int(x0), y=int(y0), w=int(x1 - x0), h=int(y1 - y0)), "W": W, "H": H, **META}
 if OCC: j["occ"] = OCC

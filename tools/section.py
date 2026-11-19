@@ -50,11 +50,11 @@ def hexc(h): return np.array([int(h[i:i+2], 16) for i in (1, 3, 5)], float)
 RULES = [
  ((r"Olfa KB4|Blade_Holder_Olaf" if BLADE == "ldo" else r"Full Blade \(LDO\)|Blade_Holder$") + r"|Stealthburner_Body$", None, None),
  (r"uhf v0(17|29|24|26|30)$", None, None),                # alternates not used
- (r"Guilder_A|Guilder_B|Shuttle|PCB_Spacer|\[a\]_latch|Cutting_Arm|Blade_Holder", "Printed, accent (red)", "#b8142c"),
+ (r"Guilder_A|Guilder_B|Shuttle|PCB_Spacer|\[a\]_latch|Cutting_Arm|Blade_Holder", "Printed, accent", "#B9A46A"),
  (r"PTFE_LINER", "PTFE liner (2 mm ID)", "#e9ece4"),
  (r"BOWDEN", "Bowden tube (4 x 2 mm PTFE)", "#e9ece4"),
  (r"FILAMENT", "Filament", "#2fae4f"),
- (r"Main_Body_(Dual|One|No)|Motor_Plate|Guilder_B|SB_Rapido_UHF_V2_(Front|Rear)|Stealthburner_UHF|x_carriage_frame|COVER_MINE|Cable_Cover|CW25_COVER|Hotends/.*(SB_|Printhead|COMPOUND)", "Printed, main (black)", "#2d2e33"),
+ (r"Main_Body_(Dual|One|No)|Motor_Plate|Guilder_B|SB_Rapido_UHF_V2_(Front|Rear)|Stealthburner_UHF|x_carriage_frame|COVER_MINE|Cable_Cover|CW25_COVER|Hotends/.*(SB_|Printhead|COMPOUND)", "Printed, primary", "#3b7843"),
  (r"LDO-36STH021", "Motor (LDO-36STH20)", "#5b6068"),
  (r"LDO-36STH20$", "Motor pinion", "#c9ced6"),
  (r"Drive_Gear|Idler_Gear|50T_Drive|Shaft|Needle_Bear|Ballbearing|DIN 913", "Gears, bearings, shafts (steel)", "#b4bac3"),
@@ -208,11 +208,15 @@ for hx, hy in ([(6.96, 3.94), (-3.94, 6.96), (3.95, -6.96), (-6.95, -3.95)] if H
 tris, cols, pid = [], [], []
 legend = {}
 CAPM = {}
+# MASK=1: instead of the shaded image, write which pixels are printed primary (red), printed accent (green) and cut faces
+# (blue), so the page can recolor the printed parts (issue #7). Same coverage, depth and file names as the normal render.
+MASK = os.environ.get("MASK") == "1"; KCLS = {}
 CAPOVR = {'PTFE liner (2 mm ID)': '#f4a3c4', 'Bowden tube (4 x 2 mm PTFE)': '#f4a3c4'}
 for k, (n, V, F) in enumerate(parts):
     lab, col = classify(n)
     if lab is None or V[:, 1].max() < Y0 or not wanted(n): continue
     T = V[F]; legend.setdefault(lab, col)
+    KCLS[k] = 1 if lab.startswith("Printed, primary") else 2 if lab.startswith("Printed, accent") else 0
     CAPM[k] = hexc(CAPOVR[lab]) if lab in CAPOVR else np.minimum(hexc(col) * 0.9 + 45, 255)
     tris.append(T); cols.append(np.repeat(hexc(col)[None], len(T), 0)); pid.append(np.full(len(T), k))
 T = np.concatenate(tris); C = np.concatenate(cols); P = np.concatenate(pid)
@@ -260,9 +264,14 @@ for k in range(len(T)):
     else:
         img[y0:y1 + 1, x0:x1 + 1][m] = C[k] * shade[k]
     pb[y0:y1 + 1, x0:x1 + 1][m] = P[k]; cb[y0:y1 + 1, x0:x1 + 1][m] = cap[k]
+if MASK:
+    kc = np.zeros(max(KCLS) + 2, int)
+    for k_, c_ in KCLS.items(): kc[k_] = c_
+    cl = np.where(pb >= 0, kc[np.maximum(pb, 0)], 0)
+    img = np.zeros((H, W, 3)); img[..., 0] = 255.0 * (cl == 1); img[..., 1] = 255.0 * (cl == 2); img[..., 2] = 255.0 * (cb & (cl > 0))
 # hatching on cut faces
 yy, xx = np.mgrid[0:H, 0:W]
-hatch = cb & (((xx + yy) // SS) % 9 == 0)
+hatch = (not MASK) & cb & (((xx + yy) // SS) % 9 == 0)
 img[hatch] *= 0.55
 # outlines: part boundaries and depth steps
 edge = np.zeros((H, W), bool)
@@ -271,7 +280,7 @@ for dy, dx in [(0, 1), (1, 0)]:
     za = zb[:H - dy, :W - dx]; zb2 = zb[dy:, dx:]
     e = (a != b) | (np.abs(np.nan_to_num(za - zb2, posinf=99, neginf=99)) > 1.2) | (cb[:H - dy, :W - dx] != cb[dy:, dx:])
     edge[:H - dy, :W - dx] |= e
-img[edge] = img[edge] * 0.25
+if not MASK: img[edge] = img[edge] * 0.25
 if MODE == "static":
     im = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).resize((W // SS, H // SS), Image.LANCZOS); im.save(OUT + "section.png")
 else:

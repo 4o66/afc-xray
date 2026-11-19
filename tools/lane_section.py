@@ -32,8 +32,8 @@ RULES = [
  (r"Drive_Gear|Idler_Orbiter|Idler_Shaft|BMG|SOLID027|T10|Spur Gear 50t|Gearpack|Shaft|shaft|20x3mm Pin", "Gears, shafts (metal)", "#a7adb5"),
  (r"Tire", "Tires", "#4a4d55"),
  (r"\[c\]_", "Printed, clear", "#cfd6dc"),
- (r"\[a\]_|[Gg]uidler|[Gg]uilder|Roller0|spooler_cover|wheel_hub|wheel_endcap|Feed-Trigger_Retainer.*SOLID|Lightbox|LED_Retainer|microswitch|bearing_spacer", "Printed, accent", "#b8142c"),   # accent per the [a]_ STL names
- (r".", "Printed, primary", "#3a3d44"),
+ (r"\[a\]_|[Gg]uidler|[Gg]uilder|Roller0|spooler_cover|wheel_hub|wheel_endcap|Feed-Trigger_Retainer.*SOLID|Lightbox|LED_Retainer|microswitch|bearing_spacer", "Printed, accent", "#B9A46A"),   # accent per the [a]_ STL names
+ (r".", "Printed, primary", "#3b7843"),
 ]
 def classify(n):
     for rx, lab, col in RULES:

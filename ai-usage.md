@@ -82,6 +82,10 @@ directed by the repository owner:
 - **Rendering:** every layer was composited at rest and compared with the full render. Visual problems the owner
   reported were fixed and checked again, among them a rotating part that should not rotate, holes in a layer, and the
   spring's shape.
+- **Printed-part colors:** the defaults are the green and gold of Armored Turtle's documentation theme
+  (`docs/stylesheets/extra.css` in AT-Documentation); AT publishes no official part colors, so this is the owner's "AT
+  green/gold" taken from the closest published source. The recolor masks come from the same pipeline run with `MASK=1`,
+  so they match each image's crop exactly; recolored drawings were compared with the default ones in a browser.
 - **Page:** the script was syntax-checked, and the heat model was run headless (`tools/sweep/`) to confirm the
   numbers in the README. The page was loaded in a browser to check for console errors.
 

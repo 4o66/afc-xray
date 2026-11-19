@@ -4,3 +4,4 @@ __pycache__/
 *.step
 *.STEP
 cad/bthub10_raw.*
+build_mask_root/

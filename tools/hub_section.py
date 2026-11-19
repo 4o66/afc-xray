@@ -13,8 +13,8 @@ AX, AZ = 150.1, PATHS["az"]              # outlet filament axis, along +Y; the i
 Y0 = 0.0; PXMM = 14; SS = 2; S = PXMM * SS; SUF = ""
 def hexc(h): return np.array([int(h[i:i+2], 16) for i in (1, 3, 5)], float)
 RULES = [
- (r"\[a\]_(buffer_trigger|hub/SOLID|bowden_retainer/SOLID|buffer_tag|cover)|hub_load_only_1\.1/SOLID|Hub_D2HW v2/COMPOUND002/COMPOUND$", "Printed, accent", "#b8142c"),
- (r"load_sense/SOLID|SOLID", "Printed, primary", "#3a3d44"),
+ (r"\[a\]_(buffer_trigger|hub/SOLID|bowden_retainer/SOLID|buffer_tag|cover)|hub_load_only_1\.1/SOLID|Hub_D2HW v2/COMPOUND002/COMPOUND$", "Printed, accent", "#B9A46A"),
+ (r"load_sense/SOLID|SOLID", "Printed, primary", "#3b7843"),
  (r"PTFE|bowden_4x2", "PTFE tube, inferred (cut face pink)", "#e9ece4"),
  (r"Plunger|Collet Body|Grab Ring|Seal Retainer", "ECAS04 collets", "#4b6fa8"),
  (r"D2F_Button|D2F_Hinge", "Switch levers", "#c3c9d1"),

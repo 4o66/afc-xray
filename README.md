@@ -49,6 +49,10 @@ shipped `afc_bowden_length` (1725 mm) alongside.
   a community mod that pulls it closed once the filament is free; while printing, the filament is held at both ends and
   the buffer's switch feedback keeps it mid-travel either way); or the v1.1 hub/buffer combo, whose outlet block slides up to 10 mm on two
   spring-loaded binding barrels. The combo's switch trigger points are estimated.
+- **Printed-part colors:** two color pickers set the printed parts' primary and accent colors in every drawing. They
+  start at Armored Turtle's green and gold (the colors of AT's documentation site), and the choice is saved in your
+  browser only. The drawings are rendered in the defaults; each image has a mask (`m_<file>`) marking its primary,
+  accent and cut-face pixels, and the page recolors those pixels while keeping their shading.
 
 ## What the drawings show
 
@@ -128,6 +132,7 @@ most sensitive.
 | `tools/buffer_section.py`, `tools/btcombo_section.py`, `tools/buffer_assets.py` | Render the TurtleNeck and the BoxTurtle hub/buffer combo; cut the combo's page assets. |
 | `tools/hub_section.py`, `tools/hub_paths.py`, `tools/hub_assets.py`, `tools/import_hub_stl.py`, `tools/export_bthub10.py`, `tools/place_bthub10.py` | Hub sections (top and side), channel and socket fitting, hub page assets, the load-only hub's body from Armored Turtle's STL, and the v1.0 hub's export and placement. |
 | `build_all.sh` | Renders every body variant and assembles the page. |
+| `tools/build_masks.sh` | Renders the whole pipeline again with `MASK=1` in a mirror root and copies the color masks (`m_<file>`) next to each image. |
 | `tools/section.py` | Render the section and the moving layers. A NumPy z-buffer renderer that draws cut faces hatched. |
 | `tools/path_data.py`, `tools/sprites.py`, `tools/build_page.py` | Filament path data, sprite cutting, and page assembly. |
 | `tools/sweep/` | Runs the page's heat model headless and sweeps `retract_length` per material. |
@@ -139,6 +144,8 @@ Python 3 with NumPy, SciPy and Pillow. FreeCAD is only needed to re-extract mesh
 
 ```zsh
 PY=python3 ./build_all.sh
+python3 tools/lane_assets.py
+PY=python3 zsh tools/build_masks.sh
 python3 tools/sweep/run_sweep.py
 ```
 
