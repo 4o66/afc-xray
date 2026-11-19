@@ -26,7 +26,7 @@ RULES = [
  (r"SHCS|STS", "Screws", "#7c828b"),
 ]
 def classify(n):
-    if re.search(r"wires|ZIP TIE|Logo", n): return None, None
+    if re.search(r"wires|ZIP TIE|Logo", n) or n == "mount": return None, None   # the mounting bracket is left out
     for rx, lab, col in RULES:
         if re.search(rx, n): return lab, col
     return "Other", "#9a9a9a"
@@ -35,12 +35,17 @@ MOVING = r"load_sense|Omron|bearing|ECAS Bowden Collet \(1\)/|buffer_trigger|bin
 # above the top view's cut plane and worth showing: buffer switches and trigger (combo), the hub switch (both)
 OVER = r"D2F|buffer_trigger|Omron"
 def group(n): return "slide" if re.search(MOVING, n) else None
+HW = r"binding barrel|printed_washer|M3x6 SHCS(001)?$"   # barrel stacks: drawn whole in the top view (MODE=hwfix/hwslide)
+SPRING = r"compression spring"                          # drawn by the page, compressed to the block's position
 BEAR = r"bearing"   # the hub sensor's bearing: its own layer in the side view, lifted by the filament on the page (MODE=bear)
 def wanted(n):
     g = group(n)
-    if MODE in ("static", "full"): return True
+    if MODE in ("static", "full"): return not (VIEW == "top" and (re.search(HW, n) or re.search(SPRING, n)))
     if MODE == "bear": return bool(re.search(BEAR, n))
     if VIEW == "side" and re.search(BEAR, n): return False
+    if MODE == "hwfix": return g is None and bool(re.search(HW, n))
+    if MODE == "hwslide": return g == "slide" and bool(re.search(HW, n))
+    if VIEW == "top" and (re.search(HW, n) or re.search(SPRING, n)): return False
     if MODE == "base": return g is None
     if MODE == "slide": return g == "slide"
     if MODE == "over": return g is None and re.search(OVER, n)
@@ -68,13 +73,18 @@ def add_tube(name, p0, p1):
 add_tube("PTFE_TOOLHEAD" if HUB == "combo" else "PTFE_OUT", [AX, PATHS["out_ptfe"][0], AZ], [AX, PATHS["out_ptfe"][1], AZ])
 for k, ln in PATHS["lanes"].items():
     s0, v = np.array(ln["seat"]), np.array(ln["dir"]); add_tube("PTFE_" + k, [*(s0 - v * 40), AZ], [*s0, AZ])
+if HUB == "loadonly":   # its STEP has no inlet fittings: the combo's ECAS04 collets, moved onto this hub's sockets
+    _c = np.load(D + "cad/btcombo.npz"); _n = json.load(open(D + "cad/btcombo.json")); _all = json.load(open(D + "tools/hub_paths.json"))
+    for k, ln in PATHS["lanes"].items():
+        for _i, _nm in enumerate(_n):
+            if _nm.startswith("hardware (2)/" + _all["collets"][k] + "/"): parts.append(("collet_" + _nm.split("/")[-1], _c["p%03d_V" % _i].astype(float) + ln["collet_shift"], _c["p%03d_F" % _i]))
 if MODE == "slide" or MODE == "overslide": pass
 SLIDE_DY = float(os.environ.get("SLIDE_DY", "0"))
 parts = [(n, V + ([0, SLIDE_DY, 0] if group(n) == "slide" else 0), F) for n, V, F in parts]
 if VIEW == "side":   # from +X: screen right = +Y, up = Z, depth = AX - X (keep X <= AX)
     parts = [(n, np.c_[V[:, 1], AX - V[:, 0], V[:, 2]], F) for n, V, F in parts]; bounds = "xmin, xmax = 192.0, 292.0; zmin, zmax = -10.0, 48.0"
 else:                # from +Z: screen right = +Y, up = -X, depth = AZ - Z (keep Z <= AZ); "over" layers are uncut
-    lift = 100.0 if MODE.startswith("over") else 0.0
+    lift = 100.0 if MODE.startswith("over") or MODE.startswith("hw") else 0.0
     parts = [(n, np.c_[V[:, 1], AZ + lift - V[:, 2], -V[:, 0]], F) for n, V, F in parts]; bounds = "xmin, xmax = 192.0, 292.0; zmin, zmax = -178.0, -122.0"
 CAPOVR = {"PTFE tube, inferred (cut face pink)": "#f4a3c4"}
 src_r = open(D + "tools/section.py").read()

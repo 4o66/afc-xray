@@ -192,6 +192,7 @@ dialog#help .x{float:right}
 <div class="row" data-ops="change load"><label for="k-slr">Slicer toolchange retract</label><div class="rng"><input type="range" id="k-slr" min="0" max="5" step="0.1" value="1.5"></div><output id="o-slr" for="k-slr"></output></div>
 <div class="row" data-ops="jam"><label for="k-jam">Part</label><select id="k-jam"><option value="hb" selected>I: jam at the heat break</option><option value="nozzle">I (variant): nozzle clog</option><option value="spool">II: tangled spool</option></select><output></output></div>
 <div class="row" data-ops="jam"><label for="k-sens">filament_error_sensitivity</label><div class="rng"><input type="range" id="k-sens" min="0" max="10" step="1" value="0"><span class="def" style="left:calc(0% + 6px)" title="AFC default: 0 (off)"></span></div><output id="o-sens" for="k-sens"></output></div>
+<div class="row" data-ops="change load jam lane"><label for="k-see">Hub switches and trigger</label><div class="rng"><input type="range" id="k-see" min="0" max="100" step="5" value="80"></div><output id="o-see" for="k-see"></output></div>
 <div class="row" data-ops="change load jam lane"><label for="k-lane">Lane (hub view)</label><select id="k-lane"><option value="1" selected>Lane 1</option><option value="2">Lane 2</option><option value="3">Lane 3</option><option value="4">Lane 4</option></select><output></output></div>
 <div class="row" data-ops="change load jam"><label for="k-tau">Heat time constant</label><div class="rng"><input type="range" id="k-tau" min="0.5" max="8" step="0.5" value="3"></div><output id="o-tau" for="k-tau"></output></div>
 <p class="hint"><span class="defkey" aria-hidden="true"></span>Red arrows mark AFC's shipped defaults (v1.2.0-5), which the sliders start at. Changing a slider reruns the sequence from the start. The slicer retract (example 1.5 mm) and AFC's 2 mm quick pull are fixed. <button type="button" class="linkbtn" id="b-help">Where do I find these settings?</button></p>
@@ -293,7 +294,7 @@ function Tw(z){ if (z <= BLOCK_TOP) return TP; if (z <= SINK_BOT) return TP + (9
 function tcolor(T){ const st = [[40,[47,174,79]],[Math.max(45, TG - 40),[47,174,79]],[TG,[242,194,48]],[(TG + TL) / 2,[240,138,36]],[TL,[217,58,43]],[TP,[163,18,42]]];
   if (T <= st[0][0]) return st[0][1]; for (let i = 1; i < st.length; i++) if (T <= st[i][0]){ const [a, ca] = st[i-1], [b, cb] = st[i], u = (T - a)/(b - a); return ca.map((v, j) => Math.round(v + (cb[j] - v)*u)); } return st[st.length-1][1]; }
 // ---- the sequence ----
-const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA", body: "dual", hot: "rapido_v2_uhf", blade: "ldo", slr: 1.5, band: false, buf: "tn", sens: 0, jam: "hb", lane: 1};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
+const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA", body: "dual", hot: "rapido_v2_uhf", blade: "ldo", slr: 1.5, band: false, buf: "tn", sens: 0, jam: "hb", lane: 1, see: 80};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
 let P = Object.assign({}, FACTORY);
 function changeSteps(){
   const R = P.ret, Q = P.push;
@@ -680,7 +681,7 @@ function laneSteps(){
 async function loadHub(){ if (!HUBP) HUBP = await (await fetch("assets/hub_paths.json")).json();
   const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
   const nw = {}; for (const view of ["top", "side"]){ const dir = `assets/hub_${hubKey()}_${view}/`, j = await (await fetch(dir + "sprites.json")).json(), o = {j, base: await ld(dir + "base.webp")};
-    for (const k of ["slide", "over", "overslide", "bear"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
+    for (const k of ["slide", "over", "overslide", "bear", "hwfix", "hwslide"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
     nw[view] = o; }
   HUBA = nw;
   const c = document.getElementById("hub-cap"); c.textContent = (hubKey() === "combo" ? "BoxTurtle v1.1 hub/buffer combo. Top: the four lane inlets (lane 1 at the top) curve together into the PTFE wear tube; the outlet block on the right slides on its barrels (buffer). The buffer switches, their trigger and the hub switch sit above the cut and are drawn see-through. Bottom: the outlet, cut through its axis." : "BoxTurtle v1.1 load-only hub, used with a separate buffer such as the TurtleNeck. Top: the four lane inlets (lane 1 at the top) curve together and pass under the hub switch's bearing; the switch sits above the cut and is drawn see-through. The body is Armored Turtle's printable STL, since the STEP release models it without its channels. Bottom: the outlet, cut through its axis.") + " Channel centerlines are traced from the CAD; PTFE in the inlets and outlet is inferred."; }
@@ -696,11 +697,23 @@ function hubFil(g, pts, map){ if (pts.length < 2) return; g.save(); g.lineCap = 
   g.strokeStyle = "rgba(20,24,28,.85)"; g.lineWidth = 1.75 * PX + 3; g.stroke(); g.strokeStyle = "#2fae4f"; g.lineWidth = 1.75 * PX - 1; g.stroke(); g.restore(); }
 function hubUpto(lp, tip){ const upto = []; for (let i = 0; i < lp.pts.length; i++){ if (lp.S[i] <= tip) upto.push(lp.pts[i]); else { if (i > 0){ const f = (tip - lp.S[i - 1]) / (lp.S[i] - lp.S[i - 1]); if (f > 0) upto.push([lp.pts[i - 1][0] + (lp.pts[i][0] - lp.pts[i - 1][0]) * f, lp.pts[i - 1][1] + (lp.pts[i][1] - lp.pts[i - 1][1]) * f]); } break; } } return upto; }
 function hubLabel(g, txt, H){ g.save(); g.font = "500 26px IBM Plex Mono, monospace"; g.fillStyle = "#1c1e22"; g.fillText(txt, 16, H - 18); g.restore(); }
+// combo barrel springs (0.4 x 5 x 15 mm, about 9.7 turns from the CAD): between the barrel head, which moves with the outlet
+// block, and the printed washer at the hub's bushing. Free length 15.4 mm; 14.4 mm with the block against the hub.
+const BARRELS = [136.1, 164.1], BARREL_HEAD = 226.7, BARREL_WASHER = 241.1, BSPR = {turns: 9.7, rm: 2.4, wire: 0.4};
+function drawBarrelSpring(g, xc, y0, y1){ const N = Math.round(BSPR.turns * 28), pt = k => { const f = k / N, th = 2 * Math.PI * BSPR.turns * f; return [(y0 + (y1 - y0) * f - 192) * PX, (xc + BSPR.rm * Math.cos(th) - 122) * PX, Math.sin(th)]; };
+  g.save(); g.lineCap = "round";
+  for (const front of [false, true]){ g.beginPath(); let on = false;
+    for (let k = 0; k <= N; k++){ const [x, y, sn] = pt(k), vis = front ? sn >= 0 : sn < 0; if (vis){ on ? g.lineTo(x, y) : g.moveTo(x, y); on = true; } else on = false; }
+    if (front){ g.strokeStyle = "rgba(20,24,28,.9)"; g.lineWidth = BSPR.wire * PX + 2.5; g.stroke(); g.strokeStyle = "#c3c9d1"; g.lineWidth = Math.max(1, BSPR.wire * PX - 1); g.stroke(); }
+    else { g.strokeStyle = "#6e757e"; g.lineWidth = Math.max(1, BSPR.wire * PX - 1); g.stroke(); } }
+  g.restore(); }
 function drawHubTop(g, cvx, tip){
   const lp = lanePath(), off = BB().sign * bufDX(SIM.t) * PX, T = HUBA.top;
   g.clearRect(0, 0, cvx.width, cvx.height); g.drawImage(T.base, 0, 0); if (T.slide) g.drawImage(T.slide, T.j.slide.x + off, T.j.slide.y);
+  if (T.hwfix) g.drawImage(T.hwfix, T.j.hwfix.x, T.j.hwfix.y); if (T.hwslide) g.drawImage(T.hwslide, T.j.hwslide.x + off, T.j.hwslide.y);
+  if (hubKey() === "combo") BARRELS.forEach(xc => drawBarrelSpring(g, xc, BARREL_HEAD + off / PX, BARREL_WASHER));
   hubFil(g, hubUpto(lp, tip), p => [(p[1] - 192) * PX, (p[0] - 122) * PX]);
-  g.save(); g.globalAlpha = 0.45; if (T.over) g.drawImage(T.over, T.j.over.x, T.j.over.y); if (T.overslide) g.drawImage(T.overslide, T.j.overslide.x + off, T.j.overslide.y); g.restore();
+  g.save(); g.globalAlpha = P.see / 100; if (T.over) g.drawImage(T.over, T.j.over.x, T.j.over.y); if (T.overslide) g.drawImage(T.overslide, T.j.overslide.x + off, T.j.overslide.y); g.restore();
   g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; const sx = (lp.swY - 192) * PX; g.beginPath(); g.moveTo(sx, (HUBP.axis_x - 6 - 122) * PX); g.lineTo(sx, (HUBP.axis_x + 6 - 122) * PX); g.stroke(); g.restore();
   hubLabel(g, `Top · lane ${P.lane} end: ${hubTipText(tip)}`, cvx.height); }
 function drawHub(dt){
@@ -784,7 +797,7 @@ document.getElementById("b-next").onclick = () => go(idx + 1);
 document.getElementById("b-prev").onclick = () => go(idx - 1);
 document.addEventListener("keydown", e => { if (e.target.closest && e.target.closest("select,input")) return;
   if (e.key === "ArrowRight") go(idx + 1); else if (e.key === "ArrowLeft") go(idx - 1); else if (e.key === " "){ e.preventDefault(); document.getElementById("b-play").click(); } });
-function syncOut(){ document.getElementById("o-slr").textContent = P.slr + " mm"; document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-cmd").textContent = P.cmd + " mm"; document.getElementById("o-tau").textContent = P.tau + " s"; document.getElementById("o-sens").textContent = P.sens === 0 ? "0 (off)" : `${P.sens}: ${sensDist()} mm`;  const m = MATS[P.mat]; document.getElementById("o-mat").textContent = `${m.tp} °C`;
+function syncOut(){ document.getElementById("o-slr").textContent = P.slr + " mm"; document.getElementById("o-ret").textContent = P.ret + " mm"; document.getElementById("o-push").textContent = P.push + " mm"; document.getElementById("o-cmd").textContent = P.cmd + " mm"; document.getElementById("o-tau").textContent = P.tau + " s"; document.getElementById("o-see").textContent = P.see + "% opaque"; document.getElementById("o-sens").textContent = P.sens === 0 ? "0 (off)" : `${P.sens}: ${sensDist()} mm`;  const m = MATS[P.mat]; document.getElementById("o-mat").textContent = `${m.tp} °C`;
   document.getElementById("l-soft").textContent = `Softened, >${m.tg} °C`; document.getElementById("l-liq").textContent = `Liquid, >${m.tl} °C`;
   document.getElementById("tticks").innerHTML = `<span>40</span><span>${m.tg} (Tg)</span><span>${m.tl} (liquid)</span><span>${m.tp} °C</span>`; }
 function bodyUI(){ const b = BODIES[P.body];
@@ -794,7 +807,7 @@ function bodyUI(){ const b = BODIES[P.body];
 function rerun(){ setMat(P.mat); setHot(); bodyUI(); opUI(); layout(); buildDots(); simReset(); syncOut(); playing = true; go(0); }
 [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-slr","slr"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("change", e => { P[k] = +e.target.value; rerun(); }));
 [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-slr","slr"],["k-tau","tau"]].forEach(([id, k]) => document.getElementById(id).addEventListener("input", e => { P[k] = +e.target.value; syncOut(); }));
-document.getElementById("b-reset").onclick = () => { const keep = {body: P.body, hot: P.hot, blade: P.blade, band: P.band, buf: P.buf, lane: P.lane, jam: P.jam}; P = Object.assign({}, FACTORY, keep); document.getElementById("k-mat").value = P.mat; document.getElementById("k-start").value = "afc"; [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-slr","slr"],["k-tau","tau"],["k-sens","sens"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); applyStart(); rerun(); };
+document.getElementById("b-reset").onclick = () => { const keep = {body: P.body, hot: P.hot, blade: P.blade, band: P.band, buf: P.buf, lane: P.lane, jam: P.jam, see: P.see}; P = Object.assign({}, FACTORY, keep); document.getElementById("k-mat").value = P.mat; document.getElementById("k-start").value = "afc"; [["k-ret","ret"],["k-push","push"],["k-cmd","cmd"],["k-slr","slr"],["k-tau","tau"],["k-sens","sens"]].forEach(([id, k]) => document.getElementById(id).value = P[k]); applyStart(); rerun(); };
 const help = document.getElementById("help");
 document.getElementById("b-help").onclick = () => help.showModal();
 document.getElementById("b-help-x").onclick = () => help.close();
@@ -808,6 +821,7 @@ document.getElementById("k-band").addEventListener("change", e => { P.band = e.t
 document.getElementById("k-buf").addEventListener("change", async e => { P.buf = e.target.value; document.getElementById("k-band").disabled = P.buf !== "tn"; await loadBuffer(); await loadHub(); rerun(); });
 document.getElementById("k-jam").addEventListener("change", e => { P.jam = e.target.value; rerun(); });
 document.getElementById("k-lane").addEventListener("change", e => { P.lane = +e.target.value; rerun(); });
+document.getElementById("k-see").addEventListener("input", e => { P.see = +e.target.value; syncOut(); });
 document.getElementById("k-sens").addEventListener("input", e => { P.sens = +e.target.value; syncOut(); });
 document.getElementById("k-sens").addEventListener("change", e => { P.sens = +e.target.value; rerun(); });
 document.getElementById("k-start").addEventListener("change", () => { applyStart(); rerun(); });

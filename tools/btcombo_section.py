@@ -27,6 +27,7 @@ RULES = [
  (r"SHCS|STS", "Screws", "#7c828b"),
 ]
 def classify(n):
+    if n == "mount": return None, None   # the mounting bracket is left out
     if _HL and not re.search(r"wires|Logo", n) and re.search(_HL, n): return "Moves in this reading", "#2a7fd4"
     for rx, lab, col in RULES:
         if re.search(rx, n): return lab, col

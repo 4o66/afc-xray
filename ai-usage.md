@@ -57,7 +57,11 @@ directed by the repository owner:
   tab was run headless for every body and buffer, and played in a browser.
 - **Hubs:** the load-only hub's body in the STEP release has no filament channels, so Armored Turtle's printable STL is
   used instead (same size; it is turned 180° to match and placed by its bounding box). The channel centerlines are traced
-  from a cross-section of each hub body; PTFE in the inlets and outlet is inferred. Which parts move, the 10 mm travel,
+  from a cross-section of each hub body; PTFE in the inlets and outlet is inferred and runs on each inlet socket's axis
+  to its floor. The load-only hub's sockets were checked against the combo's by fitting their walls in the mesh: same
+  directions within about 1 degree, different positions, so the combo's ECAS04 collets are moved onto them. The
+  combo's barrel springs are drawn by the page (turns, diameter and free length measured from the CAD), compressed
+  between the barrel head and the washer as the outlet block moves. Which parts move, the 10 mm travel,
   the choice of hubs and the hub sensor bearing being lifted by the filament came from the owner; the lift (2.38 mm on the
   combo, 2.48 mm on the load-only hub) is measured from the CAD.
 - **Rendering:** every layer was composited at rest and compared with the full render. Visual problems the owner
