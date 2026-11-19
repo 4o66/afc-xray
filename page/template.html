@@ -796,8 +796,8 @@ function drawLaneView(g, cvx, v, tip, motor, dt){
   if (v.dgear) rot(v.dgear, j.dgear, j.dgear.canvas_deg_per_mm * motor);
   if (v.igear) rot(v.igear, j.igear, j.igear.canvas_deg_per_mm * motor);
   if (v.bear) g.drawImage(v.bear, j.bear.x + j.bear.dx_px * view.lload, j.bear.y + j.bear.dy_px * view.lload);
-  const pts = lanePathView(v, tip, v.trig ? {cx: j.trig.cx, cy: j.trig.cy, deg: j.trig.angle_deg_with_filament * view.lprep} : null); if (pts.length > 1) hubFil(g, pts, p => p, tip > j.s_mm[j.s_mm.length - 1] ? (((motor % 2) + 2) % 2) : 1);
-  g.save(); g.globalAlpha = LANE_SEE; if (v.over) g.drawImage(v.over, j.over.x, j.over.y); if (v.overmove) rot(v.overmove, j.overmove, j.overmove.angle_deg_with_filament * view.lprep); g.restore(); }
+  g.save(); g.globalAlpha = LANE_SEE; if (v.over) g.drawImage(v.over, j.over.x, j.over.y); if (v.overmove) rot(v.overmove, j.overmove, j.overmove.angle_deg_with_filament * view.lprep); g.restore();
+  const pts = lanePathView(v, tip, v.trig ? {cx: j.trig.cx, cy: j.trig.cy, deg: j.trig.angle_deg_with_filament * view.lprep} : null); if (pts.length > 1) hubFil(g, pts, p => p, tip > j.s_mm[j.s_mm.length - 1] ? (((motor % 2) + 2) % 2) : 1); }
 const cvsp = document.getElementById("cvsp"), spctx = cvsp.getContext("2d"), cve = document.getElementById("cve"), ectx = cve.getContext("2d");
 function drawLane(dt){ if (!LANEA.spool || !LANEP) return; const tip = laneTip(SIM.t), motor = lanePos(SIM.t);
   drawLaneView(spctx, cvsp, LANEA.spool, tip, motor, dt); drawLaneView(ectx, cve, LANEA.ext, tip, motor, dt);
@@ -821,7 +821,8 @@ function filTicks(g, pts, map, phase){ g.save(); g.lineWidth = 2;
       g.beginPath(); g.moveTo(x - nx * h + (x2 - x) / l * 3 + ox, y - ny * h + (y2 - y) / l * 3 + oy); g.lineTo(x + nx * h - (x2 - x) / l * 3 + ox, y + ny * h - (y2 - y) / l * 3 + oy); g.stroke(); } }
   g.restore(); }
 function hubFil(g, pts, map, phase){ if (pts.length < 2) return; g.save(); g.lineCap = "butt"; g.lineJoin = "round"; g.beginPath(); pts.forEach((p, i) => { const [x, y] = map(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
-  g.strokeStyle = "rgba(20,24,28,.85)"; g.lineWidth = 1.75 * PX + 3; g.stroke(); g.strokeStyle = "#2fae4f"; g.lineWidth = 1.75 * PX - 1; g.stroke(); g.restore(); filTicks(g, pts, map, phase == null ? 1 : phase); }
+  g.strokeStyle = "rgba(20,24,28,.85)"; g.lineWidth = 1.75 * PX + 3; g.stroke(); g.strokeStyle = "#2fae4f"; g.lineWidth = 1.75 * PX - 1; g.stroke();
+  g.strokeStyle = hatch; g.stroke(); g.restore(); filTicks(g, pts, map, phase == null ? 1 : phase); }
 function hubUpto(lp, tip){ const upto = []; for (let i = 0; i < lp.pts.length; i++){ if (lp.S[i] <= tip) upto.push(lp.pts[i]); else { if (i > 0){ const f = (tip - lp.S[i - 1]) / (lp.S[i] - lp.S[i - 1]); if (f > 0) upto.push([lp.pts[i - 1][0] + (lp.pts[i][0] - lp.pts[i - 1][0]) * f, lp.pts[i - 1][1] + (lp.pts[i][1] - lp.pts[i - 1][1]) * f]); } break; } } return upto; }
 function hubLabel(g, txt, H){ g.save(); g.font = "500 26px IBM Plex Mono, monospace"; g.fillStyle = "#1c1e22"; g.fillText(txt, 16, H - 18); g.restore(); }
 // combo barrel springs (0.4 x 5 x 15 mm, about 9.7 turns from the CAD): between the barrel head, which moves with the outlet
