@@ -226,10 +226,12 @@ if VER == "v10":
     feeder, bow, trig_rx = r"feeder_x006", r"4x3 Bowden 50mm002", r"motor_mount_x006/trigger_x006$|E-spooler V005/Depressor002$"
     b_mov, b_fix, scol = r"MR63 Bearing004", r"MR63 Bearing005", "ECAS Bowden Collet005/"
     axle_rx, piv_rx = r"Hardware023/M3x8 SHCS032$", r"Hardware023/M3x8 SHCS03[34]$"
+    mag_rx = r"Hardware023/6x3 Magnet002$"         # in the trigger's pocket; its partner, Magnet (1)002, is in the fixed frame
 else:
     feeder, bow, trig_rx = r"\[a\]_feeder_x005", r"4x3 Bowden 50mm001", r"trigger_depressor_x4"
     b_mov, b_fix, scol = r"MR63 Bearing002", r"MR63 Bearing003", "ECAS Bowden Collet001/"
     axle_rx, piv_rx = r"M3x8 SHCS \(4\)001$", r"M3x8 SHCS \(2\) \((1\) \(1|2)\)001$"
+    mag_rx = r"Hardware \(9\)/6x3 Magnet001$"      # in the trigger's pocket
 Vbw = P_(bow)[1]; bx, by = bbc(Vbw)[:2]
 FEED = np.array([bx, by, P_(feeder)[1][:, 2].max()]); BOW_T = np.array([bx, by, Vbw[:, 2].max()]); BOW_B = np.array([bx, by, Vbw[:, 2].min()])
 cm_, cf_ = bbc(P_(b_mov)[1]), bbc(P_(b_fix)[1])
@@ -304,6 +306,24 @@ PATH += [("ext_in", E_IN), ("ext_in_retainer", E_INR), ("ext_in_tube_end", SH_IN
          ("ext_out_tube_end", SH_OUT), ("ext_out_retainer", E_OUTR), ("ext_out", E_OUT)]
 if VER == "v10":   # the CAD tube stops at the spooler collet's top: the filament enters the PTFE there
     PATH = [(k if k != "spool_tube" else None, p) for k, p in PATH if k != "spool_tube"]
+# past the outlet the filament runs on in the extruder-to-hub tube (#64): v1.1 along the inferred straight tube, v1.0 along
+# the CAD tube's centre line, traced from the outlet ring by ring (1 mm steps; vertices in a 1.5 mm slab across the local
+# direction, their centroid). Unnamed points: the views crop the path to their canvas.
+def trace_tube(V, p, d, n=160):
+    out = []
+    for _ in range(n):
+        q = p + d; R = V - q; al = R @ d; lat = np.linalg.norm(R - al[:, None] * d, axis=1); m = (np.abs(al) < 0.75) & (lat < 3.0)
+        if m.sum() < 20: break
+        c = q + (R[m] - (R[m] @ d)[:, None] * d).mean(0); nd = c - p; nd /= np.linalg.norm(nd); d = 0.7 * d + 0.3 * nd; d /= np.linalg.norm(d)
+        out.append(c); p = c
+    C = np.array(out)
+    for _ in range(8): C[1:-1] = (C[:-2] + 2 * C[1:-1] + C[2:]) / 4
+    return C
+_d0 = (E_OUT - SH_OUT) / np.linalg.norm(E_OUT - SH_OUT)
+if VER == "v10":
+    PATH += [(None, c) for c in trace_tube(P_(r"Hub Bowden Tubes002")[1], E_OUT, _d0)[2:]]
+else:
+    PATH += [(None, E_OUT + _d0 * t) for t in (10.0, 150.0)]
 pts = np.array([p for _, p in PATH]); s = np.r_[0, np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))]
 EV = {k + "_s": float(si) for (k, _), si in zip(PATH, s) if k}
 if VER == "v10": EV["spool_tube_s"] = EV["spool_collet_s"]
@@ -348,7 +368,7 @@ else:
     else: O, U, VV = np.array([105.0, 0, 0]), np.array([0, 1.0, 0]), Z
     bounds = (4.0, 66.0, 34.0, 164.0)
     # the feeder bowden sits in the trigger's bore: it and its feeder collar pivot with the trigger (repo owner)
-    trig = trig_rx + "|" + b_mov + "|" + axle_rx + "|" + feeder + "|" + bow
+    trig = trig_rx + "|" + b_mov + "|" + axle_rx + "|" + feeder + "|" + bow + "|" + mag_rx   # the magnet is set in the arm (#66)
     MOV = {"trig": trig, "lever": r"D2F_Hinge"}   # the prep switch's lever: pressed by the trigger arm when the lane is empty
     OVER = (r"Spur Gear \(12 teeth\)|N20 DC MOTOR|gearbox_cover|motor_mount_x007|Tire001|new_wheel_1\.012|spooler_cover|Lightbox v5.*SOLID025|D2F"
             if VER != "v10" else r"helical_gear|gear_30_spacer|gearbox_cover|motor_mount_x006/SOLID022|Wheel v011/.*(Tire004|SOLID024|Drive012)|Lightbox v007/SOLID023|D2F")

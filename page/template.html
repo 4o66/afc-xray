@@ -781,6 +781,11 @@ const laneToHubS = s => s - LE().ext_out_s - hubTube() + 60;
 const hubToLaneS = s => s + LE().ext_out_s + hubTube() - 60;
 function lanePathView(v, tip, rot){ const j = v.j, pts = [], S = j.s_mm;
   for (let i = 0; i < j.path.length; i++){ if (S[i] <= tip) pts.push([...j.path[i], S[i]]); else { if (i > 0 && S[i - 1] < tip){ const f = (tip - S[i - 1]) / (S[i] - S[i - 1]); pts.push([j.path[i - 1][0] + (j.path[i][0] - j.path[i - 1][0]) * f, j.path[i - 1][1] + (j.path[i][1] - j.path[i - 1][1]) * f, tip]); } break; } }
+  const n = j.path.length;
+  if (tip > S[n - 1] && n > 1){   // past the last measured point the filament runs on along the outlet tube, out of the view (#64)
+    const [ax, ay] = j.path[n - 2], [bx, by] = j.path[n - 1], L = Math.hypot(bx - ax, by - ay) || 1, W = v.base.width, H = v.base.height;
+    const ext = Math.min((tip - S[n - 1]) * PX, W + H);   // canvas px; the canvas clips the rest
+    pts.push([bx + (bx - ax) / L * ext, by + (by - ay) / L * ext, tip]); }
   if (rot && rot.deg){   // above the prep rollers the filament sits in the feeder bowden, which pivots with the trigger
     const nip = LE().prep_nip_s;
     for (const q of pts){ const w = Math.max(0, Math.min(1, (nip - 2 - q[2]) / 8)), a = rot.deg * w * Math.PI / 180, dx = q[0] - rot.cx, dy = q[1] - rot.cy;
@@ -863,7 +868,10 @@ function drawHubSide(g, cvx, tip, dt, key){
   g.clearRect(0, 0, cvx.width, cvx.height); g.drawImage(S.base, 0, 0); if (S.slide) g.drawImage(S.slide, S.j.slide.x + off, S.j.slide.y);
   if (S.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, f = bearLift(axisEndY(tip), S.j.bear.y_mm + offmm, S.j.bear.lift, key, dt) / S.j.bear.lift; g.drawImage(S.bear, S.j.bear.x + offmm * PX + f * S.j.bear.dx, S.j.bear.y + f * S.j.bear.dy); }
   const onAxis = upto.filter(p => Math.abs(p[0] - HUBP.axis_x) < 1e-6), last = upto[upto.length - 1];
-  if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6){ const zy = (48 - h.az) * PX; hubFil(g, [[0, onAxis[0][1]], [0, last[1]]], p => [(p[1] - 192) * PX, zy], 1); }
+  const zy = (48 - h.az) * PX;
+  // upstream of the outlet axis the lane's channel runs off the section plane: drawn projected and see-through (#65)
+  if (upto.length > 1){ g.save(); g.globalAlpha = 0.45; hubFil(g, upto, p => [(p[1] - 192) * PX, zy], 1); g.restore(); }
+  if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6) hubFil(g, [[0, onAxis[0][1]], [0, last[1]]], p => [(p[1] - 192) * PX, zy], 1);
   g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; g.beginPath(); g.moveTo(sx, (48 - h.az - 7) * PX); g.lineTo(sx, (48 - h.az + 7) * PX); g.stroke(); g.restore(); }
 function drawHub(dt){
   if (!HUBA.top || !HUBP) return; const tip = laneTip(SIM.t);
