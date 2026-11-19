@@ -7,12 +7,29 @@ K = sys.argv[1]; D = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".
 META = {"bt": {"xmin": 192.0, "zmax": 48.0, "axisY": 18.2, "filFrom": 205.0}, "tn": {"xmin": -20.0, "zmax": 132.0, "axisY": 115.9, "filFrom": -20.0}}[K]
 B = D + f"build/buffer_{K}/"; A = D + f"assets/buffer_{K}/"; os.makedirs(A, exist_ok=True)
 full = np.load(B + "depth_full.npy"); im = np.array(Image.open(B + "layer_slide.png")).astype(float); z = np.load(B + "depth_slide.npy")
-vis = (z <= full + 0.05) & np.isfinite(z); im[..., 3] *= binary_dilation(vis, iterations=1)
+# the moving layer is kept whole (masking it to what shows at the rest position would cut a permanent hole wherever a
+# fixed part covers it there); the fixed parts that sit in front of it anywhere along its travel become an occluder
+# layer the page draws on top of it
 ys, xs = np.where(im[..., 3] > 0); x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
 Image.fromarray(im[y0:y1, x0:x1].astype(np.uint8), "RGBA").save(A + "sprite_slide.png")
+TRAVEL = {"bt": 10.0, "tn": -30.0}[K]; zb = np.load(B + "depth_base.npy"); mz = np.full(z.shape, np.inf)
+for o in np.linspace(0, TRAVEL * 14, 41).round().astype(int):        # the slide drawn shifted o px along x
+    sh = np.full(z.shape, np.inf)
+    if o > 0: sh[:, o:] = z[:, :z.shape[1] - o]
+    elif o < 0: sh[:, :o] = z[:, -o:]
+    else: sh = z.copy()
+    mz = np.minimum(mz, sh)
+occ = np.isfinite(mz) & np.isfinite(zb) & (zb < mz - 0.05)
+base_rgba = np.array(Image.open(B + "layer_base.png").convert("RGBA")).astype(float); base_rgba[..., 3] = occ * 255.0
+OCC = None
+if occ.any():
+    oy, ox = np.where(occ); ox0, ox1, oy0, oy1 = ox.min(), ox.max() + 1, oy.min(), oy.max() + 1
+    Image.fromarray(base_rgba[oy0:oy1, ox0:ox1].astype(np.uint8), "RGBA").save(A + "sprite_occ.png")
+    OCC = dict(x=int(ox0), y=int(oy0), w=int(ox1 - ox0), h=int(oy1 - oy0))
 Image.open(B + "layer_base.png").convert("RGB").save(A + "base.webp", quality=90, method=6)
 W, H = Image.open(B + "layer_base.png").size
 j = {"slide": dict(x=int(x0), y=int(y0), w=int(x1 - x0), h=int(y1 - y0)), "W": W, "H": H, **META}
+if OCC: j["occ"] = OCC
 if os.path.exists(B + "layer_bear.png"):   # hub sensor bearing (combo): lift = filament top - bearing bottom, from the CAD
     im = np.array(Image.open(B + "layer_bear.png")).astype(float); zb = np.load(B + "depth_bear.npy"); im[..., 3] *= binary_dilation((zb <= full + 0.05) & np.isfinite(zb), iterations=1)
     ys, xs = np.where(im[..., 3] > 0); bx0, bx1, by0, by1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
