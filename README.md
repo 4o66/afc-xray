@@ -39,7 +39,8 @@ One tab each. The hardware choices at the top of the page apply to all of them.
   Each has its own printhead, liner and heat zones.
 - **Blade:** LDO full-length or Olfa KB4-F.
 - **Hub and buffer:** BoxTurtle v1.0 hub or v1.1 load-only hub, each with a TurtleNeck (optionally with a rubber band,
-  a community mod that holds it collapsed); or the v1.1 hub/buffer combo, whose outlet block slides up to 10 mm on two
+  a community mod that pulls it closed once the filament is free; while printing, the filament is held at both ends and
+  the buffer's switch feedback keeps it mid-travel either way); or the v1.1 hub/buffer combo, whose outlet block slides up to 10 mm on two
   spring-loaded binding barrels. The combo's switch trigger points are estimated.
 
 ## What the drawings show

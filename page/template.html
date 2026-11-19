@@ -117,7 +117,7 @@ dialog#help .x{float:right}
 <div class="f"><label for="k-hot">Hotend</label><select id="k-hot"><option value="rapido_v2_uhf" selected>Phaetus Rapido V2 UHF</option><option value="rapido_uhf">Phaetus Rapido UHF</option><option value="rapido_v2_hf">Phaetus Rapido V2 HF</option><option value="rapido_hf">Phaetus Rapido HF</option><option value="dragon_hf">Phaetus Dragon HF</option><option value="dragon_uhf">Phaetus Dragon UHF</option><option value="dragon_uhf_mini">Phaetus Dragon UHF Mini</option><option value="revo">E3D Revo Voron</option><option value="bambu">Bambu Lab hotend</option></select></div>
 <div class="f"><label for="k-blade">Blade</label><select id="k-blade"><option value="ldo" selected>LDO full-length</option><option value="olfa">Olfa KB4-F</option></select></div>
 <div class="f"><label for="k-buf">Hub and buffer</label><select id="k-buf"><option value="v10">BoxTurtle v1.0 hub + TurtleNeck</option><option value="tn" selected>BoxTurtle v1.1 hub (load only) + TurtleNeck</option><option value="bt">BoxTurtle v1.1 hub/buffer combo</option></select></div>
-<div class="f chk"><input type="checkbox" id="k-band"><label for="k-band">TurtleNeck rubber band <span class="dim">(community mod)</span></label></div>
+<div class="f chk"><input type="checkbox" id="k-band"><label for="k-band">TurtleNeck rubber band <span class="dim">(community mod: closes it once the filament is free)</span></label></div>
 <p class="hint hw-note" id="hot-est" hidden>This hotend is one solid in the CAD, so its heat zones (block top, heat break, liner seat) are estimated from its outline.</p>
 </header>
 <nav class="tabs" role="tablist" aria-label="Operation">
@@ -316,7 +316,7 @@ function changeSteps(){
 // TOOL_UNLOAD disables the buffer (lane multiplier back to 1.0) and syncs the lane, so lane and extruder move together and
 // the buffer holds still; once the end leaves the extruder gears nothing holds the filament, and the combo's return
 // springs pull its outlet block closed (the TurtleNeck has no spring and stays put)
-const BUF_FREE_TXT = () => bufKind() === "bt" ? " With the filament free, the combo's return springs pull its outlet block closed against the hub." : "";
+const BUF_FREE_TXT = () => bufKind() === "bt" ? " With the filament free, the combo's return springs pull its outlet block closed against the hub." : P.band ? " With the filament free, the rubber band pulls the TurtleNeck closed." : "";
 // the toolhead unload depends on the extruder body's sensors (AFC.py unload_sequence)
 const WAIT_END = {k:"wait", dur:20, anim:3500};
 // after the toolhead unload: the lane back to the hub switch, then clear of it (AFC.py unload_sequence)
@@ -335,7 +335,7 @@ function unloadSteps(){
   {t:"Unload: top switch clears", h:"Park position", n:() => "At 36.2 mm the end passes the ball and tool_start opens: the filament has left the only toolhead sensor.", segs:[{k:"e", E:-12.81, v:25}]},
   {t:"Toolhead unload ends", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. AFC checks tool_start; it is open, so it moves on.", segs:[{k:"e", E:-63.8, v:25}]}];
   return [
-  {t:"Buffer: lane pulls back until trailing", h:"Park position", n:() => bufMoves() === 0 ? "No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane and checks the buffer's trailing switch, which is already closed: the rubber band holds the TurtleNeck collapsed. So AFC skips the lane pull-back entirely and goes straight to the unload." : `No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane from the extruder and pulls the lane back ${SHORT_MOVE} mm at a time at ${SHORT_SPEED} mm/s, with a 0.5 s pause, until the buffer's trailing switch closes (up to tool_max_unload_attempts, 4). The extruder holds the filament, so nothing moves in the toolhead: the buffer collapses instead. Starting from mid-travel that takes ${bufMoves()} moves.`, segs: bufMoves() === 0 ? [{k:"wait", dur:0.3}] : Array.from({length: bufMoves()}, () => [laneHeld(-SHORT_MOVE, SHORT_SPEED), {k:"wait", dur:0.5}]).flat()},
+  {t:"Buffer: lane pulls back until trailing", h:"Park position", n:() => bufMoves() === 0 ? "No toolhead sensor: AFC uses the buffer (tool_start: buffer). Its trailing switch is already closed, so AFC skips the lane pull-back and goes straight to the unload." : `No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane from the extruder and pulls the lane back ${SHORT_MOVE} mm at a time at ${SHORT_SPEED} mm/s, with a 0.5 s pause, until the buffer's trailing switch closes (up to tool_max_unload_attempts, 4). The extruder holds the filament, so nothing moves in the toolhead: the buffer collapses instead. Starting from mid-travel that takes ${bufMoves()} moves.`, segs: bufMoves() === 0 ? [{k:"wait", dur:0.3}] : Array.from({length: bufMoves()}, () => [laneHeld(-SHORT_MOVE, SHORT_SPEED), {k:"wait", dur:0.5}]).flat()},
   {t:"Unload: 100 mm, no sensor check", h:"Park position", n:() => "AFC syncs the lane again and runs the 100 mm unload at 25 mm/s (tool_stn_unload) with spool assist. At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm. With the buffer as the sensor, AFC does not check the toolhead afterwards; the 100 mm move is the whole unload." + BUF_FREE_TXT(), segs:[{k:"e", E:-36.2, v:25, relax: true}]},
   {t:"Toolhead unload ends", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden.", segs:[{k:"e", E:-63.8, v:25}]}];
 }
@@ -349,9 +349,11 @@ const BUFS = {tn: {travel: 30, trig: 2.5, sign: -1, name: "TurtleNeck", cap: "Bu
 const bufKind = () => P.buf === "bt" ? "bt" : "tn";   // the v1.0 and v1.1 load-only hubs pair with a TurtleNeck
 const BB = () => BUFS[bufKind()];
 const BUF_TRAVEL_OF = () => BB().travel, BUF_TRIG_OF = () => BB().trig;
-// buffer start (mm from collapsed): mid-travel while printing, held collapsed by the rubber band, or collapsed after a
-// buffer-sensed unload (where the Toolhead load tab starts)
-const bufStart = () => (P.band && bufKind() === "tn") ? 1.5 : (OP === "load" && (BODIES[P.body].buffer || bufKind() === "bt")) ? 0 : BB().travel / 2;
+// buffer start (mm from collapsed): mid-travel while printing (the filament is held at both ends, and the buffer's
+// switch feedback keeps it between its switches, rubber band or not); at the toolhead load, collapsed if a buffer-sensed
+// unload left it so, or if something pulls it closed once the filament is free (the combo's springs, the rubber band)
+const springs = () => bufKind() === "bt" || (P.band && bufKind() === "tn");
+const bufStart = () => (OP === "load" && (BODIES[P.body].buffer || springs())) ? 0 : BB().travel / 2;
 const bufMoves = () => { const s0 = bufStart(); return s0 <= BUF_TRIG_OF() ? 0 : Math.ceil((s0 - BUF_TRIG_OF()) / SHORT_MOVE); };
 // motion segments: E = filament at the toolhead (+ toward the nozzle), X = extruder motor, L = lane motor. The buffer takes up
 // the difference between what the lane feeds and what moves on into the toolhead, between its end stops.
@@ -373,7 +375,7 @@ function layout(){
       sg.ramp = {k, W, R, ar, af}; sg.anim = (af + ar + W) * 1000; }
     sg.t0 = t; sg.F0 = F; sg.X0 = X; sg.L0 = L; sg.B0 = B; t += sg.real;
     if (sg.k === "e" || sg.k === "cutrip"){ F += sg.E; X += sg.X; L += sg.L; B = Math.max(0, Math.min(BT, B + sg.L - sg.E)); }
-    if (sg.relax && bufKind() === "bt"){ sg.Bend = 0; B = 0; }
+    if (sg.relax && springs()){ sg.Bend = 0; B = 0; }
     sg.t1 = t; sg.F1 = F; sg.X1 = X; sg.L1 = L; sg.B1 = B; sg.step = i; SEGS.push(sg); });
     st.t1 = t; st.F1 = F; st.X1 = X; st.anim = st.segs.reduce((a, s) => a + s.anim, 0); });
   T_END = t;
