@@ -768,9 +768,9 @@ function drawHubTop(g, cvx, tip){
 function drawHubSide(g, cvx, tip, dt, key){
   const lp = lanePath(), off = BB().sign * bufDX(SIM.t) * PX, h = HUBP[hubKey()], S = HUBA.side, upto = hubUpto(lp, tip), sx = (lp.swY - 192) * PX;
   g.clearRect(0, 0, cvx.width, cvx.height); g.drawImage(S.base, 0, 0); if (S.slide) g.drawImage(S.slide, S.j.slide.x + off, S.j.slide.y);
+  if (S.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, f = bearLift(axisEndY(tip), S.j.bear.y_mm + offmm, S.j.bear.lift, key, dt) / S.j.bear.lift; g.drawImage(S.bear, S.j.bear.x + offmm * PX + f * S.j.bear.dx, S.j.bear.y + f * S.j.bear.dy); }
   const onAxis = upto.filter(p => Math.abs(p[0] - HUBP.axis_x) < 1e-6), last = upto[upto.length - 1];
   if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6){ const zy = (48 - h.az) * PX; hubFil(g, [[0, onAxis[0][1]], [0, last[1]]], p => [(p[1] - 192) * PX, zy], 1); }
-  if (S.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, f = bearLift(axisEndY(tip), S.j.bear.y_mm + offmm, S.j.bear.lift, key, dt) / S.j.bear.lift; g.drawImage(S.bear, S.j.bear.x + offmm * PX + f * S.j.bear.dx, S.j.bear.y + f * S.j.bear.dy); }
   g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; g.beginPath(); g.moveTo(sx, (48 - h.az - 7) * PX); g.lineTo(sx, (48 - h.az + 7) * PX); g.stroke(); g.restore(); }
 function drawHub(dt){
   if (!HUBA.top || !HUBP) return; const tip = laneTip(SIM.t);
