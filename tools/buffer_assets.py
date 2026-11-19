@@ -4,7 +4,7 @@ import numpy as np, json, os, sys
 from PIL import Image
 from scipy.ndimage import binary_dilation
 K = sys.argv[1]; D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "")
-META = {"bt": {"xmin": 192.0, "zmax": 48.0, "axisY": 18.2, "filFrom": 205.0}}[K]
+META = {"bt": {"xmin": 192.0, "zmax": 48.0, "axisY": 18.2, "filFrom": 205.0}, "tn": {"xmin": -20.0, "zmax": 132.0, "axisY": 115.9, "filFrom": -20.0}}[K]
 B = D + f"build/buffer_{K}/"; A = D + f"assets/buffer_{K}/"; os.makedirs(A, exist_ok=True)
 full = np.load(B + "depth_full.npy"); im = np.array(Image.open(B + "layer_slide.png")).astype(float); z = np.load(B + "depth_slide.npy")
 vis = (z <= full + 0.05) & np.isfinite(z); im[..., 3] *= binary_dilation(vis, iterations=1)

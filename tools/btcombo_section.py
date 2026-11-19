@@ -38,7 +38,7 @@ def classify(n):
 # tube and its retainer ring (bowden_retainer) and the screw clamping it stay with the hub (repo owner).
 MOVING = r"load_sense|Omron|bearing|ECAS Bowden Collet \(1\)/|buffer_trigger|binding barrel|M3x6 SHCS(001)?$|M3x10 SHCS|PTFE_TOOLHEAD"
 def group(n): return "slide" if re.search(MOVING, n) else None
-BEAR = r"bearing"   # the hub sensor's bearing: its own layer, lifted by the filament on the page (MODE=bear)
+BEAR = r"bearing|Omron D2HW-C201H( \(1\))?00[12]$"   # the hub sensor: bearing and the switch actuator above it, lifted together by the filament (MODE=bear)
 def wanted(n):
     g = group(n)
     if MODE == "static" or MODE == "full": return True
@@ -61,7 +61,7 @@ def lathe_y(poly, n=96):
     F = np.array(F); T = V[F] - [AX, 0, AZ]; vol = np.einsum("ij,ij->i", T[:, 0], np.cross(T[:, 1], T[:, 2])).sum()
     return V, (F[:, ::-1] if vol < 0 else F)
 # PTFE to the toolhead (4 x 2 mm, inferred): from the outlet collet out of the top of the drawing
-PT_OUT_SEAT = float(os.environ.get("PT_OUT_SEAT", "277.0"))
+PT_OUT_SEAT = float(os.environ.get("PT_OUT_SEAT", "274.3"))   # shoulder past the outlet fitting (tools/hub_paths.py)
 V, F = lathe_y([(1.0, PT_OUT_SEAT), (1.97, PT_OUT_SEAT), (1.97, 320.0), (1.0, 320.0)]); parts.append(("PTFE_TOOLHEAD", V, F))
 # view: SIDE a looks from +X (keep X <= AX), SIDE b from -X (keep X >= AX); screen right along the outlet path, up = Z
 if SIDE == "a": parts = [(n, np.c_[V[:, 1], AX - V[:, 0], V[:, 2]], F) for n, V, F in parts]

@@ -1,7 +1,7 @@
 # Trace the filament paths through each BoxTurtle v1.1 hub from its CAD: slice the hub body at its channel plane, then
 # march from each inlet socket along the void, re-centering between the channel walls, until the channel meets the outlet
 # axis. Writes tools/hub_paths.json (paths and inferred PTFE). AGPL-3.0 (see LICENSE).
-import numpy as np, json, os
+import numpy as np, json, os, re
 from PIL import Image, ImageDraw
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "")
 HUBS = {"combo": {"src": "btcombo", "body": "[a]_hub/SOLID010", "az": 18.2, "out_ptfe": [277.0, 330.0], "outlet_end": 251.0},
@@ -70,54 +70,84 @@ def trace(M, p, d):
             v = np.array(pts[-1]) - np.array(pts[-4]); d = 0.7 * d + 0.3 * v / (np.linalg.norm(v) or 1); d /= np.linalg.norm(d)
         p = q
     return pts, seat
-def fit_socket(T, az, centre, a):
-    """socket position: least-squares circle through the socket's wall faces (normals square to the axis), in the plane
-    normal to the axis a; returns a point on the axis"""
-    cen = T.mean(1); nr = np.cross(T[:, 1] - T[:, 0], T[:, 2] - T[:, 0]); ar = np.linalg.norm(nr, axis=1); nr = nr / np.maximum(ar, 1e-12)[:, None]
-    a = np.array([a[0], a[1], 0.0]); e1 = np.cross(a, [0, 0, 1.0]); e1 /= np.linalg.norm(e1); e2 = np.cross(a, e1)
+def widths(M, p, a, maxw=7.0):
+    n = np.array([-a[1], a[0]]); e = []
+    for sg in (-1, 1):
+        k = 0.0
+        while k < maxw and void_at(M, *(p + sg * n * (k + 0.05))): k += 0.05
+        e.append(k)
+    return e
+def socket_geom(M, p0, a0):
+    """A fitting's socket and the PTFE counterbore behind it are coaxial bores: fit the axis through the mid-points of
+    both (socket 7.5-9.5 mm wide, counterbore 3.8-4.8 mm), then find the socket floor and the shoulder where the
+    counterbore steps down to the filament channel. Returns a point on the axis, the axis (pointing inward), and the
+    floor and shoulder points."""
+    p, a = np.array(p0, float), np.array(a0, float) / np.linalg.norm(a0)
     for _ in range(4):
-        rel = cen - np.array([centre[0], centre[1], az]); along = rel @ a; radial = np.linalg.norm(rel - np.outer(along, a), axis=1)
-        m = (ar > 1e-9) & (np.abs(along) < 4.5) & (radial > 2.2) & (radial < 6.5) & (np.abs(nr @ a) < 0.35)
-        x = cen[m] @ e1; y = cen[m] @ e2; cx_, cy_, _ = np.linalg.lstsq(np.c_[2 * x, 2 * y, np.ones_like(x)], x ** 2 + y ** 2, rcond=None)[0]
-        p = cx_ * e1 + cy_ * e2; centre = (p + a * ((np.array([centre[0], centre[1], az]) - p) @ a))[:2]
-    return np.array(centre)
-def floor_on(M, pt, a):
-    """walk along the axis, 3 mm to each side of it (clear of the narrow channel), to the socket's floor"""
-    n = np.array([-a[1], a[0]]); best = []
-    for side in (-1, 1):
-        q = np.array(pt, float) + n * 3.0 * side; k = 0.0
-        while k < 25 and void_at(M, *(q + a * k)): k += 0.05
-        best.append(k)
-    return np.array(pt, float) + a * min(best)
-COLLETS = {"lane1": "ECAS Bowden Collet (1) (1)003", "lane2": "ECAS Bowden Collet (1) (1)", "lane3": "ECAS Bowden Collet (1) (1)001", "lane4": "ECAS Bowden Collet (1) (1)002"}
-out = {"_note": "Filament paths in BoxTurtle CAD coordinates (mm), by tools/hub_paths.py. Each lane (numbered by X, lane1 lowest) runs along its inlet socket axis to the socket floor (seat), then along the channel centre traced from a section of the hub body in the plane of the outlet axis, to the outlet axis (X 150.1). Socket axes: the combo's ECAS04 collet axes; the load-only hub uses the same directions with socket positions fitted from its mesh (mirror-averaged). PTFE tubes are inferred: inlet tubes end at the socket floor; the outlet tube starts at out_ptfe[0]. collet_shift moves the combo's collets onto the load-only hub.", "axis_x": AX}
+        n = np.array([-a[1], a[0]]); mids = []
+        for t in np.arange(-1.0, 12.0, 0.25):
+            q = p + a * t; e = widths(M, q, a); w = e[0] + e[1]
+            if 7.5 < w < 9.5 or 3.8 < w < 4.8: mids.append(q + n * (e[1] - e[0]) / 2)
+        if len(mids) < 6: break
+        Q = np.array(mids); c = Q.mean(0); _, _, vt = np.linalg.svd(Q - c); a_new = vt[0] * np.sign(vt[0] @ a)
+        p, a = c - a_new * ((c - p) @ a_new), a_new
+    prof = [(t, sum(widths(M, p + a * t, a))) for t in np.arange(-2.0, 16.0, 0.05)]
+    floor = next(t for t, w in prof if t > 0 and w < 7.0)
+    cb = [t for t, w in prof if t > floor and 3.8 < w < 4.8]
+    shoulder = next(t for t, w in prof if t > (cb[0] if cb else floor) and w < 3.6)
+    return p, a, p + a * floor, p + a * shoulder
+def collet_fit(src_, key):
+    """centroid and axis of an ECAS04 collet: the axis is the direction square to the normals of its cylindrical faces
+    (area-weighted, iterated from the least-spread direction of its vertices)"""
+    d = np.load(D + f"cad/{src_}.npz"); N = json.load(open(D + f"cad/{src_}.json"))
+    idx = [i for i, n in enumerate(N) if key in n and re.search(r"Collet Body|Plunger|Seal Retainer", n)]
+    T = np.concatenate([d["p%03d_V" % i].astype(float)[d["p%03d_F" % i]] for i in idx]); V = T.reshape(-1, 3)
+    c = V.mean(0); _, _, vt = np.linalg.svd(V - c, full_matrices=False); a = vt[2]
+    nr = np.cross(T[:, 1] - T[:, 0], T[:, 2] - T[:, 0]); ar = np.linalg.norm(nr, axis=1); ok = ar > 1e-12; nr = nr[ok] / ar[ok][:, None]; w = np.sqrt(ar[ok])
+    for _ in range(6):
+        m = np.abs(nr @ a) < 0.3; _, _, vt2 = np.linalg.svd(nr[m] * w[m][:, None], full_matrices=False); a = vt2[2] * np.sign(vt2[2] @ a)
+    a2 = a[:2] / np.linalg.norm(a[:2]); return c, a2
+COLLET_KEYS = {"combo": ("btcombo", {"lane1": "ECAS Bowden Collet (1) (1)003/", "lane2": "ECAS Bowden Collet (1) (1)/", "lane3": "ECAS Bowden Collet (1) (1)001/", "lane4": "ECAS Bowden Collet (1) (1)002/", "out": "ECAS Bowden Collet (1)/"}),
+               "v10": ("bthub10", {"lane1": "ECAS Bowden Collet (4)/", "lane2": "ECAS Bowden Collet (3)/", "lane3": "ECAS Bowden Collet (1)004/", "lane4": "ECAS Bowden Collet (2)/", "out": "ECAS Bowden Collet008/"})}
+out = {"_note": "Filament paths in BoxTurtle CAD coordinates (mm), by tools/hub_paths.py. Lanes are numbered by X, lane1 lowest. Each fitting socket and the PTFE counterbore behind it are coaxial: their axis is fitted through the mid-points of both in a section of the hub body at the plane of the outlet axis. Every ECAS04 collet is set on that axis (turned by angle about the point about, moved to, dz), at its CAD distance from the socket floor; the load-only hub, which has no fittings in its STEP, gets the combo's inlet collets and the v1.0 hub's outlet collet. PTFE is inferred: coaxial with the fitting and inserted to the shoulder where the counterbore steps down to the filament channel (lanes: seat; outlet: shoulder). Each lane path starts there and follows the traced channel centre to the outlet axis (X 150.1).", "axis_x": AX}
+REF = {}
 for h, c in HUBS.items():
     d = np.load(D + f"cad/{c['src']}.npz"); N = json.load(open(D + f"cad/{c['src']}.json")); i = N.index(c["body"])
     T = d["p%03d_V" % i].astype(float)[d["p%03d_F" % i]]; M = solid_mask(T, c["az"]); lanes = {}
-    fits = {}; G = collet_axes("bthub10", V10_COLLETS) if h == "v10" else GUESS
-    for k, (p, v) in G.items():
-        v = np.array(v) / np.linalg.norm(v); pts, seat = trace(M, np.array(p) - v * 6, v)
-        # socket axis: the combo's collet axes directly; the load-only hub's sockets point the same way (within 1 degree by
-        # a fit of their walls) but sit elsewhere, so their positions are fitted from the mesh
-        ctr = np.array(p, float) if h in ("combo", "v10") else fit_socket(T, c["az"], np.array(seat) - v * 4, v)
-        fits[k] = (pts, seat, v, ctr)
-    if h == "loadonly":   # the hub is mirror-symmetric about X = AX: average each socket with its mirror partner
-        for a_, b_ in (("lane1", "lane4"), ("lane2", "lane3")):
-            pa, pb = fits[a_][3], fits[b_][3]; m = (pa + np.array([2 * AX - pb[0], pb[1]])) / 2
-            fits[a_] = fits[a_][:3] + (m,); fits[b_] = fits[b_][:3] + (np.array([2 * AX - m[0], m[1]]),)
-    for k, (pts, seat, v, ctr) in fits.items():
-        fl = floor_on(M, ctr, v)
-        # path: along the socket axis to its floor, then the traced channel from where it narrows
-        si = int(np.argmin([np.hypot(q[0] - seat[0], q[1] - seat[1]) for q in pts])); pts = [fl.round(2).tolist()] + pts[si:]
+    for k in ("lane1", "lane2", "lane3", "lane4", "out"):
+        if h in COLLET_KEYS:                               # start from the hub's own collet
+            cc, a0 = collet_fit(COLLET_KEYS[h][0], COLLET_KEYS[h][1][k]); p0 = cc[:2]
+        elif k == "out": p0, a0 = np.array([AX, c["outlet_end"] - 3.0]), np.array([0.0, -1.0])
+        else: p0, a0 = np.array(GUESS[k][0]), np.array(GUESS[k][1])
+        a0 = np.array(a0, float)
+        if (k == "out" and a0[1] > 0) or (k != "out" and a0[1] < 0): a0 = -a0          # inward
+        if h == "combo" and k == "out":
+            # the combo's outlet fitting sits in the sliding load-sensor block, whose mesh does not slice into closed outlines;
+            # measured by ray casting along the outlet axis instead: socket 8.33 mm from Y 282.5 to 277.5, counterbore 4.4 mm
+            # from 276.5 to 274.5, then the 2.34 mm filament bore
+            a = np.array([0.0, -1.0]); fl, sh = np.array([AX, 277.0]), np.array([AX, 274.3])
+        else: pa, a, fl, sh = socket_geom(M, p0, a0)
+        if h in COLLET_KEYS:   # the collet's own axis (to turn it onto the socket's) and its centroid's depth from the socket floor
+            a_own = np.array(a0, float) / np.linalg.norm(a0); a_own = a_own if a_own @ a > 0 else -a_own
+            REF[(h, k)] = (cc, a_own, float((fl - cc[:2]) @ a))
+        if k == "out":   # the hubs are mirror-symmetric about their outlet axis: keep its fitted position, square its direction to -Y
+            a = np.array([0.0, -1.0]); fl = np.array([fl[0], fl[1]]); sh = np.array([fl[0], sh[1]])
+            lanes["out"] = {"shoulder": sh.round(3).tolist(), "floor": fl.round(3).tolist(), "dir": a.round(4).tolist()}; continue
+        pts, seat = trace(M, sh - a * 0.5, a)
+        si = int(np.argmin([np.hypot(q[0] - seat[0], q[1] - seat[1]) for q in pts])) if seat else 0
+        pts = [sh.round(2).tolist()] + pts[si + 1:]
         end = np.array(pts[-1]); pts.append([AX, round(float(end[1] + abs(end[0] - AX) * 1.5), 2)])   # join the outlet axis
-        lanes[k] = {"path": pts, "seat": fl.round(2).tolist(), "dir": v.round(4).tolist()}
+        lanes[k] = {"path": pts, "seat": sh.round(3).tolist(), "floor": fl.round(3).tolist(), "dir": a.round(4).tolist()}
     Image.fromarray((~M * 255).astype(np.uint8)).save(D + f"build/hub_{h}_mask.png")
-    out[h] = {"az": c["az"], "lanes": lanes, "outlet_end": c["outlet_end"], "out_ptfe": c["out_ptfe"]}
-    print(h, {k: (v["seat"], v["dir"]) for k, v in lanes.items()})
-# ECAS04 collets for the load-only hub (its STEP has none): the combo's, moved so each sits the same distance from its
-# socket floor along the same axis
-for k in COLLETS:
-    a_, b_ = out["combo"]["lanes"][k], out["loadonly"]["lanes"][k]
-    out["loadonly"]["lanes"][k]["collet_shift"] = [round(b_["seat"][0] - a_["seat"][0], 3), round(b_["seat"][1] - a_["seat"][1], 3), round(out["loadonly"]["az"] - out["combo"]["az"], 3)]
-out["collets"] = COLLETS
+    out[h] = {"az": c["az"], "lanes": {k: v for k, v in lanes.items() if k != "out"}, "outlet": lanes["out"], "outlet_end": c["outlet_end"]}
+    print(h, {k: (v.get("seat", v.get("shoulder")), v["dir"]) for k, v in lanes.items()})
+def place(ref, lo, az_from, az_to):
+    cc, a_ref, s_ref = ref; a_new = np.array(lo["dir"]); new_c = np.array(lo["floor"]) - a_new * s_ref
+    ang = np.arctan2(a_new[1], a_new[0]) - np.arctan2(a_ref[1], a_ref[0])
+    return {"about": [round(float(cc[0]), 3), round(float(cc[1]), 3)], "angle": round(float(ang), 5), "to": [round(float(new_c[0]), 3), round(float(new_c[1]), 3)], "dz": round(az_to - az_from, 3)}
+for h in HUBS:
+    for k in ("lane1", "lane2", "lane3", "lane4", "out"):
+        src_h = h if h in COLLET_KEYS else ("v10" if k == "out" else "combo")      # the load-only hub borrows fittings
+        tgt = out[h]["outlet"] if k == "out" else out[h]["lanes"][k]
+        tgt["collet"] = {"src": COLLET_KEYS[src_h][0], "key": COLLET_KEYS[src_h][1][k], **place(REF[(src_h, k)], tgt, HUBS[src_h]["az"], HUBS[h]["az"])}
 json.dump(out, open(D + "tools/hub_paths.json", "w"), indent=0)

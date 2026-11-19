@@ -49,17 +49,20 @@ for i, n in enumerate(N):
     V = d["p%03d_V" % i].astype(float)
     if group(n) == "slide": V = V + [SLIDE_DX, 0, 0]
     parts.append((n, V, d["p%03d_F" % i]))
-# PTFE (inferred from the CAD bores; 4 x 2 mm): the tube in the slide's collet seats on the step in the slide bore (X 22.5)
-# and leaves to the left; the tube in the frame's collet passes through the frame wall into the slide's 4.6 mm bore,
-# where it telescopes as the slide moves.
-PT_IN_SEAT = 22.5; PT_FIX_END = float(os.environ.get("PT_FIX_END", "40.0"))
-V, F = lathe_x([(1.0, -20.0), (1.97, -20.0), (1.97, PT_IN_SEAT), (1.0, PT_IN_SEAT)]); parts.append(("PTFE_IN", V + [SLIDE_DX, 0, 0], F))
-V, F = lathe_x([(1.0, PT_FIX_END), (1.97, PT_FIX_END), (1.97, 120.0), (1.0, 120.0)]); parts.append(("PTFE_FIX", V, F))
+# PTFE (4 x 2 mm). Filament runs right to left: in from the hub through the frame's collet (right), out to the toolhead
+# through the slide's collet (left). Measured by ray casting along the axis: the slide has an 8.24 mm collet socket to
+# X 21.5, a 4.3 mm counterbore to its shoulder at X 25.25, a 2.35 mm bore, a bevel from X 30 to 32, then the 4.58 mm bore
+# the inlet tube telescopes in; the frame has its collet socket from X 75 and a 4.3 mm bore that opens into the slide.
+# Seating (repo owner): the outlet tube is pushed in to the slide's shoulder; the inlet tube reaches into the slide to
+# just short of its bevel with the neck fully closed. The hub-to-TurtleNeck tube is chamfered (BoxTurtle build guide).
+PT_OUT_SEAT = 25.25; PT_IN_END = float(os.environ.get("PT_IN_END", "32.5"))
+V, F = lathe_x([(1.0, -80.0), (1.97, -80.0), (1.97, PT_OUT_SEAT), (1.0, PT_OUT_SEAT)]); parts.append(("PTFE_IN", V + [SLIDE_DX, 0, 0], F))
+V, F = lathe_x([(1.0, 140.0), (1.97, 140.0), (1.97, PT_IN_END), (1.5, PT_IN_END), (1.0, PT_IN_END + 0.5)]); parts.append(("PTFE_FIX", V, F))
 # view from the lid side (+Z), cut at the axis plane: render frame x = X, depth = AZ - Z (keep >= 0), up = Y
 parts = [(n, np.c_[V[:, 0], AZ - V[:, 2], V[:, 1]], F) for n, V, F in parts]
 CAPOVR = {"PTFE tube, inferred (cut face pink)": "#f4a3c4"}
 src = open(D + "tools/section.py").read()
 tail = src[src.index("tris, cols, pid = [], [], []"):]
 tail = tail.replace("CAPOVR = {", "_unused = {", 1)
-tail = re.sub(r"xmin, xmax = [^\n]*", "xmin, xmax = 8.0, 88.0; zmin, zmax = 94.0, 132.0", tail, count=1)
+tail = re.sub(r"xmin, xmax = [^\n]*", "xmin, xmax = -20.0, 87.0; zmin, zmax = 94.0, 132.0", tail, count=1)   # from just past each collet at full extension
 exec(tail)

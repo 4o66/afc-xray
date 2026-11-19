@@ -64,6 +64,12 @@ directed by the repository owner:
   between the barrel head and the washer as the outlet block moves. Which parts move, the 10 mm travel,
   the choice of hubs and the hub sensor bearing being lifted by the filament came from the owner; the lift (2.38 mm on the
   combo, 2.48 mm on the load-only hub) is measured from the CAD.
+- **PTFE and fittings:** every fitting is set coaxial with the socket it rides in. Each socket and the PTFE counterbore
+  behind it are fitted as one axis from a section of the body (or, where the mesh does not slice cleanly, by ray casting
+  along the axis), and the collets' own axes are fitted from their cylindrical faces; the hubs' own collets were within
+  about 1 degree of their sockets. Tubes are inserted to the shoulder past the fitting (the owner's rule), except the
+  TurtleNeck's inlet tube, which reaches into the slide to just short of its bevel with the neck closed (also the owner's).
+  Chamfers follow the BoxTurtle build guide's PTFE table (extruder-to-hub and hub-to-TurtleNeck tubes, both ends).
 - **v1.0 hub:** taken from the `BT-1.0` release's assembly and moved into the v1.1 hubs' frame by a rigid fit of the
   hardware the two share (bearing, switch body and levers, screw): residuals under 0.001 mm. Its own ECAS04 collets give
   its socket axes. They also agree with the socket position fitted for the load-only hub to 0.34 mm.

@@ -37,7 +37,7 @@ OVER = r"D2F|buffer_trigger|Omron"
 def group(n): return "slide" if re.search(MOVING, n) else None
 HW = r"binding barrel|printed_washer|M3x6 SHCS(001)?$"   # barrel stacks: drawn whole in the top view (MODE=hwfix/hwslide)
 SPRING = r"compression spring"                          # drawn by the page, compressed to the block's position
-BEAR = r"bearing"   # the hub sensor's bearing: its own layer in the side view, lifted by the filament on the page (MODE=bear)
+BEAR = r"bearing|Omron D2HW-C201H( \(1\))?00[12]$"   # the hub sensor: bearing and the switch actuator above it, lifted together by the filament (MODE=bear)
 def wanted(n):
     g = group(n)
     if MODE in ("static", "full"): return not (VIEW == "top" and (re.search(HW, n) or re.search(SPRING, n)))
@@ -65,20 +65,31 @@ def lathe(poly, ax, n=96):
             j = (i + 1) % n; F += [[k*n+i, k2*n+i, k2*n+j], [k*n+i, k2*n+j, k*n+j]]
     F = np.array(F); T = V[F] - o; vol = np.einsum("ij,ij->i", T[:, 0], np.cross(T[:, 1], T[:, 2])).sum()
     return V, (F[:, ::-1] if vol < 0 else F)
-tube = [(1.0, 0.0), (1.97, 0.0), (1.97, 1.0), (1.0, 1.0)]
-def add_tube(name, p0, p1):
+def tube_poly(L, chamfer):
+    """4 x 2 mm PTFE, length L, along the axis from 0 to L; chamfer: a 0.5 mm inner chamfer at the L end (BoxTurtle build
+    guide: recommended on each end of the extruder-to-hub and hub-to-TurtleNeck tubes)"""
+    return [(1.0, 0.0), (1.97, 0.0), (1.97, L), (1.5, L), (1.0, L - 0.5)] if chamfer else [(1.0, 0.0), (1.97, 0.0), (1.97, L), (1.0, L)]
+def add_tube(name, p0, p1, chamfer=False):
     p0, p1 = np.array(p0, float), np.array(p1, float); L = np.linalg.norm(p1 - p0)
-    V, F = lathe([(r, s * L) for r, s in tube], (p0, p1 - p0)); parts.append((name, V, F))
-# inferred PTFE: each lane's tube runs in along its inlet axis to where the socket narrows; the outlet tube to the toolhead
-add_tube("PTFE_TOOLHEAD" if HUB == "combo" else "PTFE_OUT", [AX, PATHS["out_ptfe"][0], AZ], [AX, PATHS["out_ptfe"][1], AZ])
+    V, F = lathe(tube_poly(L, chamfer), (p0, p1 - p0)); parts.append((name, V, F))
+# fittings: every ECAS04 collet is set coaxial with the socket it rides in (tools/hub_paths.py); the hub's own CAD collets
+# are replaced by those placed copies, and the load-only hub gets copies of the combo's inlet and the v1.0 hub's outlet collets
+parts = [(n, V, F) for n, V, F in parts if not re.search(r"ECAS Bowden Collet", n)]
+_src = {}
+def place_collet(name, cl):
+    if cl["src"] not in _src: _src[cl["src"]] = (np.load(D + f"cad/{cl['src']}.npz"), json.load(open(D + f"cad/{cl['src']}.json")))
+    z, nn = _src[cl["src"]]; ca, sa = np.cos(cl["angle"]), np.sin(cl["angle"]); ab = np.array(cl["about"] + [0.0]); to = np.array(cl["to"] + [cl["dz"]])
+    R = np.array([[ca, -sa, 0], [sa, ca, 0], [0, 0, 1.0]])
+    for i, n in enumerate(nn):
+        if cl["key"] in n:
+            V = z["p%03d_V" % i].astype(float); parts.append((name + "/" + n.split("/")[-1], (V - ab) @ R.T + [to[0], to[1], 0] + [0, 0, to[2]], z["p%03d_F" % i]))
+chamfer_out = HUB != "combo"            # hub-to-TurtleNeck tube; the combo's outlet tube runs to the toolhead
 for k, ln in PATHS["lanes"].items():
-    s0, v = np.array(ln["seat"]), np.array(ln["dir"]); add_tube("PTFE_" + k, [*(s0 - v * 40), AZ], [*s0, AZ])
-if HUB == "loadonly":   # its STEP has no inlet fittings: the combo's ECAS04 collets, moved onto this hub's sockets
-    _c = np.load(D + "cad/btcombo.npz"); _n = json.load(open(D + "cad/btcombo.json")); _all = json.load(open(D + "tools/hub_paths.json"))
-    for k, ln in PATHS["lanes"].items():
-        for _i, _nm in enumerate(_n):
-            if _nm.startswith("hardware (2)/" + _all["collets"][k] + "/"): parts.append(("collet_" + _nm.split("/")[-1], _c["p%03d_V" % _i].astype(float) + ln["collet_shift"], _c["p%03d_F" % _i]))
-if MODE == "slide" or MODE == "overslide": pass
+    s0, v = np.array(ln["seat"]), np.array(ln["dir"]); add_tube("PTFE_" + k, [*(s0 - v * 45), AZ], [*s0, AZ], chamfer=True)
+    place_collet(f"ECAS Bowden Collet {k}", ln["collet"])
+o = PATHS["outlet"]; sh, v = np.array(o["shoulder"]), np.array(o["dir"])
+add_tube("PTFE_TOOLHEAD" if HUB == "combo" else "PTFE_OUT", [*(sh - v * (330.0 - sh[1])), AZ], [*sh, AZ], chamfer=chamfer_out)
+place_collet("ECAS Bowden Collet (1)" if HUB == "combo" else "ECAS Bowden Collet out", o["collet"])
 SLIDE_DY = float(os.environ.get("SLIDE_DY", "0"))
 parts = [(n, V + ([0, SLIDE_DY, 0] if group(n) == "slide" else 0), F) for n, V, F in parts]
 if VIEW == "side":   # from +X: screen right = +Y, up = Z, depth = AX - X (keep X <= AX)
