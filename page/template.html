@@ -83,6 +83,8 @@ h2{font-weight:600;font-size:1.2rem;margin:0;text-wrap:balance}
 .ctrl button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .ctrl label{font-size:13px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.ctrl label.see input{width:110px}
+.ctrl label.see output{font-family:var(--mono);font-size:12px;min-width:7.5em}
 .tune{display:grid;gap:8px;border:1px solid var(--rule);border-radius:4px;padding:10px 12px}
 .tune h3,.key h3{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
 .tune .row{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) 4.5em;gap:10px;align-items:center;font-size:13.5px}
@@ -166,6 +168,7 @@ dialog#help .x{float:right}
 <button id="b-next" type="button" aria-label="Next step">Next ▶</button>
 <label for="s-read">Reading time <select id="s-read"><option value="3">3 s</option><option value="5" selected>5 s</option><option value="8">8 s</option><option value="12">12 s</option></select></label>
 <label for="x-mag"><input type="checkbox" id="x-mag"> Magnify guidler swing ×6</label>
+<label for="k-see" class="see">Hub switches <input type="range" id="k-see" min="0" max="100" step="5" value="100"> <output id="o-see" for="k-see"></output></label>
 </div>
 </div>
 <div class="figr">
@@ -192,7 +195,6 @@ dialog#help .x{float:right}
 <div class="row" data-ops="change load"><label for="k-slr">Slicer toolchange retract</label><div class="rng"><input type="range" id="k-slr" min="0" max="5" step="0.1" value="1.5"></div><output id="o-slr" for="k-slr"></output></div>
 <div class="row" data-ops="jam"><label for="k-jam">Part</label><select id="k-jam"><option value="hb" selected>I: jam at the heat break</option><option value="nozzle">I (variant): nozzle clog</option><option value="spool">II: tangled spool</option></select><output></output></div>
 <div class="row" data-ops="jam"><label for="k-sens">filament_error_sensitivity</label><div class="rng"><input type="range" id="k-sens" min="0" max="10" step="1" value="0"><span class="def" style="left:calc(0% + 6px)" title="AFC default: 0 (off)"></span></div><output id="o-sens" for="k-sens"></output></div>
-<div class="row" data-ops="change load jam lane"><label for="k-see">Hub switches and trigger</label><div class="rng"><input type="range" id="k-see" min="0" max="100" step="5" value="80"></div><output id="o-see" for="k-see"></output></div>
 <div class="row" data-ops="change load jam lane"><label for="k-lane">Lane (hub view)</label><select id="k-lane"><option value="1" selected>Lane 1</option><option value="2">Lane 2</option><option value="3">Lane 3</option><option value="4">Lane 4</option></select><output></output></div>
 <div class="row" data-ops="change load jam"><label for="k-tau">Heat time constant</label><div class="rng"><input type="range" id="k-tau" min="0.5" max="8" step="0.5" value="3"></div><output id="o-tau" for="k-tau"></output></div>
 <p class="hint"><span class="defkey" aria-hidden="true"></span>Red arrows mark AFC's shipped defaults (v1.2.0-5), which the sliders start at. Changing a slider reruns the sequence from the start. The slicer retract (example 1.5 mm) and AFC's 2 mm quick pull are fixed. <button type="button" class="linkbtn" id="b-help">Where do I find these settings?</button></p>
@@ -294,7 +296,7 @@ function Tw(z){ if (z <= BLOCK_TOP) return TP; if (z <= SINK_BOT) return TP + (9
 function tcolor(T){ const st = [[40,[47,174,79]],[Math.max(45, TG - 40),[47,174,79]],[TG,[242,194,48]],[(TG + TL) / 2,[240,138,36]],[TL,[217,58,43]],[TP,[163,18,42]]];
   if (T <= st[0][0]) return st[0][1]; for (let i = 1; i < st.length; i++) if (T <= st[i][0]){ const [a, ca] = st[i-1], [b, cb] = st[i], u = (T - a)/(b - a); return ca.map((v, j) => Math.round(v + (cb[j] - v)*u)); } return st[st.length-1][1]; }
 // ---- the sequence ----
-const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA", body: "dual", hot: "rapido_v2_uhf", blade: "ldo", slr: 1.5, band: false, buf: "tn", sens: 0, jam: "hb", lane: 1, see: 80};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
+const FACTORY = {ret: 20, push: 15, cmd: 8.5, tau: 3, mat: "ASA", body: "dual", hot: "rapido_v2_uhf", blade: "ldo", slr: 1.5, band: false, buf: "tn", sens: 0, jam: "hb", lane: 1, see: 100};   // AFC v1.2.0-5 shipped AFC_Macro_Vars.cfg; tau is the heat model's
 let P = Object.assign({}, FACTORY);
 function changeSteps(){
   const R = P.ret, Q = P.push;
