@@ -15,7 +15,7 @@ does to a filament: loading, jam detection, and loading and ejecting a spool.
 
 One tab each. The hardware choices at the top of the page apply to all of them.
 
-- **Toolchange unload:** from the last printed line, through the slicer retract, the cut retract, the cut, pushback
+- **Toolhead unload:** from the last printed line, through the slicer retract, the cut retract, the cut, pushback
   and the toolhead unload, to the lane pulled back clear of the hub. The question it answers: how high softened and
   liquid plastic reach, relative to the top of the heat break.
 - **Toolhead load:** TOOL_LOAD, from the hub empty and the new lane parked 65 mm short of the hub switch, through the
@@ -90,7 +90,7 @@ The temperatures come from a simple model, not measurements:
   break inside the heatsink, 50 °C in the heatsink above it, and 40 °C above the heatsink.
 - **Heating and cooling:** each piece of filament relaxes toward the local wall temperature with a time constant,
   3 s by default.
-- **Starting state:** steady printing at 2.5 mm/s of filament (Toolchange unload, Jam detection); the state the unload
+- **Starting state:** steady printing at 2.5 mm/s of filament (Toolhead unload, Jam detection); the state the unload
   leaves (Toolhead load).
 - **Liquid:** material above the preset's liquid threshold stretches on a pull and flows out on a push past the tip, keeping its volume. The tip moves 6 % of the pull.
 

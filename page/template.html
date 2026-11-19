@@ -131,7 +131,7 @@ dialog#help .x{float:right}
 <p class="hint hw-note" id="hot-est" hidden>This hotend is one solid in the CAD, so its heat zones (block top, heat break, liner seat) are estimated from its outline.</p>
 </header>
 <nav class="tabs" role="tablist" aria-label="Operation">
-<button type="button" role="tab" id="t-change" data-op="change" aria-selected="true">Toolchange unload</button>
+<button type="button" role="tab" id="t-change" data-op="change" aria-selected="true">Toolhead unload</button>
 <button type="button" role="tab" id="t-load" data-op="load" aria-selected="false">Toolhead load</button>
 <button type="button" role="tab" id="t-jam" data-op="jam" aria-selected="false">Jam detection</button>
 <button type="button" role="tab" id="t-lane" data-op="lane" aria-selected="false">Spool load and eject</button>
@@ -155,7 +155,7 @@ dialog#help .x{float:right}
 </div>
 <div class="side">
 <div>
-<h1 id="h1">Where the hot plastic goes during a toolchange</h1>
+<h1 id="h1">Toolhead unload: where the hot plastic goes</h1>
 <p class="lede" id="lede"></p>
 </div>
 <div class="duo">
@@ -212,7 +212,7 @@ dialog#help .x{float:right}
 </figure>
 <figure class="buf" id="fig-hubm">
 <canvas id="cvm" width="1400" height="784" role="img" aria-label="Top section of the BoxTurtle hub, showing where the lane's filament end is"></canvas>
-<figcaption>Hub, top section through its channels (more on the Spool tab). Blue dashes: the hub switch.</figcaption>
+<figcaption>Hub, top section through its channels (more on the Spool load and eject tab). Blue dashes: the hub switch.</figcaption>
 </figure>
 </div>
 </div>
@@ -344,7 +344,7 @@ const WAIT_END = {k:"wait", dur:20, anim:3500};
 function unloadHubSteps(){ const back = AFCV.bowden - (100 - (BALLS[0].z - BLADE_Z));
   return [
   {t:"Lane back to the hub", h:"Park position", n:() => `AFC unsyncs the lane and pulls it back by homing until the hub switch opens: up to afc_unload_bowden_length (${BOWDEN_NOTE()}) at the long speed, 150 mm/s, with the respooler rewinding. See the hub below the buffer.`, segs:[laneMv(-back, AFCV.long, {ev: true})]},
-  {t:"Hub cleared, hotend waits", h:"Park position", n:() => "Then hub_clear_move_dis, 65 mm, at 50 mm/s with spool assist. The end now waits in the lane's inlet tube, out of the hub, so the hub is empty for the next lane (Toolhead load tab starts here). The cut-off piece sits in the hotend meanwhile. Shown: 20 s from the end of the unload, sped up, as the piece reheats in place.", segs:[laneMv(-AFCV.hubClear, AFCV.short), {k:"wait", dur: Math.max(1, 20 - back / AFCV.long - AFCV.hubClear / AFCV.short), anim: 3000}]}]; }
+  {t:"Hub cleared, hotend waits", h:"Park position", n:() => "Then hub_clear_move_dis, 65 mm, at 50 mm/s with spool assist. The end now waits in the lane's inlet tube, out of the hub, so the hub is empty for the next lane (the Toolhead load tab starts here). The cut-off piece sits in the hotend meanwhile. Shown: 20 s from the end of the unload, sped up, as the piece reheats in place.", segs:[laneMv(-AFCV.hubClear, AFCV.short), {k:"wait", dur: Math.max(1, 20 - back / AFCV.long - AFCV.hubClear / AFCV.short), anim: 3000}]}]; }
 function unloadSteps(){
   if (P.body === "dual") return [
   {t:"Unload: bottom switch clears", h:"Park position", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). After 13.3 mm the cut end passes the bottom ball and tool_end opens. AFC does not check it until the move ends.", segs:[{k:"e", E:-13.27, v:25}]},
@@ -599,16 +599,16 @@ const BOWDEN_NOTE = () => `${AFCV.bowden} mm here, shortened so the animation st
 let OP = "change";
 const hubKey = () => ({bt: "combo", tn: "loadonly", v10: "v10"})[P.buf];
 const OPS = {
-  change: {eyebrow: "Section A–A · AFC toolchange unload", h1: "Where the hot plastic goes during a toolchange",
+  change: {eyebrow: "Section A–A · AFC toolchange unload", h1: "Toolhead unload: where the hot plastic goes",
     lede: () => `AFC v1.2.0-5 with its shipped default settings, on a Stealthburner with ${BODIES[P.body].lede} and a ${HD().label}. Extruder moves follow AFC's code exactly; temperatures come from a simple heat model (see the notes).`,
     steps: () => changeSteps(), init: initPrinting, totalLbl: "Total", total: st => `${fmt(st.F1)} of filament since printing stopped`},
-  load: {eyebrow: "Section A–A · AFC toolhead load", h1: "How a lane is loaded into the toolhead",
-    lede: () => `AFC v1.2.0-5 TOOL_LOAD (the second half of a toolchange) with its shipped settings, on a Stealthburner with ${BODIES[P.body].lede} and a ${HD().label}. It starts where the Toolchange tab ends: the hub empty, the new lane's end parked in its inlet tube 65 mm short of the hub switch, and the previous lane's cut-off piece, outlined in purple, still in the hotend.`,
+  load: {eyebrow: "Section A–A · AFC toolhead load", h1: "Toolhead load: from the hub to the nozzle",
+    lede: () => `AFC v1.2.0-5 TOOL_LOAD (the second half of a toolchange) with its shipped settings, on a Stealthburner with ${BODIES[P.body].lede} and a ${HD().label}. It starts where the Toolhead unload tab ends: the hub empty, the new lane's end parked in its inlet tube 65 mm short of the hub switch, and the previous lane's cut-off piece, outlined in purple, still in the hotend.`,
     steps: () => loadSteps(), init: initLoad, totalLbl: "Total", total: st => `${fmt(st.F1)} of filament fed toward the nozzle`},
-  jam: {eyebrow: "Section A–A · AFC jam detection", h1: "How AFC notices a jam",
+  jam: {eyebrow: "Section A–A · AFC jam detection", h1: "Jam detection: how AFC notices a jam",
     lede: () => `AFC v1.2.0-5's buffer fault check (AFC_buffer.py), on a Stealthburner with ${BODIES[P.body].lede}, a ${HD().label} and the ${BB().name}. While printing, the lane motor is synced to the extruder, and the buffer takes up the difference between what the lane feeds and what the extruder pulls.`,
     steps: () => jamSteps(), init: initPrinting, totalLbl: "Extruder", total: st => `${fmt(st.X1)} commanded from the start of this timeline`},
-  lane: {eyebrow: "Hub section · BoxTurtle lane", h1: "Loading and ejecting a spool",
+  lane: {eyebrow: "Hub section · BoxTurtle lane", h1: "Spool load and eject: from the feeder to the hub",
     lede: () => `AFC v1.2.0-5 with its shipped settings, on a BoxTurtle ${LEXT[P.lext]} and the ${({combo: "v1.1 hub/buffer combo", loadonly: "v1.1 load-only hub", v10: "v1.0 hub"})[hubKey()]}. Left: the respooler, cut through the filament path from the feeder down. Right: the lane extruder, cut through the filament line and the gears, with the hub below. Parts in front of the cut are drawn see-through.`,
     steps: () => laneSteps(), init: () => [], totalLbl: "Lane", total: st => `filament end ${laneTipText(st.t1)}`}};
 // ---- toolhead load (AFC.py TOOL_LOAD / load_sequence) ----
