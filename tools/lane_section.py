@@ -67,8 +67,17 @@ def P_(key, all_=False):
     return m if all_ else m[0]
 def bbc(V): return (V.min(0) + V.max(0)) / 2
 # the 50 mm feeder tube is inserted down to the shoulder of the prep trigger's bore, Z 101.2 (repo owner); the CAD has it
-# 4.2 mm short of it. It stays inside the feeder's bore at the top.
-parts = [(n, V + [0, 0, 101.2 - V[:, 2].min()] if re.search(r"4x3 Bowden 50mm00[12]$", n) else V, F) for n, V, F in parts]
+# 4.2 mm short of it. The feeder collar on its top end moves down with it, so the tube stays seated against the collar's
+# shoulder (its socket is 4.8 mm deep, Z 150.4 to 155.2 in the CAD; issue #63). Nothing sits under the collar.
+_dz = {}
+for n, V, F in parts:
+    if re.search(r"4x3 Bowden 50mm00[12]$", n): _dz[n.rsplit("/", 1)[0]] = 101.2 - V[:, 2].min()
+def _seat(n, V):
+    if re.search(r"4x3 Bowden 50mm00[12]$|feeder_x00[56]$", n):
+        dz = [d for k, d in _dz.items() if n.startswith(k.rsplit("/", 1)[0])]
+        assert len(dz) == 1, (n, _dz); return V + [0, 0, dz[0]]
+    return V
+parts = [(n, _seat(n, V), F) for n, V, F in parts]
 
 # ---------------------------------------------------------------- measurements
 def slice2d(V, F, O, U, Vv, N):
