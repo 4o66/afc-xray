@@ -542,7 +542,7 @@ function draw(dt){
   document.getElementById("m-soft2").textContent = `${rel(SIM.soft)}; peak ${rel(SIM.peakSoft)}`;
   document.getElementById("m-liq").textContent = SIM.liq < -50 ? "none" : `Z ${SIM.liq.toFixed(1)}`;
   document.getElementById("m-liq2").textContent = `${rel(SIM.liq)}; peak ${rel(SIM.peakLiq)}`;
-  drawBuffer(dt); drawHubMini();
+  drawBuffer(dt); drawHubMini(dt);
 }
 // ---- operations (tabs) ----
 // AFC v1.2.0-5 shipped settings used by the load, jam and spool timelines (config/AFC.cfg, templates/AFC_Hardware-AFC.cfg,
@@ -741,20 +741,31 @@ function drawHubTop(g, cvx, tip){
   g.save(); g.globalAlpha = P.see / 100; if (T.over) g.drawImage(T.over, T.j.over.x, T.j.over.y); if (T.overslide) g.drawImage(T.overslide, T.j.overslide.x + off, T.j.overslide.y); g.restore();
   g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; const sx = (lp.swY - 192) * PX; g.beginPath(); g.moveTo(sx, (HUBP.axis_x - 6 - 122) * PX); g.lineTo(sx, (HUBP.axis_x + 6 - 122) * PX); g.stroke(); g.restore();
   hubLabel(g, `Top · lane ${P.lane} end: ${hubTipText(tip)}`, cvx.height); }
-function drawHub(dt){
-  if (!HUBA.top || !HUBP) return; const lp = lanePath(), tip = laneTip(SIM.t), off = BB().sign * bufDX(SIM.t) * PX, h = HUBP[hubKey()], S = HUBA.side;
-  drawHubTop(hctx, cvh, tip);
-  const upto = hubUpto(lp, tip), sx = (lp.swY - 192) * PX;
-  sctx.clearRect(0, 0, cvs.width, cvs.height); sctx.drawImage(S.base, 0, 0); if (S.slide) sctx.drawImage(S.slide, S.j.slide.x + off, S.j.slide.y);
+// side section of the hub (the sensor bearing and the switch actuator lift with the filament) into any canvas
+function drawHubSide(g, cvx, tip, dt, key){
+  const lp = lanePath(), off = BB().sign * bufDX(SIM.t) * PX, h = HUBP[hubKey()], S = HUBA.side, upto = hubUpto(lp, tip), sx = (lp.swY - 192) * PX;
+  g.clearRect(0, 0, cvx.width, cvx.height); g.drawImage(S.base, 0, 0); if (S.slide) g.drawImage(S.slide, S.j.slide.x + off, S.j.slide.y);
   const onAxis = upto.filter(p => Math.abs(p[0] - HUBP.axis_x) < 1e-6), last = upto[upto.length - 1];
-  if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6){ const zy = (48 - h.az) * PX; hubFil(sctx, [[0, onAxis[0][1]], [0, last[1]]], p => [(p[1] - 192) * PX, zy], 1); }
-  if (S.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, lift = bearLift(axisEndY(tip), S.j.bear.y_mm + offmm, S.j.bear.lift, "bearS", dt); sctx.drawImage(S.bear, S.j.bear.x + offmm * PX, S.j.bear.y - lift * PX); }
-  sctx.save(); sctx.setLineDash([8, 6]); sctx.strokeStyle = "#2a7fd4"; sctx.lineWidth = 2.5; sctx.beginPath(); sctx.moveTo(sx, (48 - h.az - 7) * PX); sctx.lineTo(sx, (48 - h.az + 7) * PX); sctx.stroke(); sctx.restore();
+  if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6){ const zy = (48 - h.az) * PX; hubFil(g, [[0, onAxis[0][1]], [0, last[1]]], p => [(p[1] - 192) * PX, zy], 1); }
+  if (S.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, lift = bearLift(axisEndY(tip), S.j.bear.y_mm + offmm, S.j.bear.lift, key, dt); g.drawImage(S.bear, S.j.bear.x + offmm * PX, S.j.bear.y - lift * PX); }
+  g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; g.beginPath(); g.moveTo(sx, (48 - h.az - 7) * PX); g.lineTo(sx, (48 - h.az + 7) * PX); g.stroke(); g.restore(); }
+function drawHub(dt){
+  if (!HUBA.top || !HUBP) return; const tip = laneTip(SIM.t);
+  drawHubTop(hctx, cvh, tip); drawHubSide(sctx, cvs, tip, dt, "bearS");
   hubLabel(sctx, "Side · blue dashes: hub switch trigger point (estimated)", cvs.height);
   const sb = document.querySelector("#fig-hub .scale i"); sb.style.width = (cvh.clientWidth * 140 / 1400) + "px";
 }
 const cvm = document.getElementById("cvm"), mctx = cvm.getContext("2d");
-function drawHubMini(){ if (!HUBA.top || !HUBP) return; drawHubTop(mctx, cvm, hubTipS(SIM.t)); }
+// the top view cannot show the sensor bearing lift (it moves toward the viewer): a magnified side inset of the sensor
+const OFF = document.createElement("canvas"); OFF.width = 1400; OFF.height = 812; const offctx = OFF.getContext("2d");
+function drawHubMini(dt){ if (!HUBA.top || !HUBP || !HUBA.side) return; const tip = hubTipS(SIM.t); drawHubTop(mctx, cvm, tip);
+  const S = HUBA.side; if (!S.j.bear) return; drawHubSide(offctx, OFF, tip, dt, "bearM");
+  const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, bx = S.j.bear.x + S.j.bear.w / 2 + offmm * PX, by = S.j.bear.y + S.j.bear.h / 2;
+  const sw = 22 * PX, sh = 12 * PX, mag = 1.6, dw = sw * mag, dh = sh * mag, dx = cvm.width - dw - 12, dy = cvm.height - dh - 62;
+  mctx.save(); mctx.fillStyle = "#fff"; mctx.fillRect(dx - 4, dy - 4, dw + 8, dh + 8);
+  mctx.drawImage(OFF, bx - sw / 2, by - sh * 0.62, sw, sh, dx, dy, dw, dh); mctx.strokeStyle = "#1c1e22"; mctx.lineWidth = 2; mctx.strokeRect(dx, dy, dw, dh);
+  mctx.font = "500 22px IBM Plex Mono, monospace"; mctx.fillStyle = "#1c1e22"; const lifted = (view.bearM || 0) > 0.5 * S.j.bear.lift;
+  mctx.fillText(`Hub sensor (side, ×${mag}):`, dx, dy + dh + 24); mctx.fillText(lifted ? "bearing lifted, switch pressed" : "bearing down, switch open", dx, dy + dh + 48); mctx.restore(); }
 function chipsUI(){
   const lane = OP === "lane", b = BODIES[P.body];
   document.getElementById("c-start").hidden = lane || !b.balls.includes(0); document.getElementById("c-end").hidden = lane || !b.balls.includes(1);
