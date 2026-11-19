@@ -8,5 +8,5 @@
  "dragon_uhf":    {"label": "Phaetus Dragon UHF", "prefix": ["Dragon Hotends/Dragon_UHF/"], "tip": -8.9, "blockTop": 25.2, "sinkBottom": 27.7, "hbTop": 51.7, "seat": 52.9, "ro": 1.95, "jig": 4.6, "screws": false, "est": true, "at": null},
  "dragon_uhf_mini": {"label": "Phaetus Dragon UHF Mini", "prefix": ["Dragon Hotends/Dragon_UHF_Mini/"], "tip": -0.6, "blockTop": 24.0, "sinkBottom": 26.5, "hbTop": 51.7, "seat": 52.9, "ro": 1.95, "jig": null, "screws": false, "est": true, "at": null},
  "revo":          {"label": "E3D Revo Voron", "prefix": ["Revo Hotends/"], "tip": 0.0, "blockTop": 21.0, "sinkBottom": 23.0, "hbTop": 41.0, "seat": 41.7, "ro": 1.95, "jig": 15.8, "screws": false, "est": true, "at": [22, 20]},
- "bambu":         {"label": "Bambu Lab hotend", "prefix": ["Bambu Hotends/"], "tip": 0.0, "blockTop": 12.0, "sinkBottom": 15.0, "hbTop": 45.0, "seat": 47.0, "ro": 1.95, "jig": null, "screws": false, "est": true, "at": null}
+ "bambu":         {"label": "Bambu Lab hotend", "prefix": ["Bambu Hotends/"], "tip": 0.0, "blockTop": 19.5, "sinkBottom": 22.0, "hbTop": 26.0, "seat": 26.0, "ro": 1.95, "jig": null, "screws": false, "est": true, "at": null}
 }
