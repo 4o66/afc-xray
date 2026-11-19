@@ -345,6 +345,7 @@ function changeSteps(){
 // TOOL_UNLOAD disables the buffer (lane multiplier back to 1.0) and syncs the lane, so lane and extruder move together and
 // the buffer holds still; once the end leaves the extruder gears nothing holds the filament, and the combo's return
 // springs pull its outlet block closed (the TurtleNeck has no spring and stays put)
+const TN_TUBE = 200;   // hub outlet to the TurtleNeck's inlet, mm (build dependent, assumed)
 const BUF_FREE_TXT = () => bufKind() === "bt" ? " With the filament free, the combo's return springs pull its outlet block closed against the hub." : P.band ? " With the filament free, the rubber band pulls the TurtleNeck closed." : "";
 // the toolhead unload depends on the extruder body's sensors (AFC.py unload_sequence)
 const WAIT_END = {k:"wait", dur:20, anim:3500};
@@ -532,11 +533,17 @@ function drawBuffer(dt){ if (!BUF) return; const j = BUF.j, d = bufDX(SIM.t), of
     if (l && BUF["lev" + sd]){ bctx.save(); bctx.translate(l.px, l.py); bctx.rotate(l.sign * pr[sd] * l.deg * Math.PI / 180); bctx.translate(-l.px, -l.py); bctx.drawImage(BUF["lev" + sd], l.x, l.y); bctx.restore(); } }
   const tip = HUBP ? hubTipS(SIM.t) : 1e9, fy = by(j.axisY + 0.875), fw = 1.75 * PX; let fx = Math.max(0, bx(j.filFrom)), fx2 = cvb.width + 4;
   if (P.buf === "bt" && HUBP){ const ey = axisEndY(tip); if (ey == null) fx2 = fx; else { fx = Math.max(fx, bx(Math.min(...lanePath().pts.filter(p => Math.abs(p[0] - HUBP.axis_x) < 1e-6).map(p => p[1])))); fx2 = Math.min(fx2, bx(ey)); } }
-  else if (HUBP && tip < lanePath().sw + 30) fx2 = fx;     // the end is back at the hub: the TurtleNeck is empty
+  let tnEnd = null;
+  if (P.buf !== "bt" && HUBP && tip < 1e8){
+    // the TurtleNeck sits on the hub-to-toolhead bowden; filament runs right to left through it (in at the frame's collet
+    // on the right, out at the slide's on the left). The hub-to-TurtleNeck tube is build dependent: 200 mm assumed.
+    const lp = lanePath(), past = tip - lp.sw - ((HUBP[hubKey()].outlet_end - lp.swY) + TN_TUBE), xr = j.xmin + cvb.width / PX;
+    tnEnd = xr - past;                                           // CAD X of the filament end in this view
+    if (past <= 0) fx2 = fx; else fx = Math.max(fx, bx(tnEnd)); }
   if (fx2 > fx){ bctx.fillStyle = "#2fae4f"; bctx.fillRect(fx, fy, fx2 - fx, fw); bctx.fillStyle = hatch; bctx.fillRect(fx, fy, fx2 - fx, fw);
     bctx.strokeStyle = "rgba(20,24,28,.85)"; bctx.lineWidth = 1.4; bctx.strokeRect(fx, fy, fx2 - fx, fw);
     const flow = bufKind() === "tn" ? -1 : 1;   // filament runs right to left through the TurtleNeck, left to right through the combo
-    const ph = (((flow * lanePos(SIM.t)) % 2) + 2) % 2; bctx.save(); bctx.strokeStyle = "rgba(10,12,16,.38)"; bctx.lineWidth = 2;
+    const ph = tnEnd != null ? (((tnEnd - (j.xmin - 2)) % 2) + 2) % 2 : (((flow * lanePos(SIM.t)) % 2) + 2) % 2; bctx.save();   // ticks fixed to the material bctx.strokeStyle = "rgba(10,12,16,.38)"; bctx.lineWidth = 2;
     for (let xm = j.xmin - 2 + ph; (xm - j.xmin) * PX < cvb.width; xm += 2){ const x = (xm - j.xmin) * PX; if (x < fx || x > fx2) continue; bctx.beginPath(); bctx.moveTo(x - 3, fy + fw); bctx.lineTo(x + 3, fy); bctx.stroke(); }
     bctx.restore(); }
   if (BUF.bear && HUBP){ const ey = axisEndY(tip), f = bearLift(ey, j.bear.y_mm + off, j.bear.lift, "bearB", dt) / j.bear.lift; bctx.drawImage(BUF.bear, j.bear.x + off * PX + f * j.bear.dx, j.bear.y + f * j.bear.dy); }
