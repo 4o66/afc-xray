@@ -51,7 +51,7 @@ def void_at(M, x, y):
     i, j = int((y - Y0) * R), int((x - X0) * R)
     return not (0 <= i < Ht and 0 <= j < Wd) or not M[i, j]
 def trace(M, p, d):
-    p = np.array(p, float); d = np.array(d, float); d /= np.linalg.norm(d); pts = []; inside = False; narrow = False; seat = None
+    p = np.array(p, float); d = np.array(d, float); d /= np.linalg.norm(d); pts = []; inside = False; narrow = False; merging = False; seat = None; mi = None
     for _ in range(400):
         n = np.array([-d[1], d[0]]); ext = []
         for sgn in (-1, 1):
@@ -61,15 +61,22 @@ def trace(M, p, d):
         w = ext[0] + ext[1]
         if ext[0] < 6.0 and ext[1] < 6.0:
             if w < 3.2 and not narrow: narrow = True; seat = p.round(2).tolist()
-            if narrow and w > 3.6: break           # the channel opens into the merge
-            inside = True; p = p + n * (ext[1] - ext[0]) / 2
+            if narrow and (w > 3.6 or merging):
+                # where the channels open into the merge, keep to this channel's outer wall (the side away from the outlet
+                # axis), half a channel width off it, so the path keeps the channel's sweep instead of cutting across
+                if not merging: mi = len(pts)
+                merging = True; so = 1 if n @ np.array([p[0] - AX, 0.0]) > 0 else 0
+                off = ext[so] - 1.17 if ext[so] < 5.9 else 0.0; p = p + n * (off if so == 1 else -off)
+            else: p = p + n * (ext[1] - ext[0]) / 2
+            inside = True
         if inside: pts.append(p.round(2).tolist())
-        if inside and abs(p[0] - AX) < 0.6: break
+        if inside and merging and abs(p[0] - AX) < 0.15: break
+        if inside and not merging and abs(p[0] - AX) < 0.6: break
         q = p + d * 0.5
         if inside and len(pts) > 3:            # follow the channel: new heading from the last few centers
             v = np.array(pts[-1]) - np.array(pts[-4]); d = 0.7 * d + 0.3 * v / (np.linalg.norm(v) or 1); d /= np.linalg.norm(d)
         p = q
-    return pts, seat
+    return pts, seat, mi
 def widths(M, p, a, maxw=7.0):
     n = np.array([-a[1], a[0]]); e = []
     for sg in (-1, 1):
@@ -133,11 +140,27 @@ for h, c in HUBS.items():
         if k == "out":   # the hubs are mirror-symmetric about their outlet axis: keep its fitted position, square its direction to -Y
             a = np.array([0.0, -1.0]); fl = np.array([fl[0], fl[1]]); sh = np.array([fl[0], sh[1]])
             lanes["out"] = {"shoulder": sh.round(3).tolist(), "floor": fl.round(3).tolist(), "dir": a.round(4).tolist()}; continue
-        pts, seat = trace(M, sh - a * 0.5, a)
+        pts, seat, mi = trace(M, sh - a * 0.5, a)
         si = int(np.argmin([np.hypot(q[0] - seat[0], q[1] - seat[1]) for q in pts])) if seat else 0
+        if k == "lane2" and mi is not None and "lane1" in lanes:
+            # the inner channel opens into the outer one before the merge: past that opening, a smooth (Hermite) curve
+            # leaving along the channel and arriving tangent to the outlet axis where the outer lane's sweep meets it
+            P0 = np.array(pts[mi - 1]); t0 = P0 - np.array(pts[max(si + 1, mi - 6)]); t0 /= np.linalg.norm(t0)
+            P1 = np.array([AX, lanes["lane1"]["path"][-2][1]]); L = np.linalg.norm(P1 - P0); m0, m1 = t0 * L, np.array([0.0, 1.0]) * L
+            tt = np.linspace(0, 1, 24)[1:, None]
+            H = (2*tt**3 - 3*tt**2 + 1) * P0 + (tt**3 - 2*tt**2 + tt) * m0 + (-2*tt**3 + 3*tt**2) * P1 + (tt**3 - tt**2) * m1
+            pts = pts[:mi] + H.round(3).tolist()
         pts = [sh.round(2).tolist()] + pts[si + 1:]
-        end = np.array(pts[-1]); pts.append([AX, round(float(end[1] + abs(end[0] - AX) * 1.5), 2)])   # join the outlet axis
+        P = np.array(pts, float)
+        for _ in range(3):                         # light smoothing of the traced centre line (ends kept)
+            P[1:-1] = (P[:-2] + 2 * P[1:-1] + P[2:]) / 4
+        P[-1, 0] = AX; pts = P.round(2).tolist(); pts.append([AX, round(float(P[-1, 1] + 4.0), 2)])
         lanes[k] = {"path": pts, "seat": sh.round(3).tolist(), "floor": fl.round(3).tolist(), "dir": a.round(4).tolist()}
+    # the hubs are mirror-symmetric about the outlet axis: lanes 3 and 4 are lanes 2 and 1 mirrored, which keeps the
+    # traced sweeps identical on both sides
+    mir = lambda q: [round(2 * AX - q[0], 3), q[1]]
+    for src_k, dst_k in (("lane1", "lane4"), ("lane2", "lane3")):
+        L1 = lanes[src_k]; lanes[dst_k] = {"path": [mir(q) for q in L1["path"]], "seat": mir(L1["seat"]), "floor": mir(L1["floor"]), "dir": [-L1["dir"][0], L1["dir"][1]]}
     Image.fromarray((~M * 255).astype(np.uint8)).save(D + f"build/hub_{h}_mask.png")
     out[h] = {"az": c["az"], "lanes": {k: v for k, v in lanes.items() if k != "out"}, "outlet": lanes["out"], "outlet_end": c["outlet_end"]}
     print(h, {k: (v.get("seat", v.get("shoulder")), v["dir"]) for k, v in lanes.items()})

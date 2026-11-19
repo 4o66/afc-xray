@@ -316,7 +316,7 @@ const WAIT_END = {k:"wait", dur:20, anim:3500};
 // after the toolhead unload: the lane back to the hub switch, then clear of it (AFC.py unload_sequence)
 function unloadHubSteps(){ const back = AFCV.bowden - (100 - (BALLS[0].z - BLADE_Z));
   return [
-  {t:"Lane back to the hub", h:"Park position", n:() => `AFC unsyncs the lane and pulls it back by homing until the hub switch opens: up to afc_unload_bowden_length (the shipped ${AFCV.bowden} mm; here about ${back.toFixed(0)} mm) at the long speed, 150 mm/s, with the respooler rewinding. Shown sped up; see the hub below the buffer.`, segs:[laneMv(-back, AFCV.long, {anim: 4000})]},
+  {t:"Lane back to the hub", h:"Park position", n:() => `AFC unsyncs the lane and pulls it back by homing until the hub switch opens: up to afc_unload_bowden_length (the shipped ${AFCV.bowden} mm; here about ${back.toFixed(0)} mm) at the long speed, 150 mm/s, with the respooler rewinding. Shown sped up; see the hub below the buffer.`, segs:[laneMv(-back, AFCV.long, {anim: 4000, ev: true})]},
   {t:"Hub cleared, hotend waits", h:"Park position", n:() => "Then hub_clear_move_dis, 65 mm, at 50 mm/s with spool assist. The end now waits in the lane's inlet tube, out of the hub, so the hub is empty for the next lane (Toolhead load tab starts here). The cut-off piece sits in the hotend meanwhile. Shown: 20 s from the end of the unload, sped up, as the piece reheats in place.", segs:[laneMv(-AFCV.hubClear, AFCV.short), {k:"wait", dur: Math.max(1, 20 - back / AFCV.long - AFCV.hubClear / AFCV.short), anim: 3000}]}]; }
 function unloadSteps(){
   if (P.body === "dual") return [
@@ -362,6 +362,9 @@ function layout(){
     const mag = sg.k === "e" ? Math.max(Math.abs(sg.E), Math.abs(sg.X), Math.abs(sg.L)) : 0;
     sg.real = sg.k === "e" ? (sg.dur != null ? sg.dur : mag / sg.v) : sg.dur;
     sg.anim = sg.anim != null ? sg.anim : sg.k === "e" ? Math.max(Math.min(sg.real * 1000, 6000), Math.min(4000, 1300 + mag * 60)) : sg.k === "wait" ? Math.min(sg.real * 1000, 1200) : Math.max(sg.real * 1000, 2600);
+    if (sg.ev && sg.k === "e" && sg.anim / 1000 < sg.real * 0.95){   // speed ramp: fast, decelerating, then real time to the event
+      const k = sg.real / (sg.anim / 1000), W = Math.min(sg.real * 0.25, 1.0), R = Math.min(sg.real - W, (k - 1) * 0.35), ar = 2 * R / (k + 1), af = Math.max(0, sg.real - W - R) / k;
+      sg.ramp = {k, W, R, ar, af}; sg.anim = (af + ar + W) * 1000; }
     sg.t0 = t; sg.F0 = F; sg.X0 = X; sg.L0 = L; sg.B0 = B; t += sg.real;
     if (sg.k === "e" || sg.k === "cutrip"){ F += sg.E; X += sg.X; L += sg.L; B = Math.max(0, Math.min(BT, B + sg.L - sg.E)); }
     sg.t1 = t; sg.F1 = F; sg.X1 = X; sg.L1 = L; sg.B1 = B; sg.step = i; SEGS.push(sg); });
@@ -573,11 +576,11 @@ function loadSteps(){
   const b = BODIES[P.body], ram = b.buffer, st = [], end = BALLS[0].z - BALLS[1].z, nStep = Math.ceil(end / 10);
   st.push({t: "Start: lane at the hub, old piece in the hotend", h: "Toolchange position", n: () => "The hub is empty: the new lane's end waits in its inlet tube, 65 mm short of the hub switch (hub_clear_move_dis), where AFC parks every lane. The previous lane's cut-off piece is still in the hotend, outlined in purple. TOOL_LOAD checks that the lane's load sensor is triggered and the hub switch is clear, and that the hotend is at temperature (it is, mid-toolchange).", segs: [pause(0, {anim: 900})]});
   st.push({t: "Lane to the hub switch", h: "Toolchange position", n: () => "The lane motor alone homes to the hub switch: up to 75 + 50 mm at the short speed (50 mm/s in the shipped AFC.cfg; 25 in the code). It stops when the switch closes, about 65 mm on. The extruder does not turn.", segs: [laneMv(AFCV.hubClear, AFCV.short)]});
-  if (!ram) st.push({t: "Bowden: lane to the top switch", h: "Toolchange position", n: () => `One homing move of the lane motor to tool_start: up to afc_bowden_length + 50 mm (${AFCV.bowden + 50} mm with the shipped ${AFCV.bowden}) at the long speed, 150 mm/s, with spool assist. It is one move, not split up, and it stops when the top switch closes. The lane pushes the filament through the tube; the extruder still does not turn. Shown sped up.`, segs: [laneMv(AFCV.bowden, AFCV.long, {anim: 4500})]});
+  if (!ram) st.push({t: "Bowden: lane to the top switch", h: "Toolchange position", n: () => `One homing move of the lane motor to tool_start: up to afc_bowden_length + 50 mm (${AFCV.bowden + 50} mm with the shipped ${AFCV.bowden}) at the long speed, 150 mm/s, with spool assist. It is one move, not split up, and it stops when the top switch closes. The lane pushes the filament through the tube; the extruder still does not turn. Shown sped up.`, segs: [laneMv(AFCV.bowden, AFCV.long, {anim: 4500, ev: true})]});
   else {
     const need = BB().travel - BB().trig - bufStart();
     st.push({t: "Bowden: fixed move, then home on the buffer", h: "Toolchange position", n: () => `With no toolhead switch (tool_start: buffer), the bowden move is split: afc_bowden_length − 20 mm (${AFCV.bowden - 20} mm) as a fixed move at 150 mm/s, then a homing move of up to 20 + 50 mm at 50 mm/s that ends on the buffer's advance switch. The end reaches the extruder gears, which are not turning, and stops there (the ${RAM_GAP} mm gap is an estimate). The lane keeps pushing, so the buffer is rammed open by ${need.toFixed(1)} mm until the advance switch closes. Shown sped up.`,
-      segs: [laneMv(AFCV.bowden - 20, AFCV.long, {anim: 4000}), laneMv(RAM_GAP, AFCV.short), laneHeld(need, AFCV.short)]}); }
+      segs: [laneMv(AFCV.bowden - 20, AFCV.long, {anim: 4000}), laneMv(RAM_GAP, AFCV.short), laneHeld(need, AFCV.short, {ev: true})]}); }
   if (P.body === "dual") st.push({t: "Synced: 10 mm steps to the bottom switch", h: "Toolchange position", n: () => `The lane motor is synced to the extruder. AFC moves the extruder (the lane follows) 10 mm at a time at tool_load_speed (25 mm/s), checking tool_end between moves. These are fixed steps, not a homing move: the bottom switch is ${end.toFixed(1)} mm below the top one, so it closes during step ${nStep} and the end finishes ${(nStep * 10 - end).toFixed(1)} mm past it.`,
     segs: Array.from({length: nStep}, () => [mv(10, AFCV.toolLoad), pause(0.05)]).flat()});
   st.push({t: "tool_stn: on to the nozzle", h: "Toolchange position", n: () => { const from = P.body === "dual" ? "where the steps stopped" : ram ? "where the end stopped at the gears" : "the top switch"; const zEnd = (P.body === "dual" ? BALLS[0].z - nStep * 10 : ram ? GEAR_Z + 2 : BALLS[0].z) - AFCV.toolStn;
@@ -681,8 +684,8 @@ function laneSteps(){
   st.push({t: "On toward the hub: dist_hub", h: `Lane ${P.lane}`, n: () => `load_to_hub is on (the default), so the lane moves on dist_hub, ${dh} mm for lane ${P.lane} in the shipped AFC_Turtle_1.cfg, as one fixed move at ${dm} mm/s. There is no hub-switch check: calibration stores dist_hub as the distance from the load sensor to the hub switch minus hub_clear_move_dis, so the end stops 65 mm short of the switch. The lane is now LOADED.`, segs: [laneMv(dh, dm)]});
   st.push({t: "At a toolchange: home to the hub switch", h: `Lane ${P.lane}`, n: () => "When a toolchange calls this lane, TOOL_LOAD first homes it to the hub switch (up to 125 mm at 50 mm/s). The end runs through its inlet channel, where the four channels merge, and into the switch, which closes.", segs: [laneMv(AFCV.hubClear, AFCV.short)]});
   st.push({t: "Bowden move toward the toolhead", h: `Lane ${P.lane}`, n: () => `Then the long move to the toolhead begins (afc_bowden_length, ${AFCV.bowden} mm at 150 mm/s; see the Toolhead load tab). Shown: the first 60 mm.`, segs: [laneMv(60, AFCV.long)]});
-  st.push({t: "Unload: back past the hub switch", h: `Lane ${P.lane}`, n: () => "After a toolchange unload (Toolchange tab), the lane is unsynced and pulled back by homing until the hub switch opens (up to afc_unload_bowden_length at 150 mm/s), then hub_clear_move_dis, 65 mm, at 50 mm/s with spool assist. That is the 65 mm parking spot the next load starts from.", segs: [laneMv(-60, AFCV.long), laneMv(-AFCV.hubClear, AFCV.short)]});
-  st.push({t: "Eject (LANE_UNLOAD)", h: `Lane ${P.lane}`, n: () => `LANE_UNLOAD reverses the load: a homing move of up to dist_hub (${dh} mm) back until the load sensor opens, at ${dm} mm/s with the respooler rewinding; then extruder_clear_dis, 50 mm, at 50 mm/s. The end is left 50 mm behind the load sensor, still in the prep sensor; pull the spool's end out to clear it. Refused while printing or if this lane is in the toolhead.`, segs: [laneMv(-dh, dm), laneMv(-AFCV.extClear, AFCV.short), pause(0.5)]});
+  st.push({t: "Unload: back past the hub switch", h: `Lane ${P.lane}`, n: () => "After a toolchange unload (Toolchange tab), the lane is unsynced and pulled back by homing until the hub switch opens (up to afc_unload_bowden_length at 150 mm/s), then hub_clear_move_dis, 65 mm, at 50 mm/s with spool assist. That is the 65 mm parking spot the next load starts from.", segs: [laneMv(-60, AFCV.long, {ev: true}), laneMv(-AFCV.hubClear, AFCV.short)]});
+  st.push({t: "Eject (LANE_UNLOAD)", h: `Lane ${P.lane}`, n: () => `LANE_UNLOAD reverses the load: a homing move of up to dist_hub (${dh} mm) back until the load sensor opens, at ${dm} mm/s with the respooler rewinding; then extruder_clear_dis, 50 mm, at 50 mm/s. The end is left 50 mm behind the load sensor, still in the prep sensor; pull the spool's end out to clear it. Refused while printing or if this lane is in the toolhead.`, segs: [laneMv(-dh, dm, {ev: true}), laneMv(-AFCV.extClear, AFCV.short), pause(0.5)]});
   return st;
 }
 async function loadHub(){ if (!HUBP) HUBP = await (await fetch("assets/hub_paths.json")).json();
@@ -784,11 +787,17 @@ function text(i){ const st = STEPS[i];
   document.getElementById("r-t").textContent = OPS[OP].total(st);
   document.getElementById("r-h").textContent = st.h;
   [...dots.children].forEach((d, j) => { d.className = j < i ? "done" : j === i ? "cur" : ""; d.setAttribute("aria-current", j === i ? "step" : "false"); }); }
-function speedText(sg){ if (!sg || sg.real <= 0) return ""; const r = sg.anim / 1000 / sg.real;
+function speedText(sg){ if (!sg || sg.real <= 0) return ""; const r = sg.ramp && RATE ? 1 / RATE : sg.anim / 1000 / sg.real;
   if (r > 1.05) return `Slowed ${r >= 10 ? Math.round(r) : r.toFixed(1)}× (not real time)`; if (r < 0.95) return `Sped up ${(1/r).toFixed(1)}× (time-lapse)`; return "Real time"; }
 function go(i){ idx = Math.max(0, Math.min(STEPS.length - 1, i)); phase = reduce ? "read" : "anim"; t0 = performance.now(); text(idx); setPlayLabel();
   seek(reduce ? STEPS[idx].t1 : STEPS[idx].t0); }
-function curSeg(el){ const st = STEPS[idx]; let acc = 0; for (const sg of st.segs){ if (el <= acc + sg.anim) return [sg, sg.anim > 0 ? (el - acc) / sg.anim : 1]; acc += sg.anim; } return [st.segs[st.segs.length-1], 1]; }
+function rampAt(sg, u){ const r = sg.ramp; if (u < r.af) return [r.k * u, r.k]; const s1 = r.k * r.af;   // u: seconds of animation into the move
+  if (u < r.af + r.ar){ const tau = u - r.af; return [s1 + r.k * tau + (1 - r.k) * tau * tau / (2 * r.ar), r.k + (1 - r.k) * tau / r.ar]; }
+  return [Math.min(sg.real, s1 + r.R + (u - r.af - r.ar)), 1]; }
+let RATE = null;
+function curSeg(el){ const st = STEPS[idx]; let acc = 0; for (const sg of st.segs){ if (el <= acc + sg.anim){
+    if (sg.ramp){ const [sim, rate] = rampAt(sg, (el - acc) / 1000); RATE = rate; return [sg, sg.real > 0 ? sim / sg.real : 1]; }
+    RATE = null; return [sg, sg.anim > 0 ? (el - acc) / sg.anim : 1]; } acc += sg.anim; } return [st.segs[st.segs.length-1], 1]; }
 function frame(now){
   if (!STEPS[idx]){ idx = Math.max(0, Math.min(idx, STEPS.length - 1)); if (!STEPS[idx]){ requestAnimationFrame(frame); return; } }
   const dt = last ? Math.min(0.1, (now - last)/1000) : 0.016; last = now;
