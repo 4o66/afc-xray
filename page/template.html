@@ -313,6 +313,10 @@ function changeSteps(){
   {t:"Pull back, park", h:"Cutter, then the park position", n:() => Q > 0 ? `${Q} mm back up at 25 mm/s. The cut-off piece stays where it was pushed. Then AFC_PARK travels to the park position, about 1.5 s (estimated).` : "Then AFC_PARK travels to the park position, about 1.5 s (estimated).", segs:[{k:"e", E:-Q, v:25}, {k:"wait", dur:1.5}]},
   ].concat(unloadSteps(), unloadHubSteps());
 }
+// TOOL_UNLOAD disables the buffer (lane multiplier back to 1.0) and syncs the lane, so lane and extruder move together and
+// the buffer holds still; once the end leaves the extruder gears nothing holds the filament, and the combo's return
+// springs pull its outlet block closed (the TurtleNeck has no spring and stays put)
+const BUF_FREE_TXT = () => bufKind() === "bt" ? " With the filament free, the combo's return springs pull its outlet block closed against the hub." : "";
 // the toolhead unload depends on the extruder body's sensors (AFC.py unload_sequence)
 const WAIT_END = {k:"wait", dur:20, anim:3500};
 // after the toolhead unload: the lane back to the hub switch, then clear of it (AFC.py unload_sequence)
@@ -323,16 +327,16 @@ function unloadHubSteps(){ const back = AFCV.bowden - (100 - (BALLS[0].z - BLADE
 function unloadSteps(){
   if (P.body === "dual") return [
   {t:"Unload: bottom switch clears", h:"Park position", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). After 13.3 mm the cut end passes the bottom ball and tool_end opens. AFC does not check it until the move ends.", segs:[{k:"e", E:-13.27, v:25}]},
-  {t:"Unload: guidler swings in", h:"Park position", n:() => "At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm until the gear teeth bottom.", segs:[{k:"e", E:-10.12, v:25}]},
+  {t:"Unload: guidler swings in", h:"Park position", n:() => "At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm until the gear teeth bottom." + BUF_FREE_TXT(), segs:[{k:"e", E:-10.12, v:25, relax: true}]},
   {t:"Unload: top switch clears", h:"Park position", n:() => "At 36.2 mm the end passes the top ball and tool_start opens: the filament has left the top sensor.", segs:[{k:"e", E:-12.81, v:25}]},
   {t:"Toolhead unload ends", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. AFC now checks both switches; both are open, so it moves on.", segs:[{k:"e", E:-63.8, v:25}]}];
   if (P.body === "single") return [
-  {t:"Unload: the end leaves the gears", h:"Park position", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). This body has no switch below the gears, so nothing changes state until the top switch. At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm.", segs:[{k:"e", E:-23.39, v:25}]},
+  {t:"Unload: the end leaves the gears", h:"Park position", n:() => "AFC's 100 mm unload at 25 mm/s (tool_stn_unload). This body has no switch below the gears, so nothing changes state until the top switch. At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm." + BUF_FREE_TXT(), segs:[{k:"e", E:-23.39, v:25, relax: true}]},
   {t:"Unload: top switch clears", h:"Park position", n:() => "At 36.2 mm the end passes the ball and tool_start opens: the filament has left the only toolhead sensor.", segs:[{k:"e", E:-12.81, v:25}]},
   {t:"Toolhead unload ends", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden. AFC checks tool_start; it is open, so it moves on.", segs:[{k:"e", E:-63.8, v:25}]}];
   return [
   {t:"Buffer: lane pulls back until trailing", h:"Park position", n:() => bufMoves() === 0 ? "No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane and checks the buffer's trailing switch, which is already closed: the rubber band holds the TurtleNeck collapsed. So AFC skips the lane pull-back entirely and goes straight to the unload." : `No toolhead sensor: AFC uses the buffer (tool_start: buffer). It unsyncs the lane from the extruder and pulls the lane back ${SHORT_MOVE} mm at a time at ${SHORT_SPEED} mm/s, with a 0.5 s pause, until the buffer's trailing switch closes (up to tool_max_unload_attempts, 4). The extruder holds the filament, so nothing moves in the toolhead: the buffer collapses instead. Starting from mid-travel that takes ${bufMoves()} moves.`, segs: bufMoves() === 0 ? [{k:"wait", dur:0.3}] : Array.from({length: bufMoves()}, () => [laneHeld(-SHORT_MOVE, SHORT_SPEED), {k:"wait", dur:0.5}]).flat()},
-  {t:"Unload: 100 mm, no sensor check", h:"Park position", n:() => "AFC syncs the lane again and runs the 100 mm unload at 25 mm/s (tool_stn_unload) with spool assist. At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm. With the buffer as the sensor, AFC does not check the toolhead afterwards; the 100 mm move is the whole unload.", segs:[{k:"e", E:-36.2, v:25}]},
+  {t:"Unload: 100 mm, no sensor check", h:"Park position", n:() => "AFC syncs the lane again and runs the 100 mm unload at 25 mm/s (tool_stn_unload) with spool assist. At 23.4 mm the end leaves the gears and the guidler swings in 0.15 mm. With the buffer as the sensor, AFC does not check the toolhead afterwards; the 100 mm move is the whole unload." + BUF_FREE_TXT(), segs:[{k:"e", E:-36.2, v:25, relax: true}]},
   {t:"Toolhead unload ends", h:"Park position", n:() => "The last 63.8 mm carries the end up the bowden.", segs:[{k:"e", E:-63.8, v:25}]}];
 }
 // AFC.cfg shipped defaults for the buffer path
@@ -347,7 +351,7 @@ const BB = () => BUFS[bufKind()];
 const BUF_TRAVEL_OF = () => BB().travel, BUF_TRIG_OF = () => BB().trig;
 // buffer start (mm from collapsed): mid-travel while printing, held collapsed by the rubber band, or collapsed after a
 // buffer-sensed unload (where the Toolhead load tab starts)
-const bufStart = () => (P.band && bufKind() === "tn") ? 1.5 : (OP === "load" && BODIES[P.body].buffer) ? 0 : BB().travel / 2;
+const bufStart = () => (P.band && bufKind() === "tn") ? 1.5 : (OP === "load" && (BODIES[P.body].buffer || bufKind() === "bt")) ? 0 : BB().travel / 2;
 const bufMoves = () => { const s0 = bufStart(); return s0 <= BUF_TRIG_OF() ? 0 : Math.ceil((s0 - BUF_TRIG_OF()) / SHORT_MOVE); };
 // motion segments: E = filament at the toolhead (+ toward the nozzle), X = extruder motor, L = lane motor. The buffer takes up
 // the difference between what the lane feeds and what moves on into the toolhead, between its end stops.
@@ -369,6 +373,7 @@ function layout(){
       sg.ramp = {k, W, R, ar, af}; sg.anim = (af + ar + W) * 1000; }
     sg.t0 = t; sg.F0 = F; sg.X0 = X; sg.L0 = L; sg.B0 = B; t += sg.real;
     if (sg.k === "e" || sg.k === "cutrip"){ F += sg.E; X += sg.X; L += sg.L; B = Math.max(0, Math.min(BT, B + sg.L - sg.E)); }
+    if (sg.relax && bufKind() === "bt"){ sg.Bend = 0; B = 0; }
     sg.t1 = t; sg.F1 = F; sg.X1 = X; sg.L1 = L; sg.B1 = B; sg.step = i; SEGS.push(sg); });
     st.t1 = t; st.F1 = F; st.X1 = X; st.anim = st.segs.reduce((a, s) => a + s.anim, 0); });
   T_END = t;
@@ -378,6 +383,7 @@ function fracOf(sg, t){ if (sg.k === "cutrip") return Math.max(0, Math.min(1, (t
 const along = (t, a, b) => { const sg = segAt(t), f = fracOf(sg, t); return sg[a] + (sg[b] - sg[a]) * f; };
 const laneUp = t => -along(t, "F0", "F1"), extPos = t => along(t, "X0", "X1"), lanePos = t => along(t, "L0", "L1");
 function bufDX(t){ if (!SEGS.length) return bufStart(); const sg = segAt(t), f = fracOf(sg, t);
+  if (sg.Bend != null) return sg.B0 + (sg.Bend - sg.B0) * Math.min(1, f * 3);   // the return springs close it quickly
   return Math.max(0, Math.min(BUF_TRAVEL_OF(), sg.B0 + f * ((sg.L1 - sg.L0) - (sg.F1 - sg.F0)))); }
 function armAng(t){ for (const sg of SEGS){ if (t < sg.t0 || t > sg.t1) continue; if (sg.k === "cut" || sg.k === "cutrip") return armFromPush(headS(t - sg.t0, sg.k === "cutrip") - PIN_PARK_DIST); } return 0; }
 const smooth = a => a*a*(3 - 2*a);
@@ -591,7 +597,9 @@ function loadSteps(){
   if (ram) st.push({t: "Buffer released", h: "Toolchange position", n: () => "AFC unsyncs the lane and pulls it back 10 mm at a time (0.1 s apart) until the advance switch opens, up to 4 tries; the filament stays put, held by the extruder. Then it syncs the lane again.", segs: [laneHeld(-SHORT_MOVE, SHORT_SPEED), pause(0.1)]});
   st.push({t: "Purge (AFC_POOP)", h: "Purge location", n: () => `Fault detection stays off. The head travels to the purge location (about 1.5 s, estimated), then extrudes purge_length, ${AFCV.poop} mm, at purge_spd, ${AFCV.poopSpd} mm/s, raising the nozzle as the blob grows, then waits 2 s with the part fan on. Everything below the new end, the old piece first, comes out here.`,
     segs: [pause(1.5), mv(AFCV.poop, AFCV.poopSpd, {anim: 5000}), pause(2)]});
-  st.push({t: "Wipe, kick, wipe; then back to the print", h: "Brush, then the print", n: () => "Shipped AFC.cfg order: the purge, a wipe on the brush, the kick, a wipe again (about 6 s, estimated). AFC then re-enables the buffer's fault detection, and the toolchange restores the print position. Shown: the hotend for 10 s, sped up.", segs: [pause(6), pause(10, {anim: 2500})]});
+  st.push({t: "Wipe, kick, wipe", h: "Brush", n: () => "Shipped AFC.cfg order: the purge, a wipe on the brush, the kick, a wipe again (about 6 s, estimated). AFC then re-enables the buffer and its fault detection, and the toolchange restores the print position.", segs: [pause(6, {anim: 1500})]});
+  st.push({t: "Printing resumes: the buffer takes over", h: "On the part", n: () => `With the buffer enabled, its switch state sets the lane's speed against the extruder's. ${bufStart() <= BB().trig || bufKind() === "bt" ? "The buffer is closed on its trailing switch, so the lane runs at multiplier_high (1.1×, the code default) and feeds a little more than the extruder takes: the buffer opens toward the middle, and at the advance switch AFC drops it to multiplier_low (0.9×)." : "The lane runs at the multiplier set by the last switch the buffer touched, and the buffer drifts between its switches."} Shown: ${PRINT_V} mm/s of filament for 12 s, sped up.`,
+    segs: [mv(PRINT_V * 12, PRINT_V, {L: PRINT_V * 12 * 1.1, dur: 12, anim: 4000})]});
   return st;
 }
 // ---- jam detection (AFC_buffer.py, "switched" buffer) ----
