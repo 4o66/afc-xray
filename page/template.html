@@ -10,11 +10,12 @@
 :root[data-theme="dark"]{--bg:#16181c;--paper:#ffffff;--fg:#e6e8eb;--muted:#9aa2ad;--rule:#33373e;--accent:#e2475d;--chip:#262a30;--on:#5cc27a;--off:#e08a5a;--warn:#f0b44c;color-scheme:dark}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
-.wrap{max-width:1280px;margin:0 auto;padding-block:24px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:28px;align-items:start}
+.wrap{max-width:1640px;margin:0 auto;padding-block:14px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:28px;align-items:start}
 @media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}}
 figure{margin:0;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px}
-canvas{display:block;height:min(88vh,1500px);width:auto;max-width:100%;aspect-ratio:1148/2212}
-@media (max-width:900px){canvas{width:100%;height:auto}}
+canvas{display:block}
+#cv{height:min(calc(100vh - 118px),1500px);min-height:420px;width:auto;max-width:100%;aspect-ratio:1148/2212}
+@media (max-width:900px){#cv{width:100%;height:auto;min-height:0}}
 .cap{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font:500 12px var(--mono);color:#5d6470;flex-wrap:wrap}
 .figs{display:grid;gap:16px;min-width:0;align-content:start}
 figure.buf{width:0;min-width:100%;box-sizing:border-box}
@@ -22,15 +23,27 @@ figure.buf canvas{width:100%;height:auto;aspect-ratio:1120/532}
 figure.buf figcaption{font-size:12.5px;color:#5d6470;margin-top:8px}
 .scale{display:flex;align-items:center;gap:8px;flex:1 1 120px}
 .scale i{display:block;height:6px;width:24%;background:repeating-linear-gradient(90deg,#1c1e22 0 10%,#fff 10% 20%);border:1px solid #1c1e22}
-.side{display:grid;gap:16px;min-width:0}
+.side{display:grid;gap:12px;min-width:0;align-content:start}
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+@media (max-width:1300px){.duo{grid-template-columns:minmax(0,1fr)}}
+.below{max-width:1640px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:start}
+.below .notes{grid-column:1/-1}
+@media (max-width:900px){.below{grid-template-columns:minmax(0,1fr)}}
+.hw{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+.hw-t{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.hw .f{display:flex;gap:6px;align-items:center;font-size:13px;min-width:0}
+.hw label{color:var(--muted)} .hw .chk label{color:var(--fg)} .hw .dim{color:var(--muted)}
+.hw select{font:500 13px var(--sans);padding:4px 8px;border:1px solid var(--rule);background:var(--chip);color:var(--fg);border-radius:4px;max-width:100%}
+.hw-note{flex-basis:100%;margin:0;font-size:12.5px;color:var(--muted)}
+@media (max-width:900px){.hw{position:static}.hw .f{flex:1 1 100%}.hw .f select{flex:1 1 auto}}
 .eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 4px}
-h1{font-weight:600;font-size:1.45rem;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-weight:600;font-size:1.3rem;line-height:1.2;margin:0;text-wrap:balance}
 .lede{color:var(--muted);margin:6px 0 0;font-size:14px}
 .panel{border-top:2px solid var(--fg);padding-top:12px;display:grid;gap:10px}
 .stepno{font:500 12px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .speed{color:var(--warn)}
 h2{font-weight:600;font-size:1.2rem;margin:0;text-wrap:balance}
-.narr{margin:0;min-height:6.5em}
+.narr{margin:0;min-height:7.5em}
 .readout{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:13.5px;margin:0}
 .readout dt{font:500 11.5px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
 .readout dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;min-width:0}
@@ -61,7 +74,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .tune .row{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) 4.5em;gap:10px;align-items:center;font-size:13.5px}
 .tune output{font-family:var(--mono);text-align:right}
 .tune input[type=range]{width:100%;margin:0}
-.tune select{font:500 13px var(--sans);padding:4px 8px;border:1px solid var(--rule);background:var(--chip);color:var(--fg);border-radius:4px;justify-self:start}
+.tune select{max-width:100%;min-width:0;font:500 13px var(--sans);padding:4px 8px;border:1px solid var(--rule);background:var(--chip);color:var(--fg);border-radius:4px;justify-self:start}
 .rng{position:relative;padding-top:12px;min-width:0}
 .rng .def{position:absolute;top:0;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #d21f2f;transform:translateX(-6px);pointer-events:none}
 .defkey{display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:9px solid #d21f2f;margin-right:4px;vertical-align:middle}
@@ -82,15 +95,20 @@ dialog#help code{font-family:var(--mono);font-size:12.5px;background:var(--chip)
 dialog#help .x{float:right}
 .notes{font-size:13px;color:var(--muted)} .notes p{margin:0 0 7px} .notes strong{color:var(--fg);font-weight:600}
 </style>
+<header class="hw" aria-label="Hardware">
+<span class="hw-t">Hardware</span>
+<div class="f"><label for="k-body">Extruder body</label><select id="k-body"><option value="dual" selected>FilamATrix CW2, dual switch</option><option value="single">FilamATrix CW2, single switch</option><option value="none">FilamATrix CW2, no switch</option><option value="f25_ecas">FilamATrix 2.5, no switch (ECAS04)</option><option value="f25_collet">FilamATrix 2.5, no switch (collet)</option></select></div>
+<div class="f"><label for="k-hot">Hotend</label><select id="k-hot"><option value="rapido_v2_uhf" selected>Phaetus Rapido V2 UHF</option><option value="rapido_uhf">Phaetus Rapido UHF</option><option value="rapido_v2_hf">Phaetus Rapido V2 HF</option><option value="rapido_hf">Phaetus Rapido HF</option><option value="dragon_hf">Phaetus Dragon HF</option><option value="dragon_uhf">Phaetus Dragon UHF</option><option value="dragon_uhf_mini">Phaetus Dragon UHF Mini</option><option value="revo">E3D Revo Voron</option><option value="bambu">Bambu Lab hotend</option></select></div>
+<div class="f"><label for="k-blade">Blade</label><select id="k-blade"><option value="ldo" selected>LDO full-length</option><option value="olfa">Olfa KB4-F</option></select></div>
+<div class="f"><label for="k-buf">Buffer</label><select id="k-buf"><option value="tn" selected>TurtleNeck</option><option value="bt">BoxTurtle v1.1 hub/buffer combo</option></select></div>
+<div class="f chk"><input type="checkbox" id="k-band"><label for="k-band">TurtleNeck rubber band <span class="dim">(community mod)</span></label></div>
+<p class="hint hw-note" id="hot-est" hidden>This hotend is one solid in the CAD, so its heat zones (block top, heat break, liner seat) are estimated from its outline.</p>
+</header>
 <div class="wrap">
 <div class="figs">
 <figure>
 <canvas id="cv" width="1148" height="2212" role="img" aria-label="Animated front-on section of the toolhead showing the filament, its temperature and the moving parts through each step of the toolchange unload"></canvas>
 <div class="cap"><div class="scale"><i></i><span>10 mm</span></div><span id="clock">t = 0.00 s</span></div>
-</figure>
-<figure class="buf">
-<canvas id="cvb" width="1120" height="532" role="img" aria-label="Section of the TurtleNeck buffer through its filament path, with the slide moving as the lane moves"></canvas>
-<figcaption id="buf-cap">Buffer: TurtleNeck, cut through the filament path and seen from the lid side. The red slide carries the left collet and its tube; the right tube is fixed in the frame and slides inside the slide's bore. PTFE positions are inferred from the CAD bores. Collapsed (slide right) closes the trailing switch; expanded (slide left) closes advance.</figcaption>
 </figure>
 </div>
 <div class="side">
@@ -99,6 +117,7 @@ dialog#help .x{float:right}
 <h1>Where the hot plastic goes during a toolchange</h1>
 <p class="lede">AFC v1.2.0-5 with its shipped default settings, on a Stealthburner with <span id="lede-body">a FilamATrix Clockwork 2 (dual switch)</span> and <span id="lede-hot">a Phaetus Rapido V2 UHF</span>. Extruder moves follow AFC's code exactly; temperatures come from a simple heat model (see the notes).</p>
 </div>
+<div class="duo">
 <div class="panel" aria-live="polite">
 <div class="stepno"><span id="stepno"></span><span class="speed" id="speed"></span></div>
 <h2 id="title"></h2>
@@ -122,20 +141,22 @@ dialog#help .x{float:right}
 <label for="x-mag"><input type="checkbox" id="x-mag"> Magnify guidler swing ×6</label>
 </div>
 </div>
+<figure class="buf">
+<canvas id="cvb" width="1120" height="532" role="img" aria-label="Section of the TurtleNeck buffer through its filament path, with the slide moving as the lane moves"></canvas>
+<figcaption id="buf-cap">Buffer: TurtleNeck, cut through the filament path and seen from the lid side. The red slide carries the left collet and its tube; the right tube is fixed in the frame and slides inside the slide's bore. PTFE positions are inferred from the CAD bores. Collapsed (slide right) closes the trailing switch; expanded (slide left) closes advance.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="below">
 <div class="tune">
-<h3>Try other settings</h3>
-<div class="row"><label for="k-body">Extruder body</label><select id="k-body"><option value="dual" selected>FilamATrix CW2, dual switch</option><option value="single">FilamATrix CW2, single switch</option><option value="none">FilamATrix CW2, no switch</option><option value="f25_ecas">FilamATrix 2.5, no switch (ECAS04)</option><option value="f25_collet">FilamATrix 2.5, no switch (collet)</option></select><output id="o-body" for="k-body"></output></div>
-<div class="row"><label for="k-hot">Hotend</label><select id="k-hot"><option value="rapido_v2_uhf" selected>Phaetus Rapido V2 UHF</option><option value="rapido_uhf">Phaetus Rapido UHF</option><option value="rapido_v2_hf">Phaetus Rapido V2 HF</option><option value="rapido_hf">Phaetus Rapido HF</option><option value="dragon_hf">Phaetus Dragon HF</option><option value="dragon_uhf">Phaetus Dragon UHF</option><option value="dragon_uhf_mini">Phaetus Dragon UHF Mini</option><option value="revo">E3D Revo Voron</option><option value="bambu">Bambu Lab hotend</option></select><output id="o-hot" for="k-hot"></output></div>
-<p class="hint" id="hot-est" hidden>This hotend is one solid in the CAD, so its heat zones (block top, heat break, liner seat) are estimated from its outline.</p>
-<div class="row"><label for="k-blade">Blade</label><select id="k-blade"><option value="ldo" selected>LDO full-length</option><option value="olfa">Olfa KB4-F</option></select><output></output></div>
+<h3>Settings</h3>
 <div class="row"><label for="k-mat">Material</label><select id="k-mat"><option value="PLA">PLA</option><option value="ABS">ABS</option><option value="PETG">PETG</option><option value="ASA" selected>ASA</option></select><output id="o-mat" for="k-mat"></output></div>
 <div class="row"><label for="k-start">Starting values</label><select id="k-start"><option value="afc" selected>AFC defaults</option><option value="at">Armored Turtle table, this hotend</option></select><output id="o-start" for="k-start"></output></div>
 <div class="row"><label for="k-ret">retract_length (cut)</label><div class="rng"><input type="range" id="k-ret" min="0" max="25" step="0.5" value="20"><span class="def" style="left:calc(80.000% + -4.80px)" title="AFC default: 20 mm"></span></div><output id="o-ret" for="k-ret"></output></div>
 <div class="row"><label for="k-push">pushback_length</label><div class="rng"><input type="range" id="k-push" min="0" max="25" step="0.5" value="15"><span class="def" style="left:calc(60.000% + -1.60px)" title="AFC default: 15 mm"></span></div><output id="o-push" for="k-push"></output></div>
 <div class="row"><label for="k-cmd">cut_move_dist</label><div class="rng"><input type="range" id="k-cmd" min="4" max="13" step="0.5" value="8.5"><span class="def" style="left:calc(50.000% + 0.00px)" title="AFC default: 8.5 mm"></span></div><output id="o-cmd" for="k-cmd"></output></div>
 <div class="row"><label for="k-slr">Slicer toolchange retract</label><div class="rng"><input type="range" id="k-slr" min="0" max="5" step="0.1" value="1.5"></div><output id="o-slr" for="k-slr"></output></div>
-<div class="row"><label for="k-buf">Buffer</label><select id="k-buf"><option value="tn" selected>TurtleNeck</option><option value="bt">BoxTurtle v1.1 hub/buffer combo</option></select><output></output></div>
-<div class="row"><label for="k-band">Rubber band on the TurtleNeck</label><input type="checkbox" id="k-band"><output>community mod</output></div>
 <div class="row"><label for="k-tau">Heat time constant</label><div class="rng"><input type="range" id="k-tau" min="0.5" max="8" step="0.5" value="3"></div><output id="o-tau" for="k-tau"></output></div>
 <p class="hint"><span class="defkey" aria-hidden="true"></span>Red arrows mark AFC's shipped defaults (v1.2.0-5), which the sliders start at. Changing a slider reruns the sequence from the start. The slicer retract (example 1.5 mm) and AFC's 2 mm quick pull are fixed. <button type="button" class="linkbtn" id="b-help">Where do I find these settings?</button></p>
 <div class="ctrl"><button id="b-reset" type="button">Reset to AFC defaults</button></div>
@@ -158,7 +179,6 @@ dialog#help .x{float:right}
 <p><strong>Hotends:</strong> heat zones come from each hotend's part positions in the CAD. Dragon UHF, Dragon UHF Mini, Revo and Bambu are modeled as one solid, so their zones are estimated and the page says so. PTFE liner lengths come from FilamATrix's cutting jigs where published. Chube Compact is in the CAD as printheads only, with no hotend, so it is not offered.</p>
 <p><strong>Moving parts:</strong> both extruder gears turn with every extruder move (hob contact radius 3.7 mm); the cutter arm is driven by the head motion (touch at the pin, then cut_move_dist further, at AFC's cut speeds) on its M3 pivot, blade holder sliding in X, the return spring (drawn as the parts-list spring: 0.5 × 4 × 25 mm, 14 coils, bent between the arm's pocket, tilted 18° up, and the level printhead pocket; compressed to about 13.1 mm at rest and 11.1 mm at full stroke, its arm end turning from 18° to 6°; it sits behind the cut plane inside the arm's pocket, so where the arm covers it, it is drawn faintly as a hidden part; the CAD models a straight 15 mm spring), guidler swinging in 0.15 mm when the gears are empty, switch balls riding on the filament.</p>
 <p><strong>Credits and licenses:</strong> page code and the heat model are AGPL-3.0. The drawings are rendered from GPL-3.0 CAD, so the rendered images and mesh data are GPL-3.0 too: <a href="https://github.com/thunderkeys/FilamATrix">FilamATrix</a> (thunderkeys; the FilamATrix 2.5 bodies were shared by its authors on the Armored Turtle Discord), <a href="https://github.com/VoronDesign">Voron Design</a> (Stealthburner, Clockwork 2 and 2.5, and the <a href="https://github.com/VoronDesign/Voron-Hardware">Stealthburner toolhead PCB</a>), and Armored Turtle's <a href="https://github.com/ArmoredTurtle/TurtleNeck">TurtleNeck</a> and <a href="https://github.com/ArmoredTurtle/BoxTurtle">BoxTurtle</a>. Vendor models inside that CAD are credited to their makers: Phaetus (Rapido, Dragon), E3D (Revo), Bambu Lab (hotend), LDO (stepper), Omron (switches) and standard hardware. Sequence and values from <a href="https://github.com/AFCProject/AFC-Klipper-Add-On">AFC-Klipper-Add-On</a> and Armored Turtle's documentation. Source: <a href="https://github.com/4o66/afc-xray">github.com/4o66/afc-xray</a>.</p>
-</div>
 </div>
 </div>
 <dialog id="help" aria-labelledby="help-t">
