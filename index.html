@@ -653,13 +653,18 @@ function jamSteps(){
     const t1 = (b1 - g) / PRINT_V;
     st.push({t: "Part II: the spool tangles", h: "On the part", n: () => `A tangle at the spool stops the lane's feed, but the extruder keeps pulling at the full print rate, so the buffer is pulled closed: ${(b1 - g).toFixed(1)} mm to the trailing switch, ${t1.toFixed(1)} s. Printing is normal meanwhile.`,
       segs: [{k: "e", E: PRINT_V * t1, X: PRINT_V * t1, L: 0, dur: t1}]});
-    const tStop = g / PRINT_V;
+    // once the buffer is empty the extruder can still take up the bowden's slack: the filament riding the inside of each
+    // bend in the 4 x 2 mm tube (0.25 mm clearance) pulled straight. About 2 mm for roughly a full turn of bends, an
+    // estimate. Then the line on the bed chokes off over about 0.8 s, as in part I.
+    const tStop = g / PRINT_V, SLACK = 2.0, tSl = SLACK / PRINT_V, tf = 0.8, ef = PRINT_V * tf * 0.35;
+    const tightSegs = () => [{k: "e", E: PRINT_V * tStop, X: PRINT_V * tStop, L: 0, dur: tStop, mark: "count"}, {k: "e", E: SLACK, X: SLACK, L: 0, dur: tSl}, {k: "e", E: ef, X: PRINT_V * tf, L: 0, dur: tf}];
+    const TIGHT_TXT = `the buffer runs onto its end stop ${tStop.toFixed(1)} s later, and the extruder still pulls about ${SLACK} mm more (an estimate) as the slack in the bowden tube goes tight; then the printed line chokes off and the extruder grinds`;
     if (on){ const lim = sensDist(), tl = lim / PRINT_V;
-      st.push({t: "Trailing switch closes: counting starts", h: "On the part", n: () => `The trailing switch closes. AFC raises the lane to multiplier_high × 1.5 (${hiOn.toFixed(2)}×) and starts the check: ${lim} mm of extruder movement. The lane can't turn the snagged spool, so the buffer runs onto its end stop ${tStop.toFixed(1)} s later; then the extruder can't pull any more and grinds.`,
-        segs: [{k: "e", E: PRINT_V * tStop, X: PRINT_V * tStop, L: 0, dur: tStop, mark: "count"}, {k: "e", E: 0, X: PRINT_V * (tl - tStop), L: 0, dur: tl - tStop, anim: 4500}]});
+      st.push({t: "Trailing switch closes: counting starts", h: "On the part", n: () => `The trailing switch closes. AFC raises the lane to multiplier_high × 1.5 (${hiOn.toFixed(2)}×) and starts the check: ${lim} mm of extruder movement. The lane can't turn the snagged spool, so ${TIGHT_TXT}.`,
+        segs: tightSegs().concat([{k: "e", E: 0, X: PRINT_V * (tl - tStop - tSl - tf), L: 0, dur: tl - tStop - tSl - tf, anim: 4500}])});
       st.push({t: "AFC NOT FEEDING: the print pauses", h: "Paused", n: () => `After ${lim} mm of extruder movement AFC raises "AFC filament fault detected! Take necessary action." with "AFC NOT FEEDING" and pauses. AFC calls this state "Advancing"; the GUI sensor for this switch is called "compressed".`, segs: [pause(0.5), pause(5, {anim: 1800})]});
-    } else st.push({t: "Trailing switch closes: nothing else happens", h: "On the part", n: () => "The trailing switch closes and AFC raises the lane to 1.1×, which can't free the spool. With detection off there is no check: once the buffer is empty the extruder grinds and the print goes on without plastic. Shown: 30 s, sped up.",
-        segs: [{k: "e", E: PRINT_V * tStop, X: PRINT_V * tStop, L: 0, dur: tStop}, {k: "e", E: 0, X: PRINT_V * (30 - tStop), L: 0, dur: 30 - tStop, anim: 6000}]});
+    } else st.push({t: "Trailing switch closes: nothing else happens", h: "On the part", n: () => `The trailing switch closes and AFC raises the lane to 1.1×, which can't free the spool: ${TIGHT_TXT}. With detection off there is no check, so the print goes on without plastic. Shown: 30 s, sped up.`,
+        segs: tightSegs().map(x => (delete x.mark, x)).concat([{k: "e", E: 0, X: PRINT_V * (30 - tStop - tSl - tf), L: 0, dur: 30 - tStop - tSl - tf, anim: 6000}])});
   }
   return st;
 }
