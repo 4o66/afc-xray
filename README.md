@@ -44,7 +44,7 @@ too much?** It came out of chasing repeated jams at the top of the heat break.
     (AFC's default, 0, turns it off).
   - **Spool load and eject:** a new spool from the prep sensor to its parking spot short of the hub switch, through the hub
     at the next toolchange, back, and LANE_UNLOAD, on top and side sections of the hub.
-- A hardware bar: extruder body, hotend, blade, and the hub and buffer: the BoxTurtle v1.1 load-only hub with a
+- A hardware bar: extruder body, hotend, blade, and the hub and buffer: the BoxTurtle v1.0 hub or v1.1 load-only hub with a
   TurtleNeck (optional rubber band, a community mod that holds it collapsed, so the no-switch unload skips the lane
   pull-back), or the v1.1 hub/buffer combo, whose outlet block slides up to 10 mm on two spring-loaded binding barrels.
   The combo's switch trigger points are estimated.
@@ -101,7 +101,7 @@ most sensitive.
 | `tools/export_*.py` | Mesh the source STEP files with FreeCAD: toolhead, bodies and cover, hotends, Voron board, BoxTurtle combo. |
 | `tools/hotends.json` | Per-hotend geometry: nozzle tip, heat zones, liner seat and length, Armored Turtle starting values. |
 | `tools/buffer_section.py`, `tools/btcombo_section.py`, `tools/buffer_assets.py` | Render the TurtleNeck and the BoxTurtle hub/buffer combo; cut the combo's page assets. |
-| `tools/hub_section.py`, `tools/hub_paths.py`, `tools/hub_assets.py`, `tools/import_hub_stl.py` | Hub sections (top and side), channel tracing, hub page assets, and the load-only hub's body from Armored Turtle's STL. |
+| `tools/hub_section.py`, `tools/hub_paths.py`, `tools/hub_assets.py`, `tools/import_hub_stl.py`, `tools/export_bthub10.py`, `tools/place_bthub10.py` | Hub sections (top and side), channel tracing, hub page assets, and the load-only hub's body from Armored Turtle's STL. |
 | `build_all.sh` | Renders every body variant and assembles the page. |
 | `tools/section.py` | Render the section and the moving layers. A NumPy z-buffer renderer that draws cut faces hatched. |
 | `tools/path_data.py`, `tools/sprites.py`, `tools/build_page.py` | Filament path data, sprite cutting, and page assembly. |
@@ -133,7 +133,8 @@ The source STEP files are not in this repository. They are:
     parts (motor plate, guidler A, latch shuttle, cable cover, collet), and the
     [Stealthburner toolhead PCB](https://github.com/VoronDesign/Voron-Hardware).
   - Armored Turtle's [TurtleNeck](https://github.com/ArmoredTurtle/TurtleNeck) and
-    [BoxTurtle](https://github.com/ArmoredTurtle/BoxTurtle) v1.1 (hub/buffer combo).
+    [BoxTurtle](https://github.com/ArmoredTurtle/BoxTurtle) v1.0 (hub, from the `BT-1.0` release) and v1.1 (load-only hub,
+    hub/buffer combo).
 - **Vendor models** included in that CAD are credited to their makers: Phaetus (Rapido, Dragon), E3D (Revo), Bambu Lab
   (hotend), LDO (stepper motor), Omron (switches), and standard hardware.
 - The toolhead board drawn is Voron's reference Stealthburner PCB. Boards such as BTT's SB2209 mount in the same place.

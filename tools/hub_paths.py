@@ -5,7 +5,20 @@ import numpy as np, json, os
 from PIL import Image, ImageDraw
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "")
 HUBS = {"combo": {"src": "btcombo", "body": "[a]_hub/SOLID010", "az": 18.2, "out_ptfe": [277.0, 330.0], "outlet_end": 251.0},
-        "loadonly": {"src": "bthub_loadonly", "body": "hub_load_only_1.1/SOLID035", "az": 20.65, "out_ptfe": [251.0, 330.0], "outlet_end": 255.2}}
+        "loadonly": {"src": "bthub_loadonly", "body": "hub_load_only_1.1/SOLID035", "az": 20.65, "out_ptfe": [251.0, 330.0], "outlet_end": 255.2},
+        "v10": {"src": "bthub10", "body": "Hubs/Hub_D2HW v2/COMPOUND002/COMPOUND", "az": 20.65, "out_ptfe": [250.5, 330.0], "outlet_end": 255.2}}
+# the v1.0 hub's own ECAS04 collets give its socket axes exactly (plunger to seal retainer), lanes numbered by X
+V10_COLLETS = {"lane1": "ECAS Bowden Collet (4)/", "lane2": "ECAS Bowden Collet (3)/", "lane3": "ECAS Bowden Collet (1)004/", "lane4": "ECAS Bowden Collet (2)/"}
+def collet_axes(src, keys):
+    d = np.load(D + f"cad/{src}.npz"); N = json.load(open(D + f"cad/{src}.json")); out = {}
+    for lane, key in keys.items():
+        c = {}
+        for i, n in enumerate(N):
+            if key in n:
+                for part in ("Plunger", "Seal Retainer"):
+                    if "/" + part in n: V = d["p%03d_V" % i]; c[part] = (V.min(0) + V.max(0)) / 2
+        a = (c["Seal Retainer"] - c["Plunger"])[:2]; out[lane] = (c["Plunger"][:2].tolist(), (a / np.linalg.norm(a)).tolist())
+    return out
 AX = 150.1
 # first guesses of the inlet axes, from the combo's ECAS04 collets (plunger to seal retainer); lanes numbered by X
 GUESS = {"lane1": ([132.65, 204.81], [0.622, 0.783]), "lane2": ([143.77, 200.65], [0.26, 0.966]),
@@ -81,12 +94,12 @@ out = {"_note": "Filament paths in BoxTurtle CAD coordinates (mm), by tools/hub_
 for h, c in HUBS.items():
     d = np.load(D + f"cad/{c['src']}.npz"); N = json.load(open(D + f"cad/{c['src']}.json")); i = N.index(c["body"])
     T = d["p%03d_V" % i].astype(float)[d["p%03d_F" % i]]; M = solid_mask(T, c["az"]); lanes = {}
-    fits = {}
-    for k, (p, v) in GUESS.items():
+    fits = {}; G = collet_axes("bthub10", V10_COLLETS) if h == "v10" else GUESS
+    for k, (p, v) in G.items():
         v = np.array(v) / np.linalg.norm(v); pts, seat = trace(M, np.array(p) - v * 6, v)
         # socket axis: the combo's collet axes directly; the load-only hub's sockets point the same way (within 1 degree by
         # a fit of their walls) but sit elsewhere, so their positions are fitted from the mesh
-        ctr = np.array(p, float) if h == "combo" else fit_socket(T, c["az"], np.array(seat) - v * 4, v)
+        ctr = np.array(p, float) if h in ("combo", "v10") else fit_socket(T, c["az"], np.array(seat) - v * 4, v)
         fits[k] = (pts, seat, v, ctr)
     if h == "loadonly":   # the hub is mirror-symmetric about X = AX: average each socket with its mirror partner
         for a_, b_ in (("lane1", "lane4"), ("lane2", "lane3")):

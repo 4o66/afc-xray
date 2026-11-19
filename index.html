@@ -123,7 +123,7 @@ dialog#help .x{float:right}
 <div class="f"><label for="k-body">Extruder body</label><select id="k-body"><option value="dual" selected>FilamATrix CW2, dual switch</option><option value="single">FilamATrix CW2, single switch</option><option value="none">FilamATrix CW2, no switch</option><option value="f25_ecas">FilamATrix 2.5, no switch (ECAS04)</option><option value="f25_collet">FilamATrix 2.5, no switch (collet)</option></select></div>
 <div class="f"><label for="k-hot">Hotend</label><select id="k-hot"><option value="rapido_v2_uhf" selected>Phaetus Rapido V2 UHF</option><option value="rapido_uhf">Phaetus Rapido UHF</option><option value="rapido_v2_hf">Phaetus Rapido V2 HF</option><option value="rapido_hf">Phaetus Rapido HF</option><option value="dragon_hf">Phaetus Dragon HF</option><option value="dragon_uhf">Phaetus Dragon UHF</option><option value="dragon_uhf_mini">Phaetus Dragon UHF Mini</option><option value="revo">E3D Revo Voron</option><option value="bambu">Bambu Lab hotend</option></select></div>
 <div class="f"><label for="k-blade">Blade</label><select id="k-blade"><option value="ldo" selected>LDO full-length</option><option value="olfa">Olfa KB4-F</option></select></div>
-<div class="f"><label for="k-buf">Hub and buffer</label><select id="k-buf"><option value="tn" selected>BoxTurtle v1.1 hub (load only) + TurtleNeck</option><option value="bt">BoxTurtle v1.1 hub/buffer combo</option></select></div>
+<div class="f"><label for="k-buf">Hub and buffer</label><select id="k-buf"><option value="v10">BoxTurtle v1.0 hub + TurtleNeck</option><option value="tn" selected>BoxTurtle v1.1 hub (load only) + TurtleNeck</option><option value="bt">BoxTurtle v1.1 hub/buffer combo</option></select></div>
 <div class="f chk"><input type="checkbox" id="k-band"><label for="k-band">TurtleNeck rubber band <span class="dim">(community mod)</span></label></div>
 <p class="hint hw-note" id="hot-est" hidden>This hotend is one solid in the CAD, so its heat zones (block top, heat break, liner seat) are estimated from its outline.</p>
 </header>
@@ -349,11 +349,12 @@ const SHORT_MOVE = 10, SHORT_SPEED = 50;
 // BoxTurtle v1.1 hub/buffer combo: 10 mm travel (repo owner); trigger distance estimated.
 const BUFS = {tn: {travel: 30, trig: 2.5, sign: -1, name: "TurtleNeck", cap: "Buffer: TurtleNeck, cut through the filament path and seen from the lid side. The red slide carries the left collet and its tube; the right tube is fixed in the frame and slides inside the slide's bore. PTFE positions are inferred from the CAD bores. Collapsed (slide right) closes the trailing switch; expanded (slide left) closes advance."},
   bt: {travel: 10, trig: 2.0, sign: 1, name: "BoxTurtle v1.1 hub/buffer combo", cap: "Buffer: BoxTurtle v1.1 hub/buffer combo, cut through the outlet filament path. The hub (left) is fixed in the frame and takes filament from the lane extruders; the outlet block (right) feeds the toolhead and slides up to 10 mm on two binding barrels, which run in bushings in the hub and are pulled back by springs. The PTFE wear tube and its retainer ring stay in the hub. Collapsed (against the hub) puts the trigger under the trailing switch; expanded, under advance. Switch trigger points are estimated; the springs are drawn static."}};
-const BB = () => BUFS[P.buf];
+const bufKind = () => P.buf === "bt" ? "bt" : "tn";   // the v1.0 and v1.1 load-only hubs pair with a TurtleNeck
+const BB = () => BUFS[bufKind()];
 const BUF_TRAVEL_OF = () => BB().travel, BUF_TRIG_OF = () => BB().trig;
 // buffer start (mm from collapsed): mid-travel while printing, held collapsed by the rubber band, or collapsed after a
 // buffer-sensed unload (where the Toolhead load tab starts)
-const bufStart = () => (P.band && P.buf === "tn") ? 1.5 : (OP === "load" && BODIES[P.body].buffer) ? 0 : BB().travel / 2;
+const bufStart = () => (P.band && bufKind() === "tn") ? 1.5 : (OP === "load" && BODIES[P.body].buffer) ? 0 : BB().travel / 2;
 const bufMoves = () => { const s0 = bufStart(); return s0 <= BUF_TRIG_OF() ? 0 : Math.ceil((s0 - BUF_TRIG_OF()) / SHORT_MOVE); };
 // motion segments: E = filament at the toolhead (+ toward the nozzle), X = extruder motor, L = lane motor. The buffer takes up
 // the difference between what the lane feeds and what moves on into the toolhead, between its end stops.
@@ -400,7 +401,7 @@ function moveChain(p, d, anchorTip){
   if (f === 0 || f >= n || !anchorTip){ for (let i = 0; i < n; i++) p.z[i] += d; }
   else { const z0 = p.z[0], zf = p.z[f]; for (let i = 0; i < n; i++){ if (i >= f){ p.z[i] += d; continue; } const u = zf > z0 ? (p.z[i] - z0) / (zf - z0) : 1; p.z[i] += d * (GTIP + (1 - GTIP) * u); } }
   // anything pushed past the nozzle tip is extruded
-  while (p.z.length > 1 && p.z[0] < TIP_Z - 0.01){ p.z.shift(); p.T.shift(); }
+  while (p.z.length > 1 && p.z[0] < TIP_Z - 0.01){ p.z.shift(); p.T.shift(); p.sh = (p.sh || 0) + 1; }
 }
 function simStep(t1){
   const H = 0.004;
@@ -426,7 +427,7 @@ function cutAt(zc){
   if (i === 0 || i >= p.z.length) return;
   const u = (zc - p.z[i-1]) / (p.z[i] - p.z[i-1]), Tc = p.T[i-1] + (p.T[i] - p.T[i-1]) * u;
   const rem = {z: p.z.slice(0, i).concat([zc]), T: p.T.slice(0, i).concat([Tc]), lane: false};
-  const lane = {z: [zc].concat(p.z.slice(i)), T: [Tc].concat(p.T.slice(i)), lane: true};
+  const lane = {z: [zc].concat(p.z.slice(i)), T: [Tc].concat(p.T.slice(i)), lane: true, sh: (p.sh || 0) + i - 1};
   SIM.pieces = [rem, lane]; SIM.cut = true;
 }
 function measure(){ let s = -99, l = -99; for (const p of SIM.pieces) for (let i = 0; i < p.z.length; i++){ if (p.T[i] > TG && p.z[i] > s) s = p.z[i]; if (p.T[i] > TL && p.z[i] > l) l = p.z[i]; }
@@ -449,7 +450,10 @@ function drawPiece(p){
       ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fill(); } }
   if (L.length < 2) return;
   ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]); for (const q of L) ctx.lineTo(q[0], q[1]); for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]); ctx.closePath();
-  ctx.fillStyle = hatch; ctx.fill(); ctx.lineWidth = p.old ? 3 : 1.4; ctx.strokeStyle = p.old ? "#8a3fd0" : "rgba(20,24,28,0.85)"; ctx.stroke();
+  ctx.fillStyle = hatch; ctx.fill();
+  ctx.save(); ctx.strokeStyle = "rgba(10,12,16,.38)"; ctx.lineWidth = 2;
+  for (let i = 0; i < L.length; i++){ if ((i + (p.sh || 0)) % 8) continue; ctx.beginPath(); ctx.moveTo(L[i][0], L[i][1] + 3); ctx.lineTo(R[i][0], R[i][1] - 3); ctx.stroke(); }
+  ctx.restore(); ctx.lineWidth = p.old ? 3 : 1.4; ctx.strokeStyle = p.old ? "#8a3fd0" : "rgba(20,24,28,0.85)"; ctx.stroke();
 }
 // cutter return spring, BOM part: 0.5 mm wire, 4 mm OD, 25 mm free, 14 coils. Its arm end sits in a pocket tilted 18 deg up
 // (floor at X -28.5 Z 54.76, turning with the arm); its other end in the level printhead pocket (floor X -15.5 Z 55.65).
@@ -476,7 +480,7 @@ function drawSpring(a){
   ctx.restore();
 }
 const cvb = document.getElementById("cvb"), bctx = cvb.getContext("2d"); let BUF = null;
-async function loadBuffer(){ const dir = `assets/buffer_${P.buf}/`, j = await (await fetch(dir + "sprites.json")).json();
+async function loadBuffer(){ const dir = `assets/buffer_${bufKind()}/`, j = await (await fetch(dir + "sprites.json")).json();
   const ld = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
   BUF = {j, base: await ld(dir + "base.webp"), slide: await ld(dir + "sprite_slide.png"), bear: j.bear ? await ld(dir + "sprite_bear.png") : null};
   cvb.width = j.W; cvb.height = j.H; cvb.style.aspectRatio = `${j.W}/${j.H}`; document.getElementById("buf-cap").textContent = BB().cap; }
@@ -491,9 +495,12 @@ function drawBuffer(dt){ if (!BUF) return; const j = BUF.j, d = bufDX(SIM.t), of
   if (P.buf === "bt" && HUBP){ const ey = axisEndY(tip); if (ey == null) fx2 = fx; else { fx = Math.max(fx, bx(Math.min(...lanePath().pts.filter(p => Math.abs(p[0] - HUBP.axis_x) < 1e-6).map(p => p[1])))); fx2 = Math.min(fx2, bx(ey)); } }
   else if (HUBP && tip < lanePath().sw + 30) fx2 = fx;     // the end is back at the hub: the TurtleNeck is empty
   if (fx2 > fx){ bctx.fillStyle = "#2fae4f"; bctx.fillRect(fx, fy, fx2 - fx, fw); bctx.fillStyle = hatch; bctx.fillRect(fx, fy, fx2 - fx, fw);
-    bctx.strokeStyle = "rgba(20,24,28,.85)"; bctx.lineWidth = 1.4; bctx.strokeRect(fx, fy, fx2 - fx, fw); }
+    bctx.strokeStyle = "rgba(20,24,28,.85)"; bctx.lineWidth = 1.4; bctx.strokeRect(fx, fy, fx2 - fx, fw);
+    const ph = ((lanePos(SIM.t) % 2) + 2) % 2; bctx.save(); bctx.strokeStyle = "rgba(10,12,16,.38)"; bctx.lineWidth = 2;
+    for (let xm = j.xmin - 2 + ph; (xm - j.xmin) * PX < cvb.width; xm += 2){ const x = (xm - j.xmin) * PX; if (x < fx || x > fx2) continue; bctx.beginPath(); bctx.moveTo(x - 3, fy + fw); bctx.lineTo(x + 3, fy); bctx.stroke(); }
+    bctx.restore(); }
   if (BUF.bear && HUBP){ const ey = axisEndY(tip), lift = bearLift(ey, j.bear.y_mm + off, j.bear.lift, "bearB", dt); bctx.drawImage(BUF.bear, j.bear.x + off * PX, j.bear.y - lift * PX); }
-  if (P.band && P.buf === "tn"){ bctx.save(); bctx.strokeStyle = "rgba(226,170,40,.9)"; bctx.lineWidth = 5; [6.2, -6.2].forEach(o => { bctx.beginPath(); bctx.moveTo(bx(14.5 + off), by(j.axisY + o)); bctx.lineTo(bx(82.5), by(j.axisY + o)); bctx.stroke(); }); bctx.restore(); }
+  if (P.band && bufKind() === "tn"){ bctx.save(); bctx.strokeStyle = "rgba(226,170,40,.9)"; bctx.lineWidth = 5; [6.2, -6.2].forEach(o => { bctx.beginPath(); bctx.moveTo(bx(14.5 + off), by(j.axisY + o)); bctx.lineTo(bx(82.5), by(j.axisY + o)); bctx.stroke(); }); bctx.restore(); }
   const st = d <= BUF_TRIG_OF() ? "trailing" : d >= BUF_TRAVEL_OF() - BUF_TRIG_OF() ? "advance" : "between switches";
   bctx.save(); bctx.font = "500 26px IBM Plex Mono, monospace"; bctx.fillStyle = "#1c1e22"; bctx.fillText(`${BB().name}: ${d.toFixed(1)} mm from collapsed, ${st}`, 16, cvb.height - 18); bctx.restore(); }
 function sprite(k, tf){ const s = SPR[k]; ctx.save(); tf && tf(); ctx.drawImage(imgs[k], s.x, s.y); ctx.restore(); }
@@ -540,7 +547,7 @@ function draw(dt){
 // templates/AFC_Turtle_1.cfg, config/AFC_Macro_Vars.cfg). Code defaults differ for some; the narration says which.
 const AFCV = {long: 150, short: 50, bowden: 1725, hubClear: 65, toolStn: 72, toolLoad: 25, poop: 72.111, poopSpd: 6.5, distHub: [155, 80, 90, 145], extClear: 50, maxMoves: 40};
 let OP = "change";
-const hubKey = () => P.buf === "bt" ? "combo" : "loadonly";
+const hubKey = () => ({bt: "combo", tn: "loadonly", v10: "v10"})[P.buf];
 const OPS = {
   change: {eyebrow: "Section A–A · AFC toolchange unload", h1: "Where the hot plastic goes during a toolchange",
     lede: () => `AFC v1.2.0-5 with its shipped default settings, on a Stealthburner with ${BODIES[P.body].lede} and a ${HD().label}. Extruder moves follow AFC's code exactly; temperatures come from a simple heat model (see the notes).`,
@@ -552,7 +559,7 @@ const OPS = {
     lede: () => `AFC v1.2.0-5's buffer fault check (AFC_buffer.py), on a Stealthburner with ${BODIES[P.body].lede}, a ${HD().label} and the ${BB().name}. While printing, the lane motor is synced to the extruder, and the buffer takes up the difference between what the lane feeds and what the extruder pulls.`,
     steps: () => jamSteps(), init: initPrinting, totalLbl: "Extruder", total: st => `${fmt(st.X1)} commanded from the start of this timeline`},
   lane: {eyebrow: "Hub section · BoxTurtle lane", h1: "Loading and ejecting a spool",
-    lede: () => `AFC v1.2.0-5 with its shipped settings, on a BoxTurtle with the ${hubKey() === "combo" ? "v1.1 hub/buffer combo" : "v1.1 load-only hub"}. Top: the hub cut through its filament channels, with the switches above the cut drawn see-through. Bottom: cut through the outlet.`,
+    lede: () => `AFC v1.2.0-5 with its shipped settings, on a BoxTurtle with the ${({combo: "v1.1 hub/buffer combo", loadonly: "v1.1 load-only hub", v10: "v1.0 hub"})[hubKey()]}. Top: the hub cut through its filament channels, with the switches above the cut drawn see-through. Bottom: cut through the outlet.`,
     steps: () => laneSteps(), init: () => [], totalLbl: "Lane", total: st => `filament end ${laneTipText(st.t1)}`}};
 // ---- toolhead load (AFC.py TOOL_LOAD / load_sequence) ----
 const loadTarget = () => BODIES[P.body].buffer ? GEAR_Z + 2 : BALLS[0].z;      // where the bowden move stops the end
@@ -567,9 +574,9 @@ function changeEndRemnant(){   // the cut-off piece as the toolchange unload lea
   const key = JSON.stringify([P.ret, P.push, P.cmd, P.slr, P.tau, P.mat, P.body, P.hot, P.band, P.buf]);
   if (!REM_CACHE || REM_CACHE.key !== key){
     const keep = [OP, STEPS, SEGS, T_END]; OP = "change"; layout(); simReset(); simStep(T_END);
-    REM_CACHE = {key, pieces: SIM.pieces.filter(p => !p.lane).map(p => ({z: p.z.slice(), T: p.T.slice(), lane: false, old: true}))};
+    REM_CACHE = {key, pieces: SIM.pieces.filter(p => !p.lane).map(p => ({z: p.z.slice(), T: p.T.slice(), lane: false, old: true, sh: p.sh || 0}))};
     [OP, STEPS, SEGS, T_END] = keep; }
-  return REM_CACHE.pieces.map(p => ({z: p.z.slice(), T: p.T.slice(), lane: false, old: true}));
+  return REM_CACHE.pieces.map(p => ({z: p.z.slice(), T: p.T.slice(), lane: false, old: true, sh: p.sh}));
 }
 function loadSteps(){
   const b = BODIES[P.body], ram = b.buffer, st = [], end = BALLS[0].z - BALLS[1].z, nStep = Math.ceil(end / 10);
@@ -693,7 +700,7 @@ async function loadHub(){ if (!HUBP) HUBP = await (await fetch("assets/hub_paths
     for (const k of ["slide", "over", "overslide", "bear", "hwfix", "hwslide"]) if (j[k]) o[k] = await ld(dir + "sprite_" + k + ".png");
     nw[view] = o; }
   HUBA = nw;
-  const c = document.getElementById("hub-cap"); c.textContent = (hubKey() === "combo" ? "BoxTurtle v1.1 hub/buffer combo. Top: the four lane inlets (lane 1 at the top) curve together into the PTFE wear tube; the outlet block on the right slides on its barrels (buffer). The buffer switches, their trigger and the hub switch sit above the cut and are drawn see-through. Bottom: the outlet, cut through its axis." : "BoxTurtle v1.1 load-only hub, used with a separate buffer such as the TurtleNeck. Top: the four lane inlets (lane 1 at the top) curve together and pass under the hub switch's bearing; the switch sits above the cut and is drawn see-through. The body is Armored Turtle's printable STL, since the STEP release models it without its channels. Bottom: the outlet, cut through its axis.") + " Channel centerlines are traced from the CAD; PTFE in the inlets and outlet is inferred."; }
+  const c = document.getElementById("hub-cap"); c.textContent = (hubKey() === "v10" ? "BoxTurtle v1.0 hub, used with a separate buffer such as the TurtleNeck. Top: the four lane inlets (lane 1 at the top) with their ECAS04 collets curve together and pass under the hub switch's bearing; the switch sits above the cut and is drawn see-through. Bottom: the outlet, cut through its axis." : hubKey() === "combo" ? "BoxTurtle v1.1 hub/buffer combo. Top: the four lane inlets (lane 1 at the top) curve together into the PTFE wear tube; the outlet block on the right slides on its barrels (buffer). The buffer switches, their trigger and the hub switch sit above the cut and are drawn see-through. Bottom: the outlet, cut through its axis." : "BoxTurtle v1.1 load-only hub, used with a separate buffer such as the TurtleNeck. Top: the four lane inlets (lane 1 at the top) curve together and pass under the hub switch's bearing; the switch sits above the cut and is drawn see-through. The body is Armored Turtle's printable STL, since the STEP release models it without its channels. Bottom: the outlet, cut through its axis.") + " Channel centerlines are traced from the CAD; PTFE in the inlets and outlet is inferred."; }
 const cvh = document.getElementById("cvh"), hctx = cvh.getContext("2d"), cvs = document.getElementById("cvs"), sctx = cvs.getContext("2d");
 // where the lane's filament end is along its hub path (arc length, mm), per operation
 function hubTipS(t){ const lp = lanePath();
@@ -702,8 +709,13 @@ function hubTipS(t){ const lp = lanePath();
   if (OP === "change"){ const Lend = SEGS.length ? SEGS[SEGS.length - 1].L1 : 0; return lp.sw - AFCV.hubClear + (lanePos(t) - Lend); }
   return 1e9; }
 function hubTipText(tip){ const lp = lanePath(), d = tip - lp.sw; if (tip > 1e8) return "through the hub"; return Math.abs(d) < 0.5 ? "at the hub switch" : `${Math.abs(d) > 500 ? "far" : Math.abs(d).toFixed(0) + " mm"} ${d < 0 ? "short of" : "past"} the hub switch`; }
-function hubFil(g, pts, map){ if (pts.length < 2) return; g.save(); g.lineCap = "butt"; g.lineJoin = "round"; g.beginPath(); pts.forEach((p, i) => { const [x, y] = map(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
-  g.strokeStyle = "rgba(20,24,28,.85)"; g.lineWidth = 1.75 * PX + 3; g.stroke(); g.strokeStyle = "#2fae4f"; g.lineWidth = 1.75 * PX - 1; g.stroke(); g.restore(); }
+function pathPt(pts, d){ for (let i = pts.length - 1; i > 0; i--){ const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (d <= L){ const f = d / (L || 1); return [pts[i][0] + (pts[i - 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i - 1][1] - pts[i][1]) * f, pts[i - 1][0] - pts[i][0], pts[i - 1][1] - pts[i][1]]; } d -= L; } return null; }
+function filTicks(g, pts, map, phase){ g.save(); g.strokeStyle = "rgba(10,12,16,.38)"; g.lineWidth = 2;
+  for (let d = phase; d < 400; d += 2){ const q = pathPt(pts, d); if (!q) break; const [x, y] = map(q), [x2, y2] = map([q[0] + q[2], q[1] + q[3]]), l = Math.hypot(x2 - x, y2 - y) || 1, nx = -(y2 - y) / l, ny = (x2 - x) / l, h = 0.8 * PX;
+    g.beginPath(); g.moveTo(x - nx * h + (x2 - x) / l * 3, y - ny * h + (y2 - y) / l * 3); g.lineTo(x + nx * h - (x2 - x) / l * 3, y + ny * h - (y2 - y) / l * 3); g.stroke(); }
+  g.restore(); }
+function hubFil(g, pts, map, phase){ if (pts.length < 2) return; g.save(); g.lineCap = "butt"; g.lineJoin = "round"; g.beginPath(); pts.forEach((p, i) => { const [x, y] = map(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.strokeStyle = "rgba(20,24,28,.85)"; g.lineWidth = 1.75 * PX + 3; g.stroke(); g.strokeStyle = "#2fae4f"; g.lineWidth = 1.75 * PX - 1; g.stroke(); g.restore(); filTicks(g, pts, map, phase == null ? 1 : phase); }
 function hubUpto(lp, tip){ const upto = []; for (let i = 0; i < lp.pts.length; i++){ if (lp.S[i] <= tip) upto.push(lp.pts[i]); else { if (i > 0){ const f = (tip - lp.S[i - 1]) / (lp.S[i] - lp.S[i - 1]); if (f > 0) upto.push([lp.pts[i - 1][0] + (lp.pts[i][0] - lp.pts[i - 1][0]) * f, lp.pts[i - 1][1] + (lp.pts[i][1] - lp.pts[i - 1][1]) * f]); } break; } } return upto; }
 function hubLabel(g, txt, H){ g.save(); g.font = "500 26px IBM Plex Mono, monospace"; g.fillStyle = "#1c1e22"; g.fillText(txt, 16, H - 18); g.restore(); }
 // combo barrel springs (0.4 x 5 x 15 mm, about 9.7 turns from the CAD): between the barrel head, which moves with the outlet
@@ -721,7 +733,7 @@ function drawHubTop(g, cvx, tip){
   g.clearRect(0, 0, cvx.width, cvx.height); g.drawImage(T.base, 0, 0); if (T.slide) g.drawImage(T.slide, T.j.slide.x + off, T.j.slide.y);
   if (T.hwfix) g.drawImage(T.hwfix, T.j.hwfix.x, T.j.hwfix.y); if (T.hwslide) g.drawImage(T.hwslide, T.j.hwslide.x + off, T.j.hwslide.y);
   if (hubKey() === "combo") BARRELS.forEach(xc => drawBarrelSpring(g, xc, BARREL_HEAD + off / PX, BARREL_WASHER));
-  hubFil(g, hubUpto(lp, tip), p => [(p[1] - 192) * PX, (p[0] - 122) * PX]);
+  hubFil(g, hubUpto(lp, tip), p => [(p[1] - 192) * PX, (p[0] - 122) * PX], tip > 1e8 ? ((-lanePos(SIM.t)) % 2 + 2) % 2 : 1);
   g.save(); g.globalAlpha = P.see / 100; if (T.over) g.drawImage(T.over, T.j.over.x, T.j.over.y); if (T.overslide) g.drawImage(T.overslide, T.j.overslide.x + off, T.j.overslide.y); g.restore();
   g.save(); g.setLineDash([8, 6]); g.strokeStyle = "#2a7fd4"; g.lineWidth = 2.5; const sx = (lp.swY - 192) * PX; g.beginPath(); g.moveTo(sx, (HUBP.axis_x - 6 - 122) * PX); g.lineTo(sx, (HUBP.axis_x + 6 - 122) * PX); g.stroke(); g.restore();
   hubLabel(g, `Top · lane ${P.lane} end: ${hubTipText(tip)}`, cvx.height); }
@@ -731,7 +743,7 @@ function drawHub(dt){
   const upto = hubUpto(lp, tip), sx = (lp.swY - 192) * PX;
   sctx.clearRect(0, 0, cvs.width, cvs.height); sctx.drawImage(S.base, 0, 0); if (S.slide) sctx.drawImage(S.slide, S.j.slide.x + off, S.j.slide.y);
   const onAxis = upto.filter(p => Math.abs(p[0] - HUBP.axis_x) < 1e-6), last = upto[upto.length - 1];
-  if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6){ const zy = (48 - h.az) * PX; hubFil(sctx, [[0, onAxis[0][1]], [0, last[1]]], p => [(p[1] - 192) * PX, zy]); }
+  if (onAxis.length && last && Math.abs(last[0] - HUBP.axis_x) < 1e-6){ const zy = (48 - h.az) * PX; hubFil(sctx, [[0, onAxis[0][1]], [0, last[1]]], p => [(p[1] - 192) * PX, zy], 1); }
   if (S.bear){ const offmm = hubKey() === "combo" ? BB().sign * bufDX(SIM.t) : 0, lift = bearLift(axisEndY(tip), S.j.bear.y_mm + offmm, S.j.bear.lift, "bearS", dt); sctx.drawImage(S.bear, S.j.bear.x + offmm * PX, S.j.bear.y - lift * PX); }
   sctx.save(); sctx.setLineDash([8, 6]); sctx.strokeStyle = "#2a7fd4"; sctx.lineWidth = 2.5; sctx.beginPath(); sctx.moveTo(sx, (48 - h.az - 7) * PX); sctx.lineTo(sx, (48 - h.az + 7) * PX); sctx.stroke(); sctx.restore();
   hubLabel(sctx, "Side · blue dashes: hub switch trigger point (estimated)", cvs.height);
@@ -827,7 +839,7 @@ document.getElementById("k-body").addEventListener("change", e => { P.body = e.t
 document.getElementById("k-hot").addEventListener("change", e => { P.hot = e.target.value; applyStart(); reloadVariant(); });
 document.getElementById("k-blade").addEventListener("change", e => { P.blade = e.target.value; });
 document.getElementById("k-band").addEventListener("change", e => { P.band = e.target.checked; rerun(); });
-document.getElementById("k-buf").addEventListener("change", async e => { P.buf = e.target.value; document.getElementById("k-band").disabled = P.buf !== "tn"; await loadBuffer(); await loadHub(); rerun(); });
+document.getElementById("k-buf").addEventListener("change", async e => { P.buf = e.target.value; document.getElementById("k-band").disabled = bufKind() !== "tn"; await loadBuffer(); await loadHub(); rerun(); });
 document.getElementById("k-jam").addEventListener("change", e => { P.jam = e.target.value; rerun(); });
 document.getElementById("k-lane").addEventListener("change", e => { P.lane = +e.target.value; rerun(); });
 document.getElementById("k-see").addEventListener("input", e => { P.see = +e.target.value; syncOut(); });

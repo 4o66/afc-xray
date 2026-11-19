@@ -15,7 +15,7 @@ def crop(im, mask=None):
     x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
     return Image.fromarray(im[y0:y1, x0:x1].astype(np.uint8), "RGBA"), dict(x=int(x0), y=int(y0), w=int(x1 - x0), h=int(y1 - y0))
 import shutil; shutil.copy(D + "tools/hub_paths.json", D + "assets/hub_paths.json")   # the page reads the filament paths from here
-for hub in ("combo", "loadonly"):
+for hub in ("combo", "loadonly", "v10"):
     for view in ("top", "side"):
         modes = ["base"] + (["full", "slide"] if hub == "combo" else ["full"] if view == "side" else []) + (["over"] + (["overslide", "hwfix", "hwslide"] if hub == "combo" else []) if view == "top" else ["bear"])
         for m in modes: run({"HUB": hub, "VIEW": view, "MODE": m})
@@ -28,7 +28,7 @@ for hub in ("combo", "loadonly"):
         if "bear" in modes:   # hub sensor bearing: lift = filament top - bearing bottom, from the CAD
             full = np.load(B + "depth_full.npy"); zb = np.load(B + "depth_bear.npy")
             im, j["bear"] = crop(Image.open(B + "layer_bear.png"), binary_dilation((zb <= full + 0.05) & np.isfinite(zb), iterations=1)); im.save(A + "sprite_bear.png")
-            j["bear"].update({"lift": 2.38, "y_mm": 267.57} if hub == "combo" else {"lift": 2.48, "y_mm": 242.3})
+            j["bear"].update({"lift": 2.38, "y_mm": 267.57} if hub == "combo" else {"lift": 2.48, "y_mm": 242.3})   # v1.0: same bearing position as the load-only hub
         for m in ("over", "overslide", "hwfix", "hwslide"):
             if m in modes:
                 im, box = crop(Image.open(B + f"layer_{m}.png"))

@@ -13,7 +13,7 @@ AX, AZ = 150.1, PATHS["az"]              # outlet filament axis, along +Y; the i
 Y0 = 0.0; PXMM = 14; SS = 2; S = PXMM * SS; SUF = ""
 def hexc(h): return np.array([int(h[i:i+2], 16) for i in (1, 3, 5)], float)
 RULES = [
- (r"\[a\]_(buffer_trigger|hub/SOLID|bowden_retainer/SOLID|buffer_tag|cover)|hub_load_only_1\.1/SOLID", "Printed, accent", "#b8142c"),
+ (r"\[a\]_(buffer_trigger|hub/SOLID|bowden_retainer/SOLID|buffer_tag|cover)|hub_load_only_1\.1/SOLID|Hub_D2HW v2/COMPOUND002/COMPOUND$", "Printed, accent", "#b8142c"),
  (r"load_sense/SOLID|SOLID", "Printed, primary", "#3a3d44"),
  (r"PTFE|bowden_4x2", "PTFE tube, inferred (cut face pink)", "#e9ece4"),
  (r"Plunger|Collet Body|Grab Ring|Seal Retainer", "ECAS04 collets", "#4b6fa8"),
@@ -26,7 +26,7 @@ RULES = [
  (r"SHCS|STS", "Screws", "#7c828b"),
 ]
 def classify(n):
-    if re.search(r"wires|ZIP TIE|Logo", n) or n == "mount": return None, None   # the mounting bracket is left out
+    if re.search(r"wires|ZIP TIE|Logo|COMPOUND001$", n) or n == "mount": return None, None   # the mounting bracket is left out
     for rx, lab, col in RULES:
         if re.search(rx, n): return lab, col
     return "Other", "#9a9a9a"
@@ -50,7 +50,7 @@ def wanted(n):
     if MODE == "slide": return g == "slide"
     if MODE == "over": return g is None and re.search(OVER, n)
     if MODE == "overslide": return g == "slide" and re.search(OVER, n)
-src = "btcombo" if HUB == "combo" else "bthub_loadonly"
+src = {"combo": "btcombo", "loadonly": "bthub_loadonly", "v10": "bthub10"}[HUB]
 d = np.load(D + f"cad/{src}.npz"); N = json.load(open(D + f"cad/{src}.json")); parts = []
 for i, n in enumerate(N): parts.append((n, d["p%03d_V" % i].astype(float), d["p%03d_F" % i]))
 def lathe(poly, ax, n=96):

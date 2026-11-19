@@ -64,6 +64,9 @@ directed by the repository owner:
   between the barrel head and the washer as the outlet block moves. Which parts move, the 10 mm travel,
   the choice of hubs and the hub sensor bearing being lifted by the filament came from the owner; the lift (2.38 mm on the
   combo, 2.48 mm on the load-only hub) is measured from the CAD.
+- **v1.0 hub:** taken from the `BT-1.0` release's assembly and moved into the v1.1 hubs' frame by a rigid fit of the
+  hardware the two share (bearing, switch body and levers, screw): residuals under 0.001 mm. Its own ECAS04 collets give
+  its socket axes. They also agree with the socket position fitted for the load-only hub to 0.34 mm.
 - **Rendering:** every layer was composited at rest and compared with the full render. Visual problems the owner
   reported were fixed and checked again, among them a rotating part that should not rotate, holes in a layer, and the
   spring's shape.
